@@ -1,0 +1,27 @@
+# Cursor Rules for The LCA Speed Journal
+
+## Project Context
+
+**App:** The LCA Speed Journal  
+**Stack:** Next.js 14+ (App Router), Vercel, Vercel Postgres, NextAuth.js, Tailwind CSS  
+**Stage:** MVP Development  
+**User level:** Between vibe-coder and developer — explain steps and trade-offs in plain language; offer a small, testable step when the user is stuck.
+
+## Directives
+
+1. **Master Plan:** Read `AGENTS.md` first for current phase, tasks, and full workflow. Reference `agent_docs/` for tech stack, code patterns, requirements, and testing.
+2. **Plan Before Coding:** Propose a plan (and reference Python or Tech Design where relevant), wait for approval, then implement. Use Plan Mode (Shift+Tab) for complex multi-file or architectural changes.
+3. **Build Incrementally:** One feature or sub-feature at a time; verify DB and API after each change.
+4. **Review & Verify:** Review diffs before accepting; run `npm run dev`, hit APIs, confirm data. Fix before moving on.
+5. **Explain when helpful:** Briefly say why we do something (e.g. “parameterized queries prevent SQL injection”) so the human can learn and reuse the pattern.
+
+## Reference
+
+- Parsing, conversions, and session model: mirror `Python Scripts/2026 Coding/LCA-Speed-Journal/` (parser, conversions, config/metrics.json).
+- Full spec: `docs/PRD-LCA-Speed-Journal-MVP.md`, `docs/TechDesign-LCA-Speed-Journal-MVP.md`.
+
+## Commands
+
+- `npm run dev` — Start dev server
+- `npm run build` — Production build
+- `npm run lint` — Lint
