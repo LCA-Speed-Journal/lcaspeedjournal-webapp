@@ -1,0 +1,1 @@
+In most organizations, people only remember the first and the last core-value.

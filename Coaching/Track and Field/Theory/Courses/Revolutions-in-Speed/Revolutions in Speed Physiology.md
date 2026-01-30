@@ -1,0 +1,20 @@
+# [[Physiology]]
+- [[Adductor Magnus]]
+	- Adductor-Magnus is a Hip-Extensor, is the dominant muscle in female sprinters. Can train this doing a Straight-Leg Hip-Extension but with foot turned in.
+- Foot Turn-In:
+	- Turning the foot in activates the Posterior [[Glute-Med]], allows for more training of hip ext.
+- Injury Risk for Hamstring:
+	- Opposite glute and hip-rotators are all weak when the hamstring blows, usually same side tib, [[TFL]] are also off
+- Important Muscles:
+	- [[Rectus-Femoris]], [[Semitendinosis]]: Key. They need >7m/s to be fully activated, so drills need to be done at speed.
+- Preferences for Specific Muscles:
+	- [[Bicep Femoris]] likes speed, not load. Glute-Med likes both. Hip-Flexors loves High-Force.
+- Critique on Nordics
+	- Nordics are not built to train the Biceps-Femoris. It doesn't deal with that kind of load, and it doesn't like working like that, so can actually make things worse.
+- Propulsion
+	- [[Gastroc]] is the main muscle that propels, the Hamstrings and Glute-Med are the Acccelerators.
+- Soccer-Example: great stabilization from neck-up, but tend to have excessive forward-lean
+- Sprinter-Physiology
+	- [[Semitendinosis]] was the only hamstring muscle that was bigger in sprinters, and the bicep-femoris has much higher activation at speed.
+- The [[TFL]]
+	- Gives the Hip IR, seen as the most important muscle for high-performance (almost above the psoas)

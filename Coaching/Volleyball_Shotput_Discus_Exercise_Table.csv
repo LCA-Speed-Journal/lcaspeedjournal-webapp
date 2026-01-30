@@ -1,0 +1,84 @@
+Workout Bucket,Exercise Name,Recommended Sets/Reps,What does this develop,Alternatives,Subcategory
+Warmup,High Knees,2x15m,Hip flexor activation and coordination for quick movements,Marching High Knees in place
+Warmup,Leg Swings (Forward/Back Lateral),8-10 reps each side,Hip mobility in sagittal and frontal planes for jumping and throwing,Standing Leg Swings holding wall
+Warmup,Arm Circles,5-8 reps,Shoulder mobility and warmup for overhead movements,Arm Swings
+Warmup,World's Greatest Stretch,5 reps each side,Multi-planar hip and thoracic mobility for rotational power,Lunge with Reach
+Warmup,Bodyweight Squats,1-2x10 reps,Lower body activation and movement prep,Air Squats
+Warmup,Light Skipping,2-3x15-20m,General warmup and coordination,High Knee Skips
+Warmup,Shuffling,2-3x15-20m,Lateral movement patterns for court movement,Side Shuffles
+Warmup,Glute Bridge,2x10 reps,Glute activation for posterior chain power,Bodyweight Hip Thrust
+Warmup,Thoracic Rotations,5-8 reps each side,Thoracic spine rotation for throwing mechanics,Thread the Needle
+Warmup,Wall Slides,10-15 reps,Shoulder blade mobility and posture,Shoulder Dislocations
+Warmup,Calf Raises,2x15-20 reps,Ankle plantarflexor strength and mobility for jumping,Toe Walks
+Warmup,Ankle Circles,10 reps each direction,Ankle mobility in all planes,Ankle Alphabet
+Warmup,Cat-Cow,5 reps,Spinal flexion/extension mobility,Spinal Waves
+Warmup,Straight-Leg Kicks,8-10 reps each side,Hamstring flexibility for posterior chain mobility,High-Knee Pulls
+Warmup,A-Skips,2-3x10-15m,Sprint mechanics and coordination for quick movements,A-March or High Knees
+Power,Box Jumps,3x5-8 contacts,Vertical jump power and explosiveness for blocking/spiking,Tuck Jumps or Vertical Pop-Ups
+Power,Counter-Movement Jump (CMJ),2-3 attempts (full recovery 2-3min),Vertical jump power measurement and development,Vertical Pop-Ups or Seated Box Jump
+Power,Standing Broad Jump,3-4 attempts (full recovery 2-3min),Horizontal jump power for approach and throwing,Long Jump from Standing
+Power,Medicine Ball Overhead Throw,3 attempts (full recovery 2-3min),Upper body power and core for spiking/throwing,MB Vertical Throws or MB Chest Pass
+Power,Medicine Ball Rotational Throw,3x8-10 each side,Rotational power for discus/shotput mechanics,Resistance Band Woodchoppers or MB Scoop-Toss
+Power,Medicine Ball Underhand Throw,3-4 attempts (full recovery 2-3min),Lower body power transfer through upper body,MB Underhand Toss for Height or MB Reverse Throw
+Power,Jump Squat,2x5 reps,Explosive vertical jump with load,Bodyweight Squat Jumps or Tuck Jumps
+Power,Frog Hops,2-3x5 contacts,Light plyometric bilateral jump pattern,Baby Bounds or In-Place Jumps
+Power,Horizontal Bounds,2-3x10m,Horizontal force application for acceleration,Skips for Distance or Repeat Broad Jump
+Power,Tuck Jumps,3x10 reps,Explosive vertical jumps for power development,In-Place Jumps or Box Jumps
+Power,Medicine Ball Chest Pass,3x8-10 reps,Upper body power for spiking/throwing,MB Reverse Throw or Plyo Push-Up
+Power,Seated Box Jump,4x4 reps,Vertical jump power without leg drive,Seated Broad Jump or CMJ
+Power,Depth Drops (from low height),2x5-8 contacts,Reactive landing and power development,Box Jumps or Drop-Jumps
+Power,Alternating Split-Lunge Pogos,2x20 contacts,Ankle stiffness and reactive strength in lunge position,Split-Stance Pogos or Lunge Pulses
+Main-A,Front Squat,3-5 reps for strength/power 10-12 reps for hypertrophy,Front-loaded squat for quadriceps core strength and upright posture (optimal for sport transfer),Back Squat or DB Goblet Squat
+Main-A,BB Bench Press,3-5 reps for strength/power 8-12 reps for hypertrophy,Upper body strength for powerful arm movements,DB Bench Press or Push-Ups
+Main-A,BB Military Press,3-5 reps for strength/power 8-12 reps for hypertrophy,Overhead press strength for overhead actions,DB Shoulder Press or Push Press
+Main-A,Chin-Up,3-5 reps for strength/power 8-12 reps for hypertrophy,Pull-up strength for upper back and arm power,Neutral-Grip Chin-Up or Lat Pulldown or Assisted Pull-Up
+Main-A,BB Row,3x5-8 reps for strength/power 10-12 reps for hypertrophy,Barbell row strength for posterior chain and horizontal pulling,DB Row or Pendlay Row or Cable Row
+Main-A,Plyo Push-Up,3-4x3-5 reps (full recovery 2-3min),Explosive upper body power for quick arm actions,Bench Plyo Push-Ups or Clapping Push-Ups
+Main-A,Weighted Chin-Up,3x5 @ 3 RIR,Pull-up strength with load for progressive overload,Bodyweight Chin-Up or Lat Pulldown
+Main-A,Incline DB Press,3x8-12 reps,Upper body strength with incline angle for sport-specific pressing,BB Bench Press or DB Bench Press
+Main-A,Landmine Press (Half-Kneel),2x8-10 @ RPE 8,Unilateral shoulder strength with core stability for rotational power,DB Overhead Press or BB Military Press
+Main-A,Lat Pulldown,3x8-12 reps,Pull-down strength for upper back development when pull-ups limited,Chin-Up or Assisted Pull-Up or Inverted Row
+Main-A,DB Row,3x8-12 reps,Horizontal pulling strength with dumbbells for unilateral work,BB Row or Cable Row or Inverted Row
+Main-A,Tricep Pushdown,2x12-15 @ RPE 9,Tricep isolation for arm extension power,Overhead Tricep Extension or Close-Grip Push-Ups
+Main-A,Face-Pull,2x15 (pump) or 3x12-15,Posterior deltoid and upper trap strength for shoulder health,Band Pull-Aparts or DB Rear Delt Raise
+Main-B,Trap Bar Deadlift,3x5-8 reps for strength/power 10-12 reps for hypertrophy,Deadlift strength with neutral grip for safety and athletic positioning (optimal for novice),Conventional Deadlift or BB RDL or DB RDL
+Main-B,Bulgarian Split Squat,3x8-12 per leg,Split squat strength for unilateral lower body power,Reverse Lunge or DB Walking Lunge or Step-Ups
+Main-B,BB Hip Thrust,3x8-12 reps,Glute strength for hip extension power,DB Hip Thrust or Glute Bridge or Single-Leg Hip Thrust
+Main-B,Clean Pull,3x3-5 reps @ 75% 1RM,Olympic lift pull pattern for explosive power (if coached),Hang High Pull or Kettlebell Swing or Below-the-Knee Hang Clean
+Main-B,Good Morning,3x8-12 reps,Posterior chain strength for hip hinge pattern,RDL or Back Extension or Hip Thrust
+Main-B,Single-Leg RDL,3x8-12 per leg,Single-leg posterior chain strength for stability and power,B-Stance RDL or DB RDL or Bulgarian Split Squat
+Main-B,Step-Ups,3x8-12 per leg,Step-up strength for unilateral power and coordination,Box Step-Ups or Lunges or Bulgarian Split Squat
+Main-B,Deficit RDL,2x7-8 @ 2 RIR (RPE 8),Romanian deadlift from deficit for increased range of motion,BB RDL or DB RDL or Good Morning
+Main-B,Reverse Lunge,3x8-12 per leg,Reverse lunge for quadriceps and glutes,Forward Lunge or Split Squat or Walking Lunge
+Main-B,Glute-Ham Raise (GHD),2x AMRAP to RPE 8,Glute-hamstring raise strength for posterior chain,Back Extension or Good Morning or Nordic Curl
+Main-B,Leg Curl,3x10-12 reps,Hamstring isolation for knee flexion strength,Lying Hamstring Curl or Machine Leg-Curl
+Main-B,Seated Calf Raise,2x12 or 3x15,Calf strength seated for soleus development,Standing Calf Raise or Single-Leg Calf Raise
+Secondary,Medicine Ball Rotational Throws,3x8-10 each side,Rotational power for discus/shotput mechanics,Resistance Band Rotations or Cable Woodchoppers or Partner MB Rotation Throws
+Secondary,Partner MB Rotation Throws,3-4x8-10 each direction,Partner rotational throws for power development,MB Rotational Throws or Band Rotations
+Secondary,MB Lateral Lunge Jump,3x3 per side,Rotational lunge jump for multi-planar power,Lateral Bounds or Lateral Lunges
+Secondary,Lateral Bounds,3x8-10 each side,Lateral agility and power for court movement,Side Lunges or Lateral Hops or Carioca
+Secondary,MB Rainbows,2x10 each side,Rotational core pattern for throwing mechanics,Russian Twists or Med Ball Rotations
+Secondary,Repeat Broad Jump,3-4x5 jumps (2-3min rest),Repeated horizontal jumps for power endurance,Standing Broad Jump or Horizontal Bounds
+Secondary,2-3 Step Pop-Ups,3-4x3 contacts,Jump preparation with approach for volleyball,Vertical Pop-Ups or Box Jumps
+Secondary,Continuous Gallops,3-4x15-20m,Rhythm and coordination for jumping approach,Gallops or Skip Bounds
+Secondary,Single-Leg Hops,3x8-10 per leg,Single-leg reactive power for landing mechanics,Alternating SL Hops or Easy Hops
+Secondary,MB Backward Overhead Throws,3x8-10 reps,Backward throw pattern for posterior chain power,MB Overhead Throw or MB Reverse Throw
+Secondary,MB Underhand Toss for Height,3x5-8 reps,Vertical throw power for overhead movements,MB Vertical Throws or MB Underhand Throw
+Secondary,Resistance Band Rotations,3x12-15 each side,Rotational power with resistance bands,MB Rotational Throws or Cable Woodchoppers
+Secondary,MB Scoop-Toss,2x8 per side,Rotational power and hip drive for throwing mechanics,MB Rotational Throws or Band Rotations
+Secondary,Shuttle Runs,3x20m (5-10-5 pattern),Acceleration deceleration and change of direction for court movement,Cone Drills or Ladder Drills
+Accessory,High Side-Plank,2x45-60s each side,Oblique isometric strength for rotational stability,Standard Side-Plank or Side-Plank with Leg Lift
+Accessory,Pallof Press,2x30s (light) or 3x30-45s (weighted),Core anti-rotation for rotational stability,Standing Cable Anti-Rotation or Band Pallof Press
+Accessory,Dead Bug,2x30-45s,Core anti-extension for stability,Alternating Toe Taps or Bird-Dog
+Accessory,Bird-Dog,2x30-45s,Core stability and coordination,Dead Bug or Quadruped Opposite Arm/Leg
+Accessory,Russian Twists,2x10-15 each side,Core rotational strength for throwing power,Med Ball Rotations or Weighted Rotations
+Accessory,Med Ball Slams,3x10-12 reps,Core and upper body power for explosive movements,MB Overhead Throw or MB Vertical Throws
+Accessory,Banded Clamshells,2x12-15 each side,Hip external rotator activation for hip stability,Bodyweight Clamshells or Side-Lying Hip Abduction
+Accessory,Banded Monster Walks,2x12-15 each direction,Hip abductor activation for lateral stability,Side Lunges or Lateral Band Walks
+Accessory,Single-Leg Glute Bridge,2-3x10-12 each,Single-leg glute activation for hip stability,Double-Leg Glute Bridge or Hip Thrust
+Accessory,Single-Leg Calf Raise,3x12-15 per leg,Single-leg calf strength for ankle stability,Double-Leg Calf Raises or Standing Calf Raise
+Accessory,Toe Raises,2x15-20 reps,Ankle dorsiflexor strength for landing mechanics,Heel Walks or Banded Tibialis Raise
+Accessory,Copenhagen,3x12-15 reps,Hip adductor and core strength for hip stability,Side-Plank with Leg Lift or Adductor Squeeze
+Accessory,Plank,2x30-60s,Core stability for overall athletic performance,High Plank or Forearm Plank
+Accessory,Ab Rollout,2x12-15 or 3 RIR,Core anti-extension strength for stability,Dead Bug or Plank
+Accessory,Hanging Knee Raise,2x15-25 reps,Hip flexor and core strength for hanging position,Leg Raises or Reverse Crunch

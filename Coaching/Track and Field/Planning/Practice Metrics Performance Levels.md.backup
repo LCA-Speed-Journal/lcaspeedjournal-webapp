@@ -1,0 +1,311 @@
+
+---
+
+## Note on Benchmark Adjustments
+
+Some benchmarks in this document have been adjusted based on real athlete data from the 2024-2025 seasons. Adjusted values are marked with an asterisk (*). The adjustments use a weighted average of theoretical and empirical data, with weights based on sample size (n=1 → 20% weight, n≥5 → 100% weight).
+
+For details on the adjustment methodology and full comparison data, see `benchmark_validation_report.txt` and `benchmark_comparison.csv` in the LCA-Speed-Journal project directory.
+
+---
+---
+topic:
+  - "[[2025-26 Season]]"
+  - "[[+Track and Field]]"
+tags:
+related:
+  - "[[Performance Levels Analysis]]"
+  - "[[Hamline-Elite Qualifying Standards]]"
+  - "[[2024-2025 Class A State-Qualifying Standards]]"
+  - "[[2024-25 Sectional Qualifying Standards in 4A]]"
+  - "[[MCAA Conference Podium Standards]]"
+  - "[[Shakopee T&F_Middle-School Qualification]]"
+  - "[[Reddit Sprint Charts]]"
+---
+created: 2026-01-04
+modified: 2026-01-04
+___
+# Practice Metrics Performance Levels
+
+This document translates track & field event performance standards into practice metric standards across 8 levels of competition. This analysis helps gauge where athletes are at in their key practice metrics (Max Velocity, X-Factor, Lactic) and understand the performance thresholds needed to be competitive at each level in actual competition.
+
+## Competition Level Hierarchy
+1. **Hamline Elite** - Elite state-wide meet pulling top marks across all divisions (Average Qualifying Mark since 2014)
+2. **Class A State Qualifying** - State championship qualifying standard
+3. **Section Standout** - Intermediate standard between State and Sectional qualifying (calculated as midpoint)
+4. **Sectional Qualifying (4A)** - Sectional championship qualifying standard  
+5. **MCAA Conference Podium (5th Place)** - Conference-level podium threshold (Average of 2023-2025)
+6. **Varsity Avg** - Varsity-level average standard (1/3 of the gap from Conference to MS Qualification)
+7. **JV Avg** - JV-level average standard (2/3 of the gap from Conference to MS Qualification)
+8. **Middle School → JV/Varsity Qualification** - Entry-level standard for MS athletes (using "Existing T&F/XC Performance" standards)
+---
+# Comparison Tables
+
+## Speed
+
+### Max Velocity
+
+Max Velocity represents the highest velocity (mph) achieved from any split metric in practice. For boys, this is derived from flying sprint m/s values in Reddit Sprint Charts. For girls, this is derived from 100m event standards using Tony Holler's conversion relationships.
+
+| Gender | Hamline Elite | State Class A | Section Standout | Sectional 4A | MCAA Conference | Varsity Avg | JV Avg | MS Qualification |
+|--------|---------------|---------------|------------------|--------------|-----------------|-------------|--------|------------------|
+||Boys|22.4|21.6|21.3|21.2 *|20.9 *|21.3 *|19.4 *|17.2 *
+||Girls|18.7|19.1|18.6 *|16.9|16.8|15.5|15.0 *|16.3 *
+
+### Acceleration: 30m Block
+
+The 30m Block Start measures acceleration from a block start, indicating explosive acceleration capability. Standards are derived from Reddit Sprint Charts, mapped to our performance levels based on 100m sprint times.
+
+| Gender | Hamline Elite | State Class A | Section Standout | Sectional 4A | MCAA Conference | Varsity Avg | JV Avg | MS Qualification |
+|--------|---------------|---------------|------------------|--------------|-----------------|-------------|--------|------------------|
+||Boys|4.14|4.14|4.24|4.31 *|4.34|4.50 *|4.60|5.33 *
+||Girls|4.64|4.54|4.74 *|4.74|4.74|4.94|5.14|5.45 *
+
+## X-Factor Metrics
+
+X-Factor metrics indicate explosive output for sprints and direct correlation to jump events. Standards are derived from jump event performances using conversion ratios.
+
+### Boys Standards
+
+| Metric | Hamline Elite | State Class A | Section Standout | Sectional 4A | MCAA Conference | Varsity Avg | JV Avg | MS Qualification |
+|--------|---------------|---------------|------------------|--------------|-----------------|-------------|--------|------------------|
+| Vertical Jump | 28.25" | 27.25" | 26.38" | 25.5" | 23.5" | 21.0" | 18.5" | 15.5" |
+| Standing Broad Jump | 9' 10" | 9' 6.25" | 9' 4.25" | 9' 2.25" | 8' 10.25" | 8' 4.17" | 7' 10.33" | 7' 6.5" |
+| Standing Triple Jump | 19' 4" | 19' 1.5" | 17' 11.75" | 16' 10" | 17' 6.25" | 16' 11.17" | 16' 4.17" | 15' 1.75" |
+
+### Girls Standards
+
+| Metric | Hamline Elite | State Class A | Section Standout | Sectional 4A | MCAA Conference | Varsity Avg | JV Avg | MS Qualification |
+|--------|---------------|---------------|------------------|--------------|-----------------|-------------|--------|------------------|
+| Vertical Jump | 23.5" | 20.5" | 19.12" | 17.75" | 15.5" | 14.67" | 13.83" | 13.5" |
+| Standing Broad Jump | 9' 2.25" | 8' 7.25" | 8' 4" | 8' 0.75" | 7' 6.75" | 7' 4.5" | 7' 2.25" | 7' 1" |
+| Standing Triple Jump | 16' 0.75" | 15' 8.5" | 14' 8.75" | 13' 9.25" | 13' 5.5" | 12' 9.58" | 12' 1.92" | 10' 8.75" |
+
+## Lactic Metrics
+
+Lactic metrics assess anaerobic capacity and endurance. These standards predict performance in sprints (200m/400m) and distance events (800m+).
+
+### Boys Standards
+
+The 24/28s Drill (also known as "23 Second Drill" in Feed the Cats) measures distance covered in 24 seconds (boys) at best effort, indicating 200m performance potential. The 3x200m test predicts 4x400m relay leg time, which translates to open 400m performance. The Kosmin 800m test (2 x 60s with 3min rest) predicts 800m performance, and the Kosmin 1600m test (4 x 60s with decreasing rest periods) predicts 1600m performance.
+
+| Metric | Hamline Elite | State Class A | Section Standout | Sectional 4A | MCAA Conference | Varsity Avg | JV Avg | MS Qualification |
+|--------|---------------|---------------|------------------|--------------|-----------------|-------------|--------|------------------|
+| 24s Drill (Distance in m) | 212.2 | 210.9 | 206.8 | 202.9 | 197.2 | 184.9 | 172.6 | 160.0 |
+| 3x200m Predicted 400m (s) | 51.15 | 51.53 | 53.16 | 54.78 | 55.46 | 1:01.87 | 1:08.37 | 1:15.00 |
+| Kosmin 800m (Total Distance in m) | 813.8 | 817.8 | 767.2 | 716.6 | 707.8 | 620.3 | 532.8 | 357.8 |
+| Kosmin 1600m (Total Distance in m) | 1416.9 | 1428.1 | 1365.2 | 1302.5 | 1267.4 | 1152.1 | 1036.8 | 806.1 |
+
+### Girls Standards
+
+The 24/28s Drill (also known as "23 Second Drill" in Feed the Cats) measures distance covered in 28 seconds (girls) at best effort, indicating 200m performance potential. The 3x200m test predicts 4x400m relay leg time, which translates to open 400m performance. The Kosmin 800m test (2 x 60s with 3min rest) predicts 800m performance, and the Kosmin 1600m test (4 x 60s with decreasing rest periods) predicts 1600m performance.
+
+| Metric | Hamline Elite | State Class A | Section Standout | Sectional 4A | MCAA Conference | Varsity Avg | JV Avg | MS Qualification |
+|--------|---------------|---------------|------------------|--------------|-----------------|-------------|--------|------------------|
+| 28s Drill (Distance in m) | 214.3 | 212.1 | 204.3 | 197.0 | 196.4 | 190.5 | 184.6 | 175.0 |
+| 3x200m Predicted 400m (s) | 59.74 | 1:00.32 | 1:03.11 | 1:05.90 | 1:06.81 | 1:12.60 | 1:18.40 | 1:24.00 |
+| Kosmin 800m (Total Distance in m) | 735.2 | 728.3 | 700.3 | 673.4 | 678.6 | 643.8 | 608.9 | 546.4 |
+| Kosmin 1600m (Total Distance in m) | 1187.4 | 1162.3 | 1066.9 | 971.3 | 1053.2 | 950.9 | 848.5 | 643.9 |
+
+---
+# Gap Analysis
+
+## Boys Performance Gaps
+
+| Metric | Elite → State | State → Section Standout | Section Standout → Sectional | Sectional → Conference | Conference → Varsity Avg | Varsity Avg → JV Avg | JV Avg → MS |
+|--------|---------------|--------------------------|-----------------------------|------------------------|----------------------|-------------------|------------|
+| Max-Velocity (mph) | -0.8 (-3.6%) | -0.3 (-1.4%) | -0.3 (-1.4%) | -0.7 (-3.3%) | -0.7 (-3.4%) | -0.7 (-3.6%) | -0.8 (-4.2%) |
+| 24/28s Drill (m) | -1.3 (-0.6%) | -4.1 (-1.9%) | -3.9 (-1.9%) | -5.7 (-2.8%) | -12.3 (-6.2%) | -12.3 (-6.7%) | -12.6 (-7.3%) |
+| 3x200m Predicted (s) | +0.38 (+0.7%) | +1.63 (+3.2%) | +1.62 (+3.0%) | +0.68 (+1.2%) | +6.41 (+11.6%) | +6.50 (+10.5%) | +6.63 (+9.7%) |
+| Kosmin 800m (m) | +4.0 (+0.5%) | -50.6 (-6.2%) | -50.6 (-6.6%) | -8.8 (-1.2%) | -87.5 (-12.4%) | -87.5 (-14.1%) | -175.0 (-32.8%) |
+| Kosmin 1600m (m) | +11.2 (+0.8%) | -62.9 (-4.4%) | -62.7 (-4.6%) | -35.1 (-2.7%) | -115.3 (-9.1%) | -115.3 (-10.0%) | -230.7 (-22.3%) |
+| Vertical Jump | -0' 1" (-2.8%) | -0' 0.88" (-3.2%) | -0' 0.88" (-3.3%) | -0' 2" (-7.7%) | -0' 2.5" (-10.6%) | -0' 2.5" (-11.9%) | -0' 3" (-16.2%) |
+| Standing Broad Jump | -0' 4" (-3.3%) | -0' 2" (-1.8%) | -0' 2" (-1.8%) | -0' 4" (-3.6%) | -0' 6.08" (-5.8%) | -0' 5.84" (-5.6%) | -0' 3.83" (-4.3%) |
+| Standing Triple Jump | -0' 2.40" (-1.0%) | -1' 1.75" (-6.0%) | -1' 1.75" (-6.4%) | +0' 8.16" (+4.0%) | -0' 7.08" (-3.4%) | -0' 7" (-3.3%) | -0' 2.42" (-2.5%) |
+
+## Girls Performance Gaps
+
+| Metric | Elite → State | State → Section Standout | Section Standout → Sectional | Sectional → Conference | Conference → Varsity Avg | Varsity Avg → JV Avg | JV Avg → MS |
+|--------|---------------|--------------------------|-----------------------------|------------------------|----------------------|-------------------|------------|
+| Max-Velocity (mph) | +0.4 (+2.1%) | -1.1 (-5.8%) | -1.1 (-6.1%) | -0.1 (-0.6%) | -1.3 (-7.7%) | -1.2 (-7.7%) | -1.3 (-9.1%) |
+| 24/28s Drill (m) | -2.2 (-1.0%) | -7.8 (-3.7%) | -7.3 (-3.6%) | -0.6 (-0.3%) | -5.9 (-3.0%) | -5.9 (-3.1%) | -9.6 (-5.2%) |
+| 3x200m Predicted (s) | +0.58 (+1.0%) | +2.79 (+4.6%) | +2.79 (+4.4%) | +0.91 (+1.4%) | +5.79 (+8.5%) | +5.80 (+8.0%) | +5.60 (+7.6%) |
+| Kosmin 800m (m) | -6.9 (-0.9%) | -28.0 (-3.8%) | -26.9 (-3.8%) | +5.2 (+0.8%) | -34.8 (-5.1%) | -34.9 (-5.4%) | -62.5 (-10.3%) |
+| Kosmin 1600m (m) | -25.1 (-2.1%) | -95.4 (-8.2%) | -95.6 (-9.0%) | +81.9 (+8.4%) | -102.3 (-9.7%) | -102.4 (-10.8%) | -204.6 (-24.1%) |
+| Vertical Jump | -0' 3" (-13.0%) | -0' 1.38" (-6.7%) | -0' 1.37" (-7.2%) | -0' 2.25" (-11.2%) | -0' 0.83" (-5.4%) | -0' 0.84" (-5.7%) | -0' 0.33" (-2.4%) |
+| Standing Broad Jump | -0' 7" (-6.3%) | -0' 3.25" (-3.1%) | -0' 3.25" (-3.3%) | -0' 6" (-6.2%) | -0' 2.25" (-2.4%) | -0' 2.25" (-2.4%) | -0' 1.25" (-1.4%) |
+| Standing Triple Jump | -0' 4.20" (-2.2%) | -0' 11.75" (-6.2%) | -0' 11.5" (-6.5%) | -0' 3.72" (-2.3%) | -0' 7.92" (-4.8%) | -0' 7.66" (-4.8%) | -1' 5.17" (-11.4%) |
+
+---
+# Key Insights
+
+## Overall Performance Level Differences
+
+1. **Elite to State**: Very small gaps (0-2%), indicating State qualifiers are near-elite level performers in practice metrics
+2. **State to Section Standout**: Moderate gaps (1-8% for most metrics), representing a meaningful step down from State qualifying standards
+3. **Section Standout to Sectional**: Moderate gaps (2-7% for most metrics), completing the transition from State to Sectional level
+4. **Sectional to Conference**: Generally small gaps (0-4%), with some metrics showing Conference being slightly higher/lower (likely due to conference competitiveness variations)
+5. **Conference to Varsity Avg**: Moderate gaps (3-8% for time events, 2-6% for field events), representing the transition from competitive conference-level performance to varsity-level average performance
+6. **Varsity Avg to JV Avg**: Moderate gaps (3-8% for time events, 2-6% for field events), representing the transition from varsity-level average to JV-level average performance
+7. **JV Avg to MS Qualification**: Moderate gaps (4-10% for time events, 2-11% for field events), representing the transition from JV-level average to middle school qualification standards
+
+## Metric-Specific Observations
+
+### Max Velocity
+- **Max Velocity (Boys)**: Standards derived from Reddit Sprint Charts flying sprint m/s values (converted to mph)
+  - Shows consistent moderate gaps between Elite/State/Sectional/Conference levels (3-4% lower)
+  - Moderate gaps from Conference to Varsity Avg to JV Avg to MS (approximately 3-4% lower per stage)
+- **Max Velocity (Girls)**: Derived directly from 100m performance standards using Tony Holler's conversion relationships
+  - Standards based on required mph to maintain target 100m times
+  - Shows variability in gaps (0.6-12.8%) reflecting differences in 100m performance levels
+  - Note: State level (19.1 mph) is slightly higher than Elite (18.7 mph) due to State's faster 100m time (12.65s vs 12.81s)
+- Max velocity is a strong predictor of sprint performance potential
+
+### Acceleration: 30m Block
+- **30m Block Start (Boys)**: Standards derived from Reddit Sprint Charts, mapped to performance levels based on 100m sprint times
+  - Hamline Elite/State (11.22-11.23s 100m) → Column 7 (11.2-11.3s) → 4.14s
+  - Section Standout (11.52s 100m) → Interpolated between Column 7 and Column 5 → 4.24s
+  - Sectional/Conference (11.82-11.83s 100m) → Column 5 (11.9-12.1s) → 4.34s
+  - Varsity Avg (12.29s 100m) → Interpolated between Column 5 and Column 3 → 4.47s
+  - JV Avg (12.74s 100m) → Column 3 (12.5-12.7s) → 4.60s
+  - MS Qualification (13.2s 100m) → Column 1 (13.2s) → 4.74s
+- **30m Block Start (Girls)**: Standards derived from Reddit Sprint Charts, mapped to performance levels based on 100m sprint times
+  - Hamline Elite (12.81s 100m) → Column 2 (12.9-13.1s) → 4.64s
+  - State (12.65s 100m) → Column 3 (12.5-12.7s) → 4.54s
+  - Section Standout (13.15s 100m) → Interpolated between Column 3 and Column 1 → 4.64s
+  - Sectional/Conference (13.65-13.66s 100m) → Column 1 (13.2s) → 4.74s
+  - Varsity Avg (14.24s 100m) → Extrapolated from Column 1 → 4.94s
+  - JV Avg (14.82s 100m) → Extrapolated from Column 1 → 5.14s
+  - MS Qualification (15.4s 100m) → Extrapolated from Column 1 → 5.34s
+- 30m Block Start measures explosive acceleration capability from a block start
+
+### X-Factor Metrics
+- **Vertical Jump (Boys)**: Standards derived from Reddit Sprint Charts show more realistic practice metric values (2'4" to 1'4" range)
+  - Shows moderate gaps between Elite/State/Sectional/Conference levels (3-8% lower)
+  - Moderate to large gaps from Conference to Varsity Avg to JV Avg to MS (approximately 10-16% lower per stage)
+- **Vertical Jump (Girls)**: Standards recalculated using men's decrement pattern, starting from men's Column 5 level (~23.4")
+  - Shows consistent large gaps between Elite/State/Sectional/Conference levels (11-13% lower)
+  - Starting point aligns proportionally with men's chart (men's Column 5 level)
+- **Standing Broad Jump (Boys)**: Standards derived from Reddit Sprint Charts show more realistic practice metric values (9'10" to 7'7" range)
+  - Shows consistent moderate gaps between Elite/State/Sectional/Conference levels (3-4% lower)
+  - Moderate gaps from Conference to Varsity Avg to JV Avg to MS (approximately 5-6% lower per stage)
+- **Standing Broad Jump (Girls)**: Standards recalculated using men's decrement pattern, starting from men's Column 6 level (~110.2")
+  - Shows consistent moderate gaps between Elite/State/Sectional/Conference levels (6% lower)
+  - Starting point aligns proportionally with men's chart (men's Column 6 level)
+- **Standing Triple Jump**: Shows significant variation, with moderate gaps at State → Section Standout → Sectional (6% lower at each stage) and notable variations at Sectional → Conference
+- Field event metrics show more variability than speed metrics, likely due to technique factors
+
+### Lactic Metrics
+- **24/28s Drill**: Shows consistent progression with smaller gaps between Elite and Conference (1-4%), moderate gaps from Conference to Varsity Avg to JV Avg to MS (approximately 6-7% lower per stage)
+- **3x200m Prediction**: Shows moderate to large gaps between Conference and Varsity Avg to JV Avg to MS (approximately 8-12% slower per stage), reflecting the substantial difference in 400m performance capability
+- **Kosmin 800m Test**: Shows very small gaps between Elite and State (0.5-0.9%), moderate gaps at State → Section Standout → Sectional (3.8-6.6% lower at each stage), and large gaps from Conference to Varsity Avg to JV Avg to MS (approximately 5-15% lower per stage, with larger gaps for JV Avg to MS)
+  - Boys show larger percentage gaps from Conference to Varsity Avg to JV Avg (12-14% lower per stage) compared to girls (5-5% lower per stage)
+  - Girls show a notable variation at Sectional → Conference (girls Conference slightly higher than Sectional, +0.8%)
+- **Kosmin 1600m Test**: Shows very small gaps between Elite and State (0.8-2.1%), moderate gaps at State → Section Standout → Sectional (4.4-9.0% lower at each stage), and large gaps from Conference to Varsity Avg to JV Avg to MS (approximately 9-10% lower per stage for Conference to Varsity Avg to JV Avg, with larger gaps for JV Avg to MS)
+  - Girls show a notable variation at Sectional → Conference (girls Conference higher than Sectional, +8.4%), likely due to conference competitiveness variations
+  - Both boys and girls show substantial gaps in the transition from competitive conference-level performance to entry-level performance, with the largest gaps in the JV Avg to MS transition
+- All lactic metrics demonstrate clear separation between competitive levels and entry-level performance
+
+---
+# Data Sources and Methodology
+
+## Sources
+
+- **Event Performance Standards**: Derived from `Performance Levels Analysis.md`, which synthesizes standards from:
+  - Hamline Elite: Average Qualifying Mark (compiled average since 2014) from `Hamline-Elite Qualifying Standards.md`
+  - Class A State: Standards from `2024-2025 Class A State-Qualifying Standards.md`
+  - Section Standout: Calculated as mathematical midpoint between State and Sectional qualifying standards
+  - Sectional 4A: Standards from `2024-25 Sectional Qualifying Standards in 4A.md`
+  - MCAA Conference: Average of 2023-2025 5th place marks from `MCAA Conference Podium Standards.md`
+  - Varsity Avg: Calculated as 1/3 of the gap from Conference to MS Qualification (Conference + (MS - Conference) / 3)
+  - JV Avg: Calculated as 2/3 of the gap from Conference to MS Qualification (Conference + 2*(MS - Conference) / 3)
+  - MS Qualification: "Existing T&F/XC Performance" standards from `Shakopee T&F_Middle-School Qualification.md`
+- **Reference Performance Charts**: `Reddit Sprint Charts.md` provides performance benchmarks at various sprint performance levels
+  - Used as source data for men's Max-Velocity (from flying sprint m/s values), 30m Block Start, Vertical Jump, and Standing Broad Jump standards
+  - 30m Block Start mapped to our performance levels based on 100m sprint time alignments
+  - Max-Velocity, Vertical Jump, and Standing Broad Jump mapped to our performance levels based on 200m time alignments
+  - Provides more realistic practice metric values than conversion from event performances
+
+## Conversion Formulas
+
+### Max Velocity
+- **Max Velocity (Boys)**: Derived from `Reddit Sprint Charts.md` flying sprint m/s values
+  - Flying sprint m/s values converted to mph using: mph = m/s × 2.237
+  - Reddit chart provides m/s values for flying sprints (Flying 10m, 20m, 25m, 30m) at 8 performance levels
+  - Mapped to our performance levels based on 200m time alignments
+- **Max Velocity (Girls)**: Derived directly from 100m performance standards using Tony Holler - [Translating MPH Into Track Times](https://trackfootballconsortium.com/translating-mph-into-track-times/)
+  - Direct mph relationships for 100m times:
+  - 12.50s → 19.4 mph, 12.65s → 19.1 mph, 12.81s → 18.7 mph, 13.00s → 18.3 mph
+  - 13.65s → 16.9 mph, 13.66s → 16.8 mph, 14.53s → 14.9 mph, 15.40s → 13.0 mph
+  - Linear interpolation/extrapolation between known data points
+  - Note: State level (19.1 mph) is slightly higher than Elite (18.7 mph) because State 100m time (12.65s) is faster than Elite (12.81s)
+- **Note**: Max velocity represents the ceiling - athletes must be CAPABLE of maintaining this speed, but actual 200m performance depends on speed endurance
+
+### Acceleration: 30m Block
+- **30m Block Start (Boys)**: Derived from `Reddit Sprint Charts.md` 30m Block Start values
+  - Reddit chart provides 30m Block Start times at 8 performance levels (columns 1-8)
+  - Mapped to our performance levels based on 100m sprint time alignments
+  - Column mapping: Elite/State (11.22-11.23s 100m) → Column 7 (4.14s), Sectional/Conference (11.82-11.83s 100m) → Column 5 (4.34s), JV Entry (12.52s 100m) → Column 3 (4.54s), MS Qualification (13.2s 100m) → Column 1 (4.74s)
+- **30m Block Start (Girls)**: Derived from `Reddit Sprint Charts.md` 30m Block Start values
+  - Mapped to our performance levels based on 100m sprint time alignments
+  - Column mapping: Elite (12.81s 100m) → Column 2 (4.64s), State (12.65s 100m) → Column 3 (4.54s), Sectional/Conference (13.65-13.66s 100m) → Column 1 (4.74s)
+  - JV Entry (14.53s 100m) and MS Qualification (15.4s 100m) values extrapolated from Column 1 reference (5.04s and 5.34s respectively)
+- **Note**: 30m Block Start measures acceleration capability from a block start, indicating explosive acceleration potential
+
+### X-Factor Metrics
+- **Vertical Jump (Boys)**: Derived from `Reddit Sprint Charts.md` performance benchmarks
+  - Represents distance from standing reach (vertical jump test measurement)
+  - Mapped to performance levels based on 200m times
+  - **Vertical Jump (Girls)**: Recalculated using men's decrement pattern
+    - Starting point: men's Column 5 level (~23.4" / 1' 11.5") from Reddit Sprint Charts
+    - Applied men's average decrement pattern (12.84% per level) to calculate subsequent levels
+    - More realistic practice metric values than previous conversion from High Jump clearance
+- **Standing Broad Jump (Boys)**: Derived from `Reddit Sprint Charts.md` performance benchmarks
+  - More realistic values for practice metrics than conversion from Long Jump
+  - Mapped to performance levels based on 200m times
+  - **Standing Broad Jump (Girls)**: Recalculated using men's decrement pattern
+  - Starting point: men's Column 6 level (~110.2" / 9' 2.25") from Reddit Sprint Charts
+  - Applied men's average decrement pattern (6.29% per level) to calculate subsequent levels
+  - More realistic practice metric values than previous conversion from Long Jump distance
+- **Standing Triple Jump**: 0.45 × Triple Jump distance (research-based ratio)
+  - Accounts for run-up and technique advantages in Triple Jump
+- **Note**: Boys' standards (Max-Velocity, Vertical Jump, Standing Broad Jump) are derived from Reddit Sprint Charts. Girls' standards are recalculated using men's decrement pattern with proportional starting points from men's chart levels. This provides more realistic practice metric values than previous conversion ratios, which were approximate and varied based on individual athlete characteristics and technique development
+
+### Lactic Metrics
+- **24/28s Drill**: distance (m) = (24 or 28 / target_200m_time) × 200m
+  - Calculates distance covered in 24 seconds (boys) or 28 seconds (girls) at the target 200m pace
+  - Also known as "23 Second Drill" in Feed the Cats methodology
+- **3x200m Prediction**: Directly uses 400m event standards as predicted times
+  - Based on relationship: 400m ≈ (200m×2)+4s for boys, (200m×2)+5s for girls (Tony Holler)
+  - 3x200m test accounts for fatigue in the prediction, so 400m standards are used directly
+- **Kosmin 800m Test**: Works backwards from 800m event standards using standard Kosmin formulas
+  - Test protocol: 2 x 60s maximal efforts with 3min rest between, measuring total distance covered
+  - **Boys**: Distance (m) = (217.77778 - Time_seconds) / 0.119556
+  - **Girls**: Distance (m) = e^((1451.46 - Time_seconds) / 198.54)
+    - Note: Standard formula uses natural logarithm (ln) as base-10 logarithm produces unrealistic values
+  - Formulas derived from standard Kosmin test research (runbundle.com, sportresources.blogspot.com)
+- **Kosmin 1600m Test**: Works backwards from 1600m event standards using 1500m Kosmin formula
+  - Test protocol: 4 x 60s maximal efforts with decreasing rest periods (3min, 2min, 1min), measuring total distance covered
+  - Also known as "Kosmin 1500m Test" (translated to mile/1600m)
+  - **Boys**: Distance (m) = (500.52609 - Time_seconds) / 0.162174
+  - **Girls**: Distance (m) = (510.52609 - Time_seconds) / 0.162174
+  - Formulas derived from standard Kosmin test research (runbundle.com, sportresources.blogspot.com)
+- **Note**: 3200m Kosmin test standards are not included in this analysis
+
+## Calculations
+
+- **Time formats**: All times converted to seconds for calculations, displayed in original format (SS.ms or MM:SS.ms)
+- **Distance formats**: Maintained in feet'inches" format for readability, rounded to nearest quarter-inch
+- **Gap percentages**: Calculated as ((Level 2 - Level 1) / Level 1) × 100 (negative indicates lower/faster for speed/distance metrics, positive indicates slower for time metrics)
+
+## Notes
+
+- Practice metric standards are derived by working backwards from event performance standards using established conversion relationships
+- These standards represent targets for practice metrics that correlate with competitive event performance levels
+- Individual athlete results may vary from these standards based on technique, training history, and event specialization
+- Max-velocity measurements should use the highest velocity achieved from any split metric in practice (30-40m split, 40-50m split, etc.)
+- X-Factor metrics are measured without run-up (standing/vertical jump tests)
+- Lactic metrics are performed at best effort with appropriate rest protocols
+- These standards provide benchmarks for tracking athlete development across the key practice metric categories
+
+

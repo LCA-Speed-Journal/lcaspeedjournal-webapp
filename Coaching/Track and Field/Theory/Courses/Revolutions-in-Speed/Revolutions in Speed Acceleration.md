@@ -1,0 +1,20 @@
+# Acceleration
+- Angular Velo
+	- Pulling from behind the foot to over-the-top is the big one here. Yuris do this, but can mimic with other things as well.
+- Common Flaws (Team-Sport)
+	- Vertical Push: Too-Upright. Fix with Heavy Resisted, External Constraints, or cueing a "Drive Away from the line, explode at your target."
+	- Hip/Trunk Flex: Crunched Over. Fix with Short Resisted (but caution), Heavy Sleds, MB Accels/Projections, focusing the 1st Step (from a half-kneeling), and cueing a "proud chest."
+- Creating Falling
+	- Acceleration is "Falling with Intent, and Landing in Control." Need to get Extension-Strength out of our Toes, helps bring our center of pressure (CoP) more to the forefoot, where the elites live.
+- Cueing Leg
+	- #1 cue (Korfist) is to push off the back leg, develop a false step, etc.
+	- Block back leg up on a wall, push off to get front shin to drop
+- First Step
+	- Reverse Hyper translates best for first step (SL Reverse-Hyper ISO-Push was the most ideal format)
+	- Start Propulsion Band (Band anchored behind, check Cal's YT). ISO-Pushes, OSC Reps, etc. Hand matching the FWD Foot is facing down. 
+- Posture
+	- Remember, we need the mass out in front of the engine (i.e. the butt). If it's behind, we're behind, and if we're behind, we're slow.
+- Programming
+	- Korfist only did 1x Fly-10 day in the season, priority was Accel for entire first block
+- [[PSR Model]] (see also: [[Jonas Dodoo]])
+	- As J. Dodoo (SpeedWorks) — Projection (Push/Jab), Switching (Big-Shapes), Reactivity (High-GRF).

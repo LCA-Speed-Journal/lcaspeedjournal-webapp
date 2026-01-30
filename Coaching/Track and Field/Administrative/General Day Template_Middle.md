@@ -1,0 +1,22 @@
+## Warmup
+| Section                                             | Description                                                                                                          | Sets/Reps | Time (mins) |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | --------- | ----------- |
+| Start with something Gentle/Easier                  | Doesn't have to be a lot— just get them focusing on practice. <br>Talk through the plan, do icebreakers, etc.        | 3-5 mins  | 5           |
+| Progress to either a) Mobility, or b) some Strength | Can be traditional mobility, dynamic mobility like hurdles, or something strength-oriented like an isometric.        | 4-6 mins  | 6           |
+| End with something Dynamic                          | Usually get there by the end of the above, but if not, transitioning to actually moving before rolling into priming. | 5-8 mins  | 6           |
+## CNS Priming
+| Section                                                    | Description                                                                                                                                 | Sets/Reps | Time (mins) |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----------- |
+| Easier Drills                                              | Easier, lower-intensity drills like  <br>pogo hops, A-Skips, or marches                                                                     | 3-4 mins  | 4           |
+| Progressing or  <br>Getting Faster                         | Getting the drills a little faster or more involved, like rapid high-knees or skips for height                                              | 3-5 mins  | 5           |
+| Finish with either a) Something Hard, or b) Something Fast | If it's a sprinting day, these look closer to sprinting (long bounds, etc). On other days, this can really be any "harder" form of a drill. | 3-4 mins  | 4           |
+## Main Work
+| Section                                                              | Description                                                                                                                                                                                                                                                                                                                               | Time (mins) |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| Main Work A:  <br>When in doubt, make it Competitive and/or Measured | Some form of sprinting or jumping.    <br>Distance will be off running — this'll be the speed/power kids. Measuring, timing, or competing are the easiest ways to make sure they try hard and nobody sandbags any reps.  <br>For MS Track, it really doesn't need to be anything fancy — they just need consistent exposure to max-speed. | 10          |
+| Main Work B:  <br>(if working two metrics in the same day)           |                                                                                                                                                                                                                                                                                                                                           | 10          |
+## Accessories
+| Section                          | Description                                                                                                      | Time (mins) |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ----------- |
+| Accessory A: Strength or Tech    | Something to support the main activity of their events.<br>Foot/Lower-Leg, Core, Hip — all good candidates here. | 4           |
+| Accessory B, C: Usually Strength | When doing more than one accessory, I usually try to make sure at least some part is strength development.       | 4           |

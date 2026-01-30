@@ -1,0 +1,10 @@
+{
+  "theme": "moonstone",
+  "accentColor": "",
+  "cssTheme": "AnuPpuccin",
+  "enabledCssSnippets": [
+    "extended-colorschemes"
+  ],
+  "baseFontSize": 12,
+  "interfaceFontFamily": "Montserrat"
+}

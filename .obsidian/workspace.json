@@ -1,0 +1,720 @@
+{
+  "main": {
+    "id": "106b82aa3b37caa5",
+    "type": "split",
+    "children": [
+      {
+        "id": "6a90c3e7d3a74488",
+        "type": "split",
+        "children": [
+          {
+            "id": "86462fd6c30c0275",
+            "type": "split",
+            "dimension": 23.439099283520985,
+            "children": [
+              {
+                "id": "cc78d39fa5afb743",
+                "type": "split",
+                "dimension": 20.366598778004075,
+                "children": [
+                  {
+                    "id": "14de3f6e4eeed40d",
+                    "type": "tabs",
+                    "children": [
+                      {
+                        "id": "7407f25a90c8c3a4",
+                        "type": "leaf",
+                        "state": {
+                          "type": "markdown",
+                          "state": {
+                            "file": "Daily Notes/2026-01-20.md",
+                            "mode": "source",
+                            "source": false,
+                            "backlinks": true,
+                            "backlinkOpts": {
+                              "collapseAll": false,
+                              "extraContext": false,
+                              "sortOrder": "alphabetical",
+                              "showSearch": false,
+                              "searchQuery": "",
+                              "backlinkCollapsed": false,
+                              "unlinkedCollapsed": true
+                            }
+                          },
+                          "icon": "lucide-file",
+                          "title": "2026-01-20"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cc69e9f882560824",
+                    "type": "tabs",
+                    "children": [
+                      {
+                        "id": "b9140c475b2f850c",
+                        "type": "leaf",
+                        "state": {
+                          "type": "calendar",
+                          "state": {},
+                          "icon": "calendar-with-checkmark",
+                          "title": "Calendar"
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "direction": "horizontal"
+              },
+              {
+                "id": "cb883906996c5d24",
+                "type": "tabs",
+                "dimension": 79.63340122199592,
+                "children": [
+                  {
+                    "id": "3d0ecd49cc0bcdb1",
+                    "type": "leaf",
+                    "state": {
+                      "type": "markdown",
+                      "state": {
+                        "file": "Sales & Entrepreneurship/8-Week Training Outline - Gabe Imm.md",
+                        "mode": "source",
+                        "source": false,
+                        "backlinks": true,
+                        "backlinkOpts": {
+                          "collapseAll": false,
+                          "extraContext": false,
+                          "sortOrder": "alphabetical",
+                          "showSearch": false,
+                          "searchQuery": "",
+                          "backlinkCollapsed": false,
+                          "unlinkedCollapsed": true
+                        }
+                      },
+                      "icon": "lucide-file",
+                      "title": "8-Week Training Outline - Gabe Imm"
+                    }
+                  },
+                  {
+                    "id": "2a9a6faef3c88471",
+                    "type": "leaf",
+                    "state": {
+                      "type": "markdown",
+                      "state": {
+                        "file": "Sales & Entrepreneurship/Coaching Business/Strategy & Pricing/Pricing Model - School-Sponsored S&C Programs.md",
+                        "mode": "source",
+                        "source": false,
+                        "backlinks": true,
+                        "backlinkOpts": {
+                          "collapseAll": false,
+                          "extraContext": false,
+                          "sortOrder": "alphabetical",
+                          "showSearch": false,
+                          "searchQuery": "",
+                          "backlinkCollapsed": false,
+                          "unlinkedCollapsed": true
+                        }
+                      },
+                      "icon": "lucide-file",
+                      "title": "Pricing Model - School-Sponsored S&C Programs"
+                    }
+                  },
+                  {
+                    "id": "70634c26062a5ce4",
+                    "type": "leaf",
+                    "state": {
+                      "type": "markdown",
+                      "state": {
+                        "file": "Coaching/Track and Field/Phases/Detailed Preseason Outline — Week 2.md",
+                        "mode": "source",
+                        "source": false,
+                        "backlinks": true,
+                        "backlinkOpts": {
+                          "collapseAll": false,
+                          "extraContext": false,
+                          "sortOrder": "alphabetical",
+                          "showSearch": false,
+                          "searchQuery": "",
+                          "backlinkCollapsed": false,
+                          "unlinkedCollapsed": true
+                        }
+                      },
+                      "icon": "lucide-file",
+                      "title": "Detailed Preseason Outline — Week 2"
+                    }
+                  },
+                  {
+                    "id": "02fd0925d3bae2b8",
+                    "type": "leaf",
+                    "state": {
+                      "type": "markdown",
+                      "state": {
+                        "file": "Coaching/Track and Field/Events/Distance/Programming/Distance Offseason — Ben Wurst.md",
+                        "mode": "source",
+                        "source": false,
+                        "backlinks": true,
+                        "backlinkOpts": {
+                          "collapseAll": false,
+                          "extraContext": false,
+                          "sortOrder": "alphabetical",
+                          "showSearch": false,
+                          "searchQuery": "",
+                          "backlinkCollapsed": false,
+                          "unlinkedCollapsed": true
+                        }
+                      },
+                      "icon": "lucide-file",
+                      "title": "Distance Offseason — Ben Wurst"
+                    }
+                  },
+                  {
+                    "id": "98821d458b76bc06",
+                    "type": "leaf",
+                    "state": {
+                      "type": "markdown",
+                      "state": {
+                        "file": "Coaching/Track and Field/Phases/Preseason Phase Detailed Protocols - Variety Enhancements.md",
+                        "mode": "source",
+                        "source": false,
+                        "backlinks": true,
+                        "backlinkOpts": {
+                          "collapseAll": false,
+                          "extraContext": false,
+                          "sortOrder": "alphabetical",
+                          "showSearch": false,
+                          "searchQuery": "",
+                          "backlinkCollapsed": false,
+                          "unlinkedCollapsed": true
+                        }
+                      },
+                      "icon": "lucide-file",
+                      "title": "Preseason Phase Detailed Protocols - Variety Enhancements"
+                    }
+                  },
+                  {
+                    "id": "3f58124143170855",
+                    "type": "leaf",
+                    "state": {
+                      "type": "markdown",
+                      "state": {
+                        "file": "Coaching/Track and Field/Phases/Distance Outline (2025-26).md",
+                        "mode": "source",
+                        "source": false,
+                        "backlinks": true,
+                        "backlinkOpts": {
+                          "collapseAll": false,
+                          "extraContext": false,
+                          "sortOrder": "alphabetical",
+                          "showSearch": false,
+                          "searchQuery": "",
+                          "backlinkCollapsed": false,
+                          "unlinkedCollapsed": true
+                        }
+                      },
+                      "icon": "lucide-file",
+                      "title": "Distance Outline (2025-26)"
+                    }
+                  },
+                  {
+                    "id": "04a37e2645ffda52",
+                    "type": "leaf",
+                    "state": {
+                      "type": "markdown",
+                      "state": {
+                        "file": "Coaching/Track and Field/Phases/In-Season Distance Plan Outline (2025-26).md",
+                        "mode": "source",
+                        "source": false,
+                        "backlinks": true,
+                        "backlinkOpts": {
+                          "collapseAll": false,
+                          "extraContext": false,
+                          "sortOrder": "alphabetical",
+                          "showSearch": false,
+                          "searchQuery": "",
+                          "backlinkCollapsed": false,
+                          "unlinkedCollapsed": true
+                        }
+                      },
+                      "icon": "lucide-file",
+                      "title": "In-Season Distance Plan Outline (2025-26)"
+                    }
+                  }
+                ],
+                "currentTab": 6
+              }
+            ],
+            "direction": "vertical"
+          },
+          {
+            "id": "2b6928baea115c36",
+            "type": "tabs",
+            "dimension": 28.454452405322417,
+            "children": [
+              {
+                "id": "1a23d9a93354f64b",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "Coaching/Track and Field/Phases/Preseason Phase - Distance.md",
+                    "mode": "source",
+                    "source": false,
+                    "backlinks": true,
+                    "backlinkOpts": {
+                      "collapseAll": false,
+                      "extraContext": false,
+                      "sortOrder": "alphabetical",
+                      "showSearch": false,
+                      "searchQuery": "",
+                      "backlinkCollapsed": false,
+                      "unlinkedCollapsed": true
+                    }
+                  },
+                  "icon": "lucide-file",
+                  "title": "Preseason Phase - Distance"
+                }
+              },
+              {
+                "id": "57c4dd2dc6386b25",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "Coaching/Track and Field/Phases/Preparation Phase Distance.md",
+                    "mode": "source",
+                    "source": false,
+                    "backlinks": true,
+                    "backlinkOpts": {
+                      "collapseAll": false,
+                      "extraContext": false,
+                      "sortOrder": "alphabetical",
+                      "showSearch": false,
+                      "searchQuery": "",
+                      "backlinkCollapsed": false,
+                      "unlinkedCollapsed": true
+                    }
+                  },
+                  "icon": "lucide-file",
+                  "title": "Preparation Phase Distance"
+                }
+              },
+              {
+                "id": "5fc838bb03cc1daa",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "Competition Phase Distance.md",
+                    "mode": "source",
+                    "source": false,
+                    "backlinks": true,
+                    "backlinkOpts": {
+                      "collapseAll": false,
+                      "extraContext": false,
+                      "sortOrder": "alphabetical",
+                      "showSearch": false,
+                      "searchQuery": "",
+                      "backlinkCollapsed": false,
+                      "unlinkedCollapsed": true
+                    }
+                  },
+                  "icon": "lucide-file",
+                  "title": "Competition Phase Distance"
+                }
+              },
+              {
+                "id": "278e2dc89c4a4c6c",
+                "type": "leaf",
+                "state": {
+                  "type": "pdf",
+                  "state": {
+                    "file": "Coaching/Track and Field/Administrative/middle_distance_guide.pdf",
+                    "page": 63,
+                    "left": -25,
+                    "top": 69,
+                    "zoom": 0.6392045454545454
+                  },
+                  "icon": "lucide-file-text",
+                  "title": "middle_distance_guide"
+                }
+              }
+            ],
+            "currentTab": 2
+          },
+          {
+            "id": "66222411c1f29cfd",
+            "type": "tabs",
+            "dimension": 48.106448311156605,
+            "children": [
+              {
+                "id": "d08e8ad73a2500a4",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "Work/FPP Overview.md",
+                    "mode": "source",
+                    "source": false,
+                    "backlinks": true,
+                    "backlinkOpts": {
+                      "collapseAll": false,
+                      "extraContext": false,
+                      "sortOrder": "alphabetical",
+                      "showSearch": false,
+                      "searchQuery": "",
+                      "backlinkCollapsed": false,
+                      "unlinkedCollapsed": true
+                    }
+                  },
+                  "icon": "lucide-file",
+                  "title": "FPP Overview"
+                }
+              },
+              {
+                "id": "77d2607d143ca939",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "APM PM Advancement Overview.md",
+                    "mode": "source",
+                    "source": false,
+                    "backlinks": true,
+                    "backlinkOpts": {
+                      "collapseAll": false,
+                      "extraContext": false,
+                      "sortOrder": "alphabetical",
+                      "showSearch": false,
+                      "searchQuery": "",
+                      "backlinkCollapsed": false,
+                      "unlinkedCollapsed": true
+                    }
+                  },
+                  "icon": "lucide-file",
+                  "title": "APM PM Advancement Overview"
+                }
+              }
+            ]
+          }
+        ],
+        "direction": "vertical"
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "04641f77eefc09cf",
+    "type": "split",
+    "children": [
+      {
+        "id": "2f12e78dcfcc160e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "361f948adbb5f06d",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "byModifiedTime",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "2ddcaf5c0ea22ecf",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "tag:MOC",
+                "matchingCase": true,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "db1287f0b9cb7eda",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 570,
+    "collapsed": true
+  },
+  "right": {
+    "id": "c01bed7608585098",
+    "type": "split",
+    "children": [
+      {
+        "id": "e8c410cff6a291f8",
+        "type": "tabs",
+        "dimension": 35.56201550387597,
+        "children": [
+          {
+            "id": "fdb5ae4e4bf94054",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          },
+          {
+            "id": "d0cbf162c89eac99",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "1e4561826ad5adcc",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Coaching/Track and Field/Programming/Previous Athlete Programs/Addy-Dixon — Block 2 — Fall 2025.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Addy-Dixon — Block 2 — Fall 2025"
+            }
+          },
+          {
+            "id": "fbe11ab4ab4cf6c9",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Coaching/Track and Field/Programming/Previous Athlete Programs/Addy-Dixon — Block 2 — Fall 2025.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Addy-Dixon — Block 2 — Fall 2025"
+            }
+          },
+          {
+            "id": "865f9add227c1b15",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Coaching/Track and Field/Programming/Previous Athlete Programs/Addy-Dixon — Block 2 — Fall 2025.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Addy-Dixon — Block 2 — Fall 2025"
+            }
+          },
+          {
+            "id": "b943414c7ac07326",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Non-Work Tasks.md",
+                "mode": "source",
+                "source": false,
+                "backlinks": true,
+                "backlinkOpts": {
+                  "collapseAll": false,
+                  "extraContext": false,
+                  "sortOrder": "alphabetical",
+                  "showSearch": false,
+                  "searchQuery": "",
+                  "backlinkCollapsed": false,
+                  "unlinkedCollapsed": true
+                }
+              },
+              "icon": "lucide-file",
+              "title": "Non-Work Tasks"
+            }
+          }
+        ]
+      },
+      {
+        "id": "63e43ccb4bebc248",
+        "type": "tabs",
+        "dimension": 64.43798449612403,
+        "children": [
+          {
+            "id": "144b8b9c32179b09",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Work/Projects/Value-Prop/Intro-Module Storyboard.md",
+                "mode": "source",
+                "source": false,
+                "backlinks": true,
+                "backlinkOpts": {
+                  "collapseAll": false,
+                  "extraContext": false,
+                  "sortOrder": "alphabetical",
+                  "showSearch": false,
+                  "searchQuery": "",
+                  "backlinkCollapsed": false,
+                  "unlinkedCollapsed": true
+                }
+              },
+              "icon": "lucide-file",
+              "title": "Intro-Module Storyboard"
+            }
+          },
+          {
+            "id": "90d75324d53f839f",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Work/Projects/Value-Prop/Differentiations Storyboard.md",
+                "mode": "source",
+                "source": false,
+                "backlinks": true,
+                "backlinkOpts": {
+                  "collapseAll": false,
+                  "extraContext": false,
+                  "sortOrder": "alphabetical",
+                  "showSearch": false,
+                  "searchQuery": "",
+                  "backlinkCollapsed": false,
+                  "unlinkedCollapsed": true
+                }
+              },
+              "icon": "lucide-file",
+              "title": "Differentiations Storyboard"
+            }
+          },
+          {
+            "id": "55cafe995c667f3f",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Work/Learning and Development.md",
+                "mode": "source",
+                "source": false,
+                "backlinks": true,
+                "backlinkOpts": {
+                  "collapseAll": false,
+                  "extraContext": false,
+                  "sortOrder": "alphabetical",
+                  "showSearch": false,
+                  "searchQuery": "",
+                  "backlinkCollapsed": false,
+                  "unlinkedCollapsed": true
+                }
+              },
+              "icon": "lucide-file",
+              "title": "Learning and Development"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 250
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "bases:Create new base": false,
+      "canvas:Create new canvas": true,
+      "daily-notes:Open today's daily note": true,
+      "templates:Insert template": true,
+      "command-palette:Open command palette": false,
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "templater-obsidian:Templater": false,
+      "omnisearch:Omnisearch": false,
+      "obsidian-book-search-plugin:Create new book note": false,
+      "pdf-plus:PDF++: Toggle auto-copy": false,
+      "pdf-plus:PDF++: Toggle auto-focus": false,
+      "pdf-plus:PDF++: Toggle auto-paste": false,
+      "obsidian-kanban:Create new board": false,
+      "periodic-notes:Open today": false
+    }
+  },
+  "active": "d08e8ad73a2500a4",
+  "lastOpenFiles": [
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/symlinked/_/node_modules/foo.js",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/multirepo/packages/package-a/package.json",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/multirepo/packages/package-a/index.js",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/multirepo/packages/package-b/package.json",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/multirepo/packages/package-b/index.js",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/shadowed_core/node_modules/util/index.js",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/symlinked/_/symlink_target",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/same_names/foo/index.js",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/module_dir/zmodules/bbb/main.js",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/nested_symlinks/mylib/package.json",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/symlinked/_/node_modules",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/@typescript-eslint/typescript-estree/node_modules/semver/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/@typescript-eslint/typescript-estree/node_modules/brace-expansion/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/@typescript-eslint/eslint-plugin/node_modules/ignore/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/@eslint-community/eslint-utils/node_modules/eslint-visitor-keys/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/tsconfig-paths/node_modules/json5/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/tsconfig-paths/node_modules/json5/LICENSE.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/sharp/node_modules/semver/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/tinyglobby/node_modules/picomatch/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/tinyglobby/node_modules/fdir/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/openid-client/node_modules/yallist/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/openid-client/node_modules/lru-cache/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/is-bun-module/node_modules/semver/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/fast-glob/node_modules/glob-parent/README.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/fast-glob/node_modules/glob-parent/CHANGELOG.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/tabindex-no-positive.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/scope.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/role-supports-aria-props.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/role-has-required-aria-props.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/prefer-tag-over-role.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/no-static-element-interactions.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/no-redundant-roles.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/no-onchange.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/no-noninteractive-tabindex.md",
+    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/no-noninteractive-element-interactions.md",
+    "Coaching/Projects/LCA-Speed Vercel/public/window.svg",
+    "Coaching/Projects/LCA-Speed Vercel/public/next.svg",
+    "Coaching/Projects/LCA-Speed Vercel/public/globe.svg",
+    "Coaching/Projects/LCA-Speed Vercel/public/file.svg",
+    "Coaching/Projects/LCA-Speed Vercel/public/vercel.svg",
+    "Coaching/Projects/LCA-Speed Vercel/lca-speed-journal/public/window.svg",
+    "Coaching/Projects/LCA-Speed Vercel/lca-speed-journal/public/vercel.svg",
+    "Coaching/Projects/LCA-Speed Vercel/lca-speed-journal/public/next.svg",
+    "Coaching/Projects/LCA-Speed Vercel/lca-speed-journal/public/globe.svg",
+    "Coaching/Projects/LCA-Speed Vercel/lca-speed-journal/public/file.svg",
+    "Untitled.canvas"
+  ]
+}

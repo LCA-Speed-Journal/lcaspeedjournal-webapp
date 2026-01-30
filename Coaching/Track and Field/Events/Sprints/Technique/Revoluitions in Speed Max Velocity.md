@@ -1,0 +1,13 @@
+# MaxV
+- Common Team-Sport Flaws
+	- Flexed Posture or Backside-Dominant. Usually fix with dribbles, but PVC Sprints can also fix the former.
+- Mechanics
+	- Need fast foot into the ground, also need fast foot off the gorund. Either of these gets slow, bad things happen.
+- Slice vs Stomp
+	- "Slice, don't stomp. Too many drills focus on stomp-like behavior (A-Skips, High-Knees), can reinforce a pattern we don't want.
+	- Stomping is too vertical, does not propel as well."
+- Why Can't Get to the Big Toe
+	- No Foot Rotation,
+	- No Ankle Rotation,
+	- No Thigh Rotation,
+	- No Torso Stability

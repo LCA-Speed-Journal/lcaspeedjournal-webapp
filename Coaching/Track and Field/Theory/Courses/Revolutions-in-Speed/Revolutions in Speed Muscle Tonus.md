@@ -1,0 +1,13 @@
+# [[Muscle Tonus]]
+- Basic Theory
+	- "Muscle tonus (resting tension) more responsible for sharp performance decline than ""fatigue"" might be. 
+	- Address for higher potential volume,"
+- Fixing Tone
+	- Tonus too High? do a faster stretch or a drop-based exercise. 
+	- Tonus too Low? OVC ISOs or Short Concentric work.
+- Intra-Set [[RPR]]
+	- "Cal uses a gun, but hands work. Helps tonus lower as set # increases. Target muscles of primary patterns, then perform next set. 
+	- Timing is pre-speed/quality, post-conditioning."
+- Scap/Knee
+	- Control through the scap / kneecap helps disctate stability and the speed of repositioning. If these go, things deteriorate.  
+	- As Korfist said, "if your mid-back goes bad? You're fucked."

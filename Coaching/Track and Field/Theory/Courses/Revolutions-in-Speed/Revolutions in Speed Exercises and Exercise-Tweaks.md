@@ -1,0 +1,33 @@
+# Exercises and Exercise-Tweaks
+- Straight-Leg Hip Extension
+	- Ideally, isokinetic, and don’t support externally
+	- Hamstring: turn foot in
+	- Glute-Med: turn foot out
+- Straight-Leg Hip Flexion
+	- Opposite pattern of the S. Leg Hip Ext., hits Rec. Fem
+- Training the TFL
+	- 4-Way Hip, but can sub-for Bands. Turn foot inward when doing straight-leg Hip-Flexion (pull-thrus). Follow up with straight-foot for R. Fem
+	- "Both toes in, face ~45deg away. Maintain 10deg gap between thighs at start. Standing Hip abduction. 
+	- When going through ROM, tilt hip as doing a hip-hike. Get closer hip inside the heel."
+- 45-Degree Back-Extension
+	- Feet should be turned out, should do single-leg, and should not use weight. Tip hips under at the top to help further extend.
+- A Swap for Spring-Ankle
+	- "Split Drives — toes turned out; opp. knee drives in, will feel in supporting-leg hip. Driving arm (back foot arm) up on wall. Heel needs to drive over ball of big toe. 
+	- Straight leg (weak calf manifests through quad taking over by forcing knee-bend, even if just a few degrees). Can apply the ""block up big toe"" thing here too."
+- Front-Sided Prime-Times
+	- Slight foot turnout, Arms swinging wide and across. 
+	- Progress by starting slow, making sure all contacts are on ball of big-toe. 
+		- Too fast too quick, turns into a heel.
+- Pairing: GHD
+	- GHD likes to be paired with a Bent-Knee Prime-Time.
+- Prime-Times
+	- Don't overcue the split, but do coach to remember pushing out the back of the movement (not immediate rebound)
+- Prime-Times
+	- "Need slight forward lean to get more out of prime times. Don't rebound, want to push out the back, not just slap ground. Once good, add weight. 
+	- Beginners do it straight-legged, sometimes PVC."
+- Pulling Patterns
+	- Getting the elbow to cross the body makes it more applicable to arm-drive, power comes from ripping through
+- Sets/Reps
+	- When doing flexion/extension work, we want higher reps, aiming for 30-50.
+- Yuris
+	- 3 Foot positions: accel, mid-stance, and pull-phase (stance-phase). Adjust by the foot-distance from the body

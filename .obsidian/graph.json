@@ -1,0 +1,58 @@
+{
+  "collapse-filter": false,
+  "search": "-tag:#dailyNote",
+  "showTags": false,
+  "showAttachments": false,
+  "hideUnresolved": false,
+  "showOrphans": false,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    {
+      "query": "tag:#person  OR tag:#role  ",
+      "color": {
+        "a": 1,
+        "rgb": 6078166
+      }
+    },
+    {
+      "query": "tag:#source  ",
+      "color": {
+        "a": 1,
+        "rgb": 14069084
+      }
+    },
+    {
+      "query": "file:+",
+      "color": {
+        "a": 1,
+        "rgb": 11392604
+      }
+    },
+    {
+      "query": "tag:#work  ",
+      "color": {
+        "a": 1,
+        "rgb": 14048348
+      }
+    },
+    {
+      "query": "tag:#2026-Plan",
+      "color": {
+        "a": 1,
+        "rgb": 16711914
+      }
+    }
+  ],
+  "collapse-display": false,
+  "showArrow": false,
+  "textFadeMultiplier": 1.5,
+  "nodeSizeMultiplier": 2.03958333333333,
+  "lineSizeMultiplier": 0.6359375,
+  "collapse-forces": false,
+  "centerStrength": 0.09375,
+  "repelStrength": 20,
+  "linkStrength": 0.473958333333333,
+  "linkDistance": 500,
+  "scale": 0.0078125,
+  "close": true
+}

@@ -1,0 +1,13 @@
+# FTC Hurdle-Drills
+- Lead-Leg Wall Drill
+	- Projecting past the hip
+	- Lifting from the Knee
+- Trail-Leg Wall Drill
+	- Hands at waist-level on a support (rail, etc.)
+	- Reach hips back, trail-leg long, then sweep through
+- Lead-Leg Walkovers, Skipovers
+	- Tall Posture, strong projection with knee
+	- Vertical emphasis
+- Trail-Leg Walkovers, Skipovers
+	- Step even with the crossbar (or slightly past) before bringing trail through
+- Full Walkover (combining Lead and Trail Walkover)

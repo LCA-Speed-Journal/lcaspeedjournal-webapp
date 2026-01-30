@@ -1,0 +1,20 @@
+# Practice Structure
+- Dynamic Power Potentiation: Combining short [[OVC ISOs]] (1-3s) to prime a pattern
+- Functional Contrast Transfer: Combine [[Performance Pattern Cycling]] with [[Contrast Sets]] 
+	- Ex. Quad → R. Hyper (or staggered RDL) → Yuri → Prime-Time
+- Fly-10 Tweaking: Korfist says they’re great for young/novice athletes, but beyond that, acceleration is the real money-maker.
+	- In Application: Korfist only drilled 0-5m for the first 3wks at HF
+- More on [[Performance Pattern Cycling]]: Pair antagonists and agonists
+	- Don’t want to force quad-dominance, so balance with something like Back-SQ → Heavy Resisted [[Chuck-Berry Walks]].
+		- Do this is **not** hitting a specific need int he workout.
+- [[Skill-Drill-Sport]]: Spans the spectrum of Low → High in the following areas
+	- Predictability
+	- Control
+	- Simplicity of Outcome
+	- Closed/Open
+	- Single/Multi-Task
+	- Inter-Rep Variability
+- [[Skill-Drill-Sport]]: Definitions
+	- Skills: component Parts
+	- Drills: Accels/MaxV/COD
+	- Sport: things like mirroring, evading, putting things together organically

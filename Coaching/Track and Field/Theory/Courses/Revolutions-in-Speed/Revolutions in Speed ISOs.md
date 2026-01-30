@@ -1,0 +1,14 @@
+# ISOs
+- Acceleration ISOs
+	- FFE Belt-SQ OVC ISO, need to get the hip over the back knee to mimic acceleration, load over the front knee.
+- Agility and COD
+	- Hip IR, Groin-Adduction
+- MaxV
+	- "Pause the Yuri at the top. Stand-Phase: Driving forward.
+	- Clark-105's, training for a fast switch and a decent split: Hip-ISO Glute-Push."
+- Programming
+	- "ISOs are killer for STR, but does slow max-speed when used for a whole block (only if you're elite, novice guys don't see as much). 
+	- Additionally, Follow up ISOs with Yuri or Prime-Times to offset."
+- [[Chris Korfist]]/[[Tony Holler]] Disagreement
+	- "Korfist likes doing some specific endurance with things like a longer-rep followed by an iso-hold. 
+	- When doing longer reps (takes drills out to 25-30+) however, tech needs to stay clean."
