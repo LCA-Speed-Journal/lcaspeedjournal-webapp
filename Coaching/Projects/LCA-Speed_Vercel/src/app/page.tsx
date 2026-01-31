@@ -9,8 +9,14 @@ export default function Home() {
       </p>
       <div className="mt-8 flex flex-wrap gap-4">
         <Link
-          href="/data-entry"
+          href="/leaderboard"
           className="rounded-lg bg-black px-4 py-2 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200"
+        >
+          Leaderboard
+        </Link>
+        <Link
+          href="/data-entry"
+          className="rounded-lg border px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
         >
           Data entry
         </Link>

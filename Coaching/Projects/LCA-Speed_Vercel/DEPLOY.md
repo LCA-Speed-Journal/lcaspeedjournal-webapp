@@ -2,6 +2,8 @@
 
 ## 1. Push to GitHub
 
+**Latest batch:** Live leaderboard (GET `/api/leaderboard`, `/api/leaderboard/session-metrics`), expandable metrics with checkbox multi-select, 3-column card grid, name/value-focused card layout.
+
 **Note:** LCA-Speed_Vercel may be inside a parent repo (e.g. Starter-Vault). Run commands from the git root.
 
 ```bash
@@ -16,8 +18,8 @@ git add .
 # Check what will be committed
 git status
 
-# Commit
-git commit -m "Add data entry: session setup, athletes, entries with parsing/conversions"
+# Commit (latest batch: live leaderboard + session-metrics + card grid + multi-select)
+git commit -m "Add live leaderboard: session-metrics API, expandable metrics, checkbox multi-select, card grid, name/value-focused cards"
 
 # Push to main
 git push origin main

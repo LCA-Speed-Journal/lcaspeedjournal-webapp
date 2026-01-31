@@ -19,3 +19,13 @@ export type Session = {
   session_notes: string | null;
   created_at: string;
 };
+
+export type LeaderboardRow = {
+  rank: number;
+  athlete_id: string;
+  first_name: string;
+  last_name: string;
+  gender: string;
+  display_value: number;
+  units: string;
+};
