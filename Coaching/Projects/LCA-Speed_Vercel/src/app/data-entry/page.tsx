@@ -69,7 +69,7 @@ export default async function DataEntryPage() {
     <div className="relative min-h-screen overflow-hidden bg-background px-6 py-8 md:px-8 md:py-10">
       <PageBackground />
       <div className="relative z-10 mx-auto max-w-4xl">
-        <div className="rounded-2xl border-2 border-border/80 bg-surface/90 p-6 shadow-2xl shadow-black/30 backdrop-blur-sm ring-1 ring-white/5 md:p-8" style={{ boxShadow: "0 0 15px 2px rgba(255,255,255,0.04), 0 25px 50px -12px rgba(0,0,0,0.3)" }}
+        <div className="rounded-2xl border-2 border-border/80 bg-surface/90 p-6 shadow-2xl shadow-black/30 backdrop-blur-sm ring-1 ring-white/5 md:p-8" style={{ boxShadow: "0 0 15px 2px rgba(255,255,255,0.04), 0 25px 50px -12px rgba(0,0,0,0.3)" }}>
           <header className="mb-8 flex items-center justify-between">
             <div>
               <div className="mb-4 inline-block h-1 w-16 rounded-full bg-accent" />
