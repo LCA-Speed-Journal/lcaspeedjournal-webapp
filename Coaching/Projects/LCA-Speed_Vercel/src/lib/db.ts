@@ -12,7 +12,12 @@ try {
   const pool = createPool();
   sqlExport = pool.sql.bind(pool);
 } catch (err) {
-  const e = err as { code?: string };
+  const e = err as { code?: string; message?: string };
+  if (e?.code === "missing_connection_string") {
+    throw new Error(
+      "POSTGRES_URL is not set. Add it in Vercel → Project → Settings → Environment Variables."
+    );
+  }
   if (e?.code === "invalid_connection_string") {
     console.warn(
       "[db] POSTGRES_URL does not contain \"-pooler.\"; using direct connection (queries may be slow or time out). Use the pooled URL from Vercel (Storage → Postgres → Connect)."

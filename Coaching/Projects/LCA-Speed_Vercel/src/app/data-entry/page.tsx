@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import metricsData from "@/lib/metrics.json";
 import { SessionForm } from "./SessionForm";
+import { AthleteForm } from "./AthleteForm";
+import { EntryForm } from "./EntryForm";
 import Link from "next/link";
 
 const PHASES = [
@@ -14,13 +16,44 @@ const PHASES = [
   "Championship",
 ] as const;
 
-/** Metric key and display label for session setup */
-const metricOptions = Object.entries(metricsData as Record<string, { display_name: string }>).map(
-  ([key, m]) => ({ key, label: m.display_name })
+/** Metric key, label, and structure for session setup */
+type MetricMeta = {
+  display_name: string;
+  input_structure: string;
+  default_splits: (number | string)[];
+};
+const metricOptions = Object.entries(metricsData as Record<string, MetricMeta>).map(
+  ([key, m]) => ({
+    key,
+    label: m.display_name,
+    input_structure: m.input_structure,
+    default_splits: m.default_splits ?? [],
+  })
 );
 
+function DataEntryError({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen p-4 md:p-8">
+      <h1 className="text-xl font-bold text-red-600 dark:text-red-400">Data entry error</h1>
+      <p className="mt-2 font-mono text-sm text-zinc-700 dark:text-zinc-300">{message}</p>
+      <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+        If this is a deployment, ensure NEXTAUTH_SECRET, NEXTAUTH_URL, and POSTGRES_URL are set in Vercel → Project → Settings → Environment Variables. NEXTAUTH_URL must be your Vercel app URL (e.g. https://your-app.vercel.app).
+      </p>
+      <Link href="/" className="mt-4 inline-block text-sm underline">Home</Link>
+    </div>
+  );
+}
+
 export default async function DataEntryPage() {
-  const session = await getServerSession(authOptions);
+  let session;
+  try {
+    session = await getServerSession(authOptions);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[data-entry] server error:", err);
+    return <DataEntryError message={message} />;
+  }
+
   if (!session) {
     redirect("/login?callbackUrl=/data-entry");
   }
@@ -44,6 +77,16 @@ export default async function DataEntryPage() {
           metricOptions={metricOptions}
         />
       </section>
+
+        <section className="mb-8">
+          <h2 className="mb-4 text-lg font-semibold">Add athlete</h2>
+          <AthleteForm />
+        </section>
+
+        <section className="mb-8">
+          <h2 className="mb-4 text-lg font-semibold">Add entry</h2>
+          <EntryForm />
+        </section>
 
       <section>
         <h2 className="mb-2 text-lg font-semibold">Recent sessions</h2>

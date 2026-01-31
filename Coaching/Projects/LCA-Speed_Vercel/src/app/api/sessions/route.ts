@@ -26,7 +26,7 @@ function serializeSessionRow(row: Record<string, unknown>) {
 export async function GET() {
   try {
     const { rows } = await sql`
-      SELECT id, session_date, phase, phase_week, day_metrics, session_notes, created_at
+      SELECT id, session_date, phase, phase_week, day_metrics, day_splits, session_notes, created_at
       FROM sessions
       ORDER BY session_date DESC, created_at DESC
       LIMIT 100
@@ -55,6 +55,7 @@ export async function POST(request: NextRequest) {
       phase,
       phase_week,
       day_metrics,
+      day_splits,
       session_notes,
     } = body;
 
@@ -72,18 +73,35 @@ export async function POST(request: NextRequest) {
       Array.isArray(day_metrics) && day_metrics.length > 0
         ? JSON.stringify(day_metrics)
         : null;
+    let daySplitsJson: string | null = null;
+    if (
+      day_splits != null &&
+      typeof day_splits === "object" &&
+      !Array.isArray(day_splits)
+    ) {
+      const sanitized: Record<string, number[]> = {};
+      for (const [k, v] of Object.entries(day_splits)) {
+        if (Array.isArray(v) && v.every((n) => typeof n === "number" && n > 0)) {
+          sanitized[k] = v as number[];
+        }
+      }
+      if (Object.keys(sanitized).length > 0) {
+        daySplitsJson = JSON.stringify(sanitized);
+      }
+    }
     const notes = session_notes ?? null;
 
     const insertPromise = sql`
-      INSERT INTO sessions (session_date, phase, phase_week, day_metrics, session_notes)
+      INSERT INTO sessions (session_date, phase, phase_week, day_metrics, day_splits, session_notes)
       VALUES (
         ${String(session_date)},
         ${String(phase)},
         ${Number(phase_week)},
         ${dayMetricsJson},
+        ${daySplitsJson},
         ${notes}
       )
-      RETURNING id, session_date, phase, phase_week, day_metrics, session_notes, created_at
+      RETURNING id, session_date, phase, phase_week, day_metrics, day_splits, session_notes, created_at
     `;
     const timeoutPromise = new Promise<never>((_, reject) =>
       setTimeout(

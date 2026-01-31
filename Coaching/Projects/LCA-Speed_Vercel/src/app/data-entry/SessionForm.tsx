@@ -2,10 +2,26 @@
 
 import { useState } from "react";
 
+type MetricOption = {
+  key: string;
+  label: string;
+  input_structure?: string;
+  default_splits?: (number | string)[];
+};
+
 type SessionFormProps = {
   phases: readonly string[];
-  metricOptions: { key: string; label: string }[];
+  metricOptions: MetricOption[];
 };
+
+function parseSplitsInput(input: string): number[] | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split(/[,\s]+/).filter(Boolean);
+  const nums = parts.map((p) => parseInt(p, 10));
+  if (nums.some((n) => Number.isNaN(n) || n <= 0)) return null;
+  return nums;
+}
 
 export function SessionForm({ phases, metricOptions }: SessionFormProps) {
   const [sessionDate, setSessionDate] = useState(() => {
@@ -15,15 +31,39 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
   const [phase, setPhase] = useState(phases[0] ?? "Preseason");
   const [phaseWeek, setPhaseWeek] = useState(1);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
+  const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
   const [sessionNotes, setSessionNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [createdId, setCreatedId] = useState<string | null>(null);
 
   function toggleMetric(key: string) {
+    const isDeselecting = selectedMetrics.includes(key);
+    if (isDeselecting) {
+      setCustomSplits((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
     setSelectedMetrics((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
     );
+  }
+
+  const cumulativeMetrics = metricOptions.filter(
+    (m) => m.input_structure === "cumulative" && selectedMetrics.includes(m.key)
+  );
+
+  function buildDaySplits(): Record<string, number[]> | undefined {
+    const out: Record<string, number[]> = {};
+    for (const m of cumulativeMetrics) {
+      const input = customSplits[m.key]?.trim();
+      if (!input) continue;
+      const parsed = parseSplitsInput(input);
+      if (parsed && parsed.length > 0) out[m.key] = parsed;
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -32,6 +72,7 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
     setCreatedId(null);
     setLoading(true);
     try {
+      const day_splits = buildDaySplits();
       const res = await fetch("/api/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -40,6 +81,7 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
           phase,
           phase_week: phaseWeek,
           day_metrics: selectedMetrics.length > 0 ? selectedMetrics : undefined,
+          day_splits,
           session_notes: sessionNotes.trim() || undefined,
         }),
       });
@@ -133,6 +175,45 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
           )}
         </div>
       </div>
+
+      {cumulativeMetrics.length > 0 && (
+        <div>
+          <span className="mb-2 block text-sm font-medium">
+            Custom splits (optional) — comma-separated meters, e.g. 5,5 or 10,10
+          </span>
+          <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
+            Override defaults for cumulative metrics. Leave blank to use metric default.
+          </p>
+          <div className="space-y-2">
+            {cumulativeMetrics.map((m) => {
+              const defaultStr = (m.default_splits as number[]).join(", ");
+              return (
+                <div key={m.key} className="flex items-center gap-3">
+                  <label
+                    htmlFor={`splits_${m.key}`}
+                    className="min-w-[120px] text-sm"
+                  >
+                    {m.label}
+                  </label>
+                  <input
+                    id={`splits_${m.key}`}
+                    type="text"
+                    value={customSplits[m.key] ?? ""}
+                    onChange={(e) =>
+                      setCustomSplits((prev) => ({
+                        ...prev,
+                        [m.key]: e.target.value,
+                      }))
+                    }
+                    placeholder={defaultStr}
+                    className="flex-1 rounded border px-3 py-2 text-sm font-mono"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div>
         <label htmlFor="session_notes" className="mb-1 block text-sm font-medium">

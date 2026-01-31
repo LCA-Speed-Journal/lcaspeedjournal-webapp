@@ -1,0 +1,241 @@
+"use client";
+
+import { useState } from "react";
+import useSWR from "swr";
+import metricsData from "@/lib/metrics.json";
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+type MetricDef = {
+  display_name: string;
+  input_units: string;
+  input_structure: string;
+  default_splits: (number | string)[];
+};
+
+const metrics = metricsData as Record<string, MetricDef>;
+
+function metricOptions() {
+  return Object.entries(metrics).map(([key, m]) => ({
+    key,
+    label: m.display_name,
+    inputStructure: m.input_structure,
+    inputUnits: m.input_units,
+    defaultSplits: m.default_splits,
+  }));
+}
+
+function inputHint(
+  metric: ReturnType<typeof metricOptions>[0] | null,
+  sessionSplits?: Record<string, number[]> | null
+): string {
+  if (!metric) return "Select a metric";
+  if (metric.inputStructure === "single_interval") {
+    return `e.g. 1.45 (${metric.inputUnits})`;
+  }
+  if (metric.inputStructure === "cumulative") {
+    const splits = sessionSplits?.[metric.key] ?? (metric.defaultSplits as number[]);
+    const n = Array.isArray(splits) && splits.length > 0 ? splits.length : 2;
+    const splitsStr = Array.isArray(splits) && splits.length > 0
+      ? splits.map((m) => `${m}m`).join(", ")
+      : null;
+    const ex = n === 2 ? "0.95|1.85" : n === 3 ? "0.95|1.85|2.65" : "0.95|1.85|2.65|3.40";
+    const base = `e.g. ${ex} (${n} pipe-separated values, ${metric.inputUnits})`;
+    return splitsStr ? `Splits: ${splitsStr} — ${base}` : base;
+  }
+  if (metric.inputStructure === "paired_components") {
+    const labels = (metric.defaultSplits as string[])?.join("|") ?? "L|R";
+    return `e.g. 450|420 (${labels}, ${metric.inputUnits})`;
+  }
+  return "";
+}
+
+export function EntryForm() {
+  const [sessionId, setSessionId] = useState("");
+  const [athleteId, setAthleteId] = useState("");
+  const [metricKey, setMetricKey] = useState("");
+  const [rawInput, setRawInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const { data: sessionsRes } = useSWR<{
+    data: {
+      id: string;
+      session_date: string;
+      phase: string;
+      phase_week: number;
+      day_metrics?: string[] | null;
+      day_splits?: Record<string, number[]> | null;
+    }[];
+  }>("/api/sessions", fetcher);
+  const { data: athletesRes } = useSWR<{ data: { id: string; first_name: string; last_name: string }[] }>(
+    "/api/athletes",
+    fetcher
+  );
+
+  const sessions = sessionsRes?.data ?? [];
+  const athletes = athletesRes?.data ?? [];
+  const allOptions = metricOptions();
+  const selectedSession = sessions.find((s) => s.id === sessionId);
+  const sessionMetrics = selectedSession?.day_metrics;
+  const options =
+    Array.isArray(sessionMetrics) && sessionMetrics.length > 0
+      ? allOptions.filter((o) => sessionMetrics.includes(o.key))
+      : allOptions;
+  const selectedMetric = options.find((o) => o.key === metricKey) ?? null;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/entries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: sessionId,
+          athlete_id: athleteId,
+          metric_key: metricKey,
+          raw_input: rawInput.trim(),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Failed to save entry");
+        return;
+      }
+      const count = json.data?.count ?? 1;
+      setSuccess(`Saved ${count} ${count === 1 ? "entry" : "entries"}`);
+      setRawInput("");
+    } catch {
+      setError("Network error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const canSubmit = sessionId && athleteId && metricKey && rawInput.trim();
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="max-w-xl space-y-4 rounded-lg border p-4 shadow-sm md:p-6"
+    >
+      <div>
+        <label htmlFor="entry_session" className="mb-1 block text-sm font-medium">
+          Session
+        </label>
+        <select
+          id="entry_session"
+          value={sessionId}
+          onChange={(e) => {
+            const newId = e.target.value;
+            setSessionId(newId);
+            const sess = sessions.find((s) => s.id === newId);
+            const dm = Array.isArray(sess?.day_metrics) ? sess!.day_metrics : null;
+            if (metricKey && dm && dm.length > 0 && !dm.includes(metricKey)) {
+              setMetricKey("");
+              setRawInput("");
+            }
+          }}
+          className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+          required
+        >
+          <option value="">Select session</option>
+          {sessions.map((s) => (
+            <option key={s.id} value={s.id}>
+              {String(s.session_date).slice(0, 10)} — {s.phase} wk {s.phase_week}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="entry_athlete" className="mb-1 block text-sm font-medium">
+          Athlete
+        </label>
+        <select
+          id="entry_athlete"
+          value={athleteId}
+          onChange={(e) => setAthleteId(e.target.value)}
+          className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+          required
+        >
+          <option value="">Select athlete</option>
+          {athletes.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.first_name} {a.last_name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="entry_metric" className="mb-1 block text-sm font-medium">
+          Metric
+          {sessionMetrics && sessionMetrics.length > 0 && (
+            <span className="ml-1 font-normal text-zinc-500">(from session)</span>
+          )}
+        </label>
+        <select
+          id="entry_metric"
+          value={metricKey}
+          onChange={(e) => {
+            setMetricKey(e.target.value);
+            setRawInput("");
+          }}
+          className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+          required
+        >
+          <option value="">Select metric</option>
+          {options.map((o) => (
+            <option key={o.key} value={o.key}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="entry_raw" className="mb-1 block text-sm font-medium">
+          Value
+        </label>
+        <input
+          id="entry_raw"
+          type="text"
+          inputMode="decimal"
+          autoComplete="off"
+          value={rawInput}
+          onChange={(e) => setRawInput(e.target.value)}
+          placeholder={inputHint(selectedMetric, selectedSession?.day_splits)}
+          className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+          required
+        />
+        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+          {inputHint(selectedMetric, selectedSession?.day_splits)}
+        </p>
+      </div>
+
+      {error && (
+        <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+          {error}
+        </p>
+      )}
+      {success && (
+        <p className="text-sm text-green-600 dark:text-green-400" role="status">
+          {success}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={loading || !canSubmit}
+        className="min-h-[44px] w-full rounded-lg bg-black px-4 py-3 text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200"
+      >
+        {loading ? "Saving…" : "Save entry"}
+      </button>
+    </form>
+  );
+}
