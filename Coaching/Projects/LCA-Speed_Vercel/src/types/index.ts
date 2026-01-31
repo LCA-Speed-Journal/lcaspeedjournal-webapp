@@ -7,25 +7,19 @@ export type Athlete = {
   created_at: string;
 };
 
-export type Session = {
-  id: string;
-  session_date: string;
-  phase: string;
-  phase_week: number;
-  day_categories: unknown;
-  day_metrics: unknown;
-  day_splits: unknown;
-  day_components: unknown;
-  session_notes: string | null;
-  created_at: string;
-};
-
 export type LeaderboardRow = {
   rank: number;
   athlete_id: string;
   first_name: string;
   last_name: string;
   gender: string;
+  display_value: number;
+  units: string;
+};
+
+export type ProgressionPoint = {
+  session_id: string;
+  session_date: string;
   display_value: number;
   units: string;
 };

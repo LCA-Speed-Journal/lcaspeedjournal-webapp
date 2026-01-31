@@ -36,9 +36,9 @@ Reference (outside repo): `Python Scripts/2026 Coding/LCA-Speed-Journal/` for pa
 
 ## Current State
 
-**Last Updated:** January 30, 2026  
-**Working On:** Historical / progression (next)  
-**Recently Completed:** Athlete management — CRUD /api/athletes, roster UI (edit/delete), athlete_notes API + coach-only notes slide-out panel  
+**Last Updated:** January 31, 2026  
+**Working On:** Live leaderboard (next)  
+**Recently Completed:** Historical / progression — GET /api/leaderboard/historical, GET /api/progression, /historical page with date/phase/metric filters and Recharts progression chart (lazy-loaded)  
 **Blocked By:** None  
 
 ## Roadmap
@@ -55,11 +55,11 @@ Reference (outside repo): `Python Scripts/2026 Coding/LCA-Speed-Journal/` for pa
 
 - [x] **Data entry:** Session setup UI (date, phase, phase_week, day_metrics); store in `sessions`
 - [x] **Data entry:** Entry form (athletes + metrics, mobile-friendly); parsing (single_interval, cumulative, paired_components) and conversions (velocity_mph, distance_ft_from_cm/m, pass_through); POST to `/api/entries`, persist to `entries`
-- [x] **Live leaderboard:** GET `/api/leaderboard?session_id=...&metric=...&group_by=gender`; UI with filters, rank styling (e.g. gold/silver/bronze), responsive
+- [ ] **Live leaderboard:** GET `/api/leaderboard?session_id=...&metric=...&group_by=gender`; UI with filters, rank styling (e.g. gold/silver/bronze), responsive
   - Use SWR for leaderboard data (dedup + cache); use `useTransition` for filter changes
   - Apply `content-visibility: auto` to leaderboard list items for long lists
-- [x] **Athlete management:** CRUD `/api/athletes`, roster UI, link data entry to athlete_id; `athlete_notes` + coach-only notes UI
-- [ ] **Historical / progression:** GET `/api/leaderboard/historical`, GET `/api/progression`; historical leaderboard + progression charts (read-only, no login)
+- [ ] **Athlete management:** CRUD `/api/athletes`, roster UI, link data entry to athlete_id; `athlete_notes` + coach-only notes UI
+- [x] **Historical / progression:** GET `/api/leaderboard/historical`, GET `/api/progression`; historical leaderboard + progression charts (read-only, no login)
   - Lazy-load chart component with `next/dynamic` (ssr: false) so charts don't bloat initial bundle
 
 ### Phase 3: Polish

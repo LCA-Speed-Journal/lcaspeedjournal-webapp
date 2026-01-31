@@ -1,29 +1,31 @@
 # Deploy to GitHub & Vercel
 
-## 1. Push to GitHub
+## 1. Push the most updated changes to GitHub
 
-**Latest batch:** Live leaderboard (GET `/api/leaderboard`, `/api/leaderboard/session-metrics`), expandable metrics with checkbox multi-select, 3-column card grid, name/value-focused card layout.
+**Current features:** Live leaderboard (session-metrics, card grid), **Historical & Progression** (GET `/api/leaderboard/historical`, GET `/api/progression`), `/historical` page with date/phase/metric filters and Recharts progression chart, home nav (Leaderboard, Historical, Athletes, Data entry, Coach login).
 
-**Note:** LCA-Speed_Vercel may be inside a parent repo (e.g. Starter-Vault). Run commands from the git root.
+**Note:** LCA-Speed_Vercel may live inside a parent repo (e.g. Starter-Vault). Run these commands from the **git root** (parent repo root if LCA-Speed_Vercel is a folder there; or from `LCA-Speed_Vercel` if it has its own `.git`).
 
 ```bash
-# From Starter-Vault root (parent repo):
+# Option A — from Starter-Vault root (LCA-Speed_Vercel is a subfolder):
 cd "c:\Users\rossp\OneDrive\Documents\Obsidian\Starter-Vault"
 git add Coaching/Projects/LCA-Speed_Vercel/
 
-# Or from LCA-Speed_Vercel if it has its own .git:
+# Option B — from LCA-Speed_Vercel if it is its own repo:
 cd "c:\Users\rossp\OneDrive\Documents\Obsidian\Starter-Vault\Coaching\Projects\LCA-Speed_Vercel"
 git add .
 
-# Check what will be committed
+# See what will be committed
 git status
 
-# Commit (latest batch: live leaderboard + session-metrics + card grid + multi-select)
-git commit -m "Add live leaderboard: session-metrics API, expandable metrics, checkbox multi-select, card grid, name/value-focused cards"
+# Commit with a message that describes your latest changes, for example:
+git commit -m "Historical & Progression: historical leaderboard API, progression API, /historical page, Recharts chart, home nav and DEPLOY updates"
 
-# Push to main
+# Push to main (triggers Vercel deploy if the project is connected)
 git push origin main
 ```
+
+**Tip:** Use a commit message that matches what you actually changed (e.g. "Fix historical useMemo lint; update DEPLOY smoke test" or "Add progression index note to DEPLOY").
 
 ## 2. Connect to Vercel (if not already)
 
@@ -55,6 +57,25 @@ If the production database doesn't have tables yet:
 
 If you have an existing database (created before Staff/Alumni support), also run `scripts/migrate-add-athlete-type.sql` to add the `athlete_type` column.
 
+**Optional (progression performance):** If progression queries feel slow on large data, run `scripts/migrate-progression-index.sql` against your Postgres DB to add `idx_entries_athlete_metric`.
+
+## 4b. Seed 2024 & 2025 historical data (optional)
+
+To populate the leaderboard with real 2024/2025 data from LCA-Speed-Journal:
+
+1. Copy **2024-Data-Transformed.csv** and **2025-Data-Transformed.csv** from  
+   `LCA-Speed-Journal/data/historical/` into `scripts/seed-data/` in this repo.  
+   Or set `SEED_DATA_DIR` to that folder.
+2. Ensure `POSTGRES_URL` is set (e.g. in `.env.local`).
+3. From the project root run:
+   ```bash
+   npm install
+   npm run seed
+   ```
+4. Open the app → **Leaderboard** (pick a session + metric) or **Historical** (date range + metric; optionally pick athlete + metric for progression chart).
+
+The seed script uses the **transformed** CSVs only (metric_key matches `src/lib/metrics.json`). Raw 2024/2025 CSVs are not used.
+
 ## 5. Deploy
 
 - If connected to GitHub: pushing to `main` triggers a deploy automatically
@@ -63,6 +84,6 @@ If you have an existing database (created before Staff/Alumni support), also run
 ## 6. Smoke test
 
 1. Visit your Vercel URL
-2. Log in with coach PIN at `/login`
-3. Create a session, add an athlete, add an entry
-4. Confirm no errors; check data in Vercel Postgres if needed
+2. Confirm **Leaderboard** (pick session + metric) and **Historical** (date range + metric; progression: athlete + metric) load without errors
+3. Log in with coach PIN at `/login`; create a session, add an athlete, add an entry
+4. Check data in Vercel Postgres if needed
