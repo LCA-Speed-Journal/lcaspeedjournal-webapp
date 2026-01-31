@@ -7,10 +7,16 @@ export default function Home() {
       <p className="mt-2 text-zinc-600 dark:text-zinc-400">
         Track & field and strength data — live leaderboards, athlete management
       </p>
-      <div className="mt-8 flex gap-4">
+      <div className="mt-8 flex flex-wrap gap-4">
+        <Link
+          href="/data-entry"
+          className="rounded-lg bg-black px-4 py-2 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200"
+        >
+          Data entry
+        </Link>
         <Link
           href="/login"
-          className="rounded-lg bg-black px-4 py-2 text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200"
+          className="rounded-lg border px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
         >
           Coach login
         </Link>

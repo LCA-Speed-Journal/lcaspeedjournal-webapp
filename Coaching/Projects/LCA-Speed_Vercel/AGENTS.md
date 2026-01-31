@@ -37,8 +37,8 @@ Reference (outside repo): `Python Scripts/2026 Coding/LCA-Speed-Journal/` for pa
 ## Current State
 
 **Last Updated:** January 30, 2026  
-**Working On:** Phase 2 Core Features  
-**Recently Completed:** Phase 1 foundation + build/lint verification  
+**Working On:** Data entry — entry form (next)  
+**Recently Completed:** Session setup UI + GET/POST /api/sessions; /data-entry page with auth, create-session form, recent sessions list  
 **Blocked By:** None  
 
 ## Roadmap
@@ -53,7 +53,7 @@ Reference (outside repo): `Python Scripts/2026 Coding/LCA-Speed-Journal/` for pa
 
 ### Phase 2: Core Features
 
-- [ ] **Data entry:** Session setup UI (date, phase, phase_week, day_metrics); store in `sessions`
+- [x] **Data entry:** Session setup UI (date, phase, phase_week, day_metrics); store in `sessions`
 - [ ] **Data entry:** Entry form (athletes + metrics, mobile-friendly); parsing (single_interval, cumulative, paired_components) and conversions (velocity_mph, distance_ft_from_cm/m, pass_through); POST to `/api/entries`, persist to `entries`
 - [ ] **Live leaderboard:** GET `/api/leaderboard?session_id=...&metric=...&group_by=gender`; UI with filters, rank styling (e.g. gold/silver/bronze), responsive
   - Use SWR for leaderboard data (dedup + cache); use `useTransition` for filter changes
