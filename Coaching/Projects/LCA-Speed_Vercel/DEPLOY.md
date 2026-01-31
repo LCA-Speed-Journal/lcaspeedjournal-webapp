@@ -53,6 +53,8 @@ If the production database doesn't have tables yet:
 2. Open **Query** (or use a local client with the connection string)
 3. Run the contents of `scripts/migrate.sql`
 
+If you have an existing database (created before Staff/Alumni support), also run `scripts/migrate-add-athlete-type.sql` to add the `athlete_type` column.
+
 ## 5. Deploy
 
 - If connected to GitHub: pushing to `main` triggers a deploy automatically

@@ -5,9 +5,10 @@ import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import metricsData from "@/lib/metrics.json";
 import { SessionForm } from "./SessionForm";
-import { AthleteForm } from "./AthleteForm";
 import { EntryForm } from "./EntryForm";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 
 const PHASES = [
   "Preseason",
@@ -62,12 +63,20 @@ export default async function DataEntryPage() {
     <div className="min-h-screen p-4 md:p-8">
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Data entry</h1>
-        <Link
-          href="/"
-          className="rounded-lg border px-3 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
-        >
-          Home
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/athletes"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            Athletes
+          </Link>
+          <Link
+            href="/"
+            className="rounded-lg border px-3 py-2 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800"
+          >
+            Home
+          </Link>
+        </div>
       </header>
 
       <section className="mb-8">
@@ -78,15 +87,10 @@ export default async function DataEntryPage() {
         />
       </section>
 
-        <section className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold">Add athlete</h2>
-          <AthleteForm />
-        </section>
-
-        <section className="mb-8">
-          <h2 className="mb-4 text-lg font-semibold">Add entry</h2>
-          <EntryForm />
-        </section>
+      <section className="mb-8">
+        <h2 className="mb-4 text-lg font-semibold">Add entry</h2>
+        <EntryForm />
+      </section>
 
       <section>
         <h2 className="mb-2 text-lg font-semibold">Recent sessions</h2>

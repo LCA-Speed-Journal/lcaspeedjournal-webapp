@@ -9,12 +9,33 @@ import { sql } from "@/lib/db";
 
 export async function GET() {
   try {
-    const { rows } = await sql`
-      SELECT id, first_name, last_name, gender, graduating_class, created_at
-      FROM athletes
-      ORDER BY last_name, first_name
-    `;
-    return NextResponse.json({ data: rows });
+    try {
+      const { rows } = await sql`
+        SELECT id, first_name, last_name, gender, graduating_class, athlete_type, created_at
+        FROM athletes
+        ORDER BY last_name, first_name
+      `;
+      return NextResponse.json({ data: rows });
+    } catch (legacyErr) {
+      const msg = String((legacyErr as Error)?.message ?? "");
+      if (
+        msg.includes("athlete_type") ||
+        msg.includes("column") ||
+        msg.includes("does not exist")
+      ) {
+        const { rows } = await sql`
+          SELECT id, first_name, last_name, gender, graduating_class, created_at
+          FROM athletes
+          ORDER BY last_name, first_name
+        `;
+        const withType = (rows as Record<string, unknown>[]).map((r) => ({
+          ...r,
+          athlete_type: "athlete",
+        }));
+        return NextResponse.json({ data: withType });
+      }
+      throw legacyErr;
+    }
   } catch (err) {
     console.error("GET /api/athletes:", err);
     return NextResponse.json(
@@ -32,21 +53,50 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { first_name, last_name, gender, graduating_class } = body;
+    const { first_name, last_name, gender, graduating_class, athlete_type } = body;
+    const type = athlete_type ?? "athlete";
 
-    if (!first_name || !last_name || !gender || graduating_class == null) {
+    if (!first_name || !last_name || !gender) {
       return NextResponse.json(
-        { error: "Missing required fields: first_name, last_name, gender, graduating_class" },
+        { error: "Missing required fields: first_name, last_name, gender" },
         { status: 400 }
       );
     }
 
-    const { rows } = await sql`
-      INSERT INTO athletes (first_name, last_name, gender, graduating_class)
-      VALUES (${first_name}, ${last_name}, ${gender}, ${Number(graduating_class)})
-      RETURNING id, first_name, last_name, gender, graduating_class, created_at
-    `;
-    return NextResponse.json({ data: rows[0] }, { status: 201 });
+    if (type === "athlete" && (graduating_class == null || graduating_class === "")) {
+      return NextResponse.json(
+        { error: "Athletes require graduating_class" },
+        { status: 400 }
+      );
+    }
+
+    const gradClass =
+      type === "athlete" ? Number(graduating_class) : null;
+
+    try {
+      const { rows } = await sql`
+        INSERT INTO athletes (first_name, last_name, gender, graduating_class, athlete_type)
+        VALUES (${first_name}, ${last_name}, ${gender}, ${gradClass}, ${type})
+        RETURNING id, first_name, last_name, gender, graduating_class, athlete_type, created_at
+      `;
+      return NextResponse.json({ data: rows[0] }, { status: 201 });
+    } catch (insertErr) {
+      const msg = String((insertErr as Error)?.message ?? "");
+      if (
+        (msg.includes("athlete_type") || msg.includes("column") || msg.includes("does not exist")) &&
+        type === "athlete" &&
+        gradClass != null
+      ) {
+        const { rows } = await sql`
+          INSERT INTO athletes (first_name, last_name, gender, graduating_class)
+          VALUES (${first_name}, ${last_name}, ${gender}, ${gradClass})
+          RETURNING id, first_name, last_name, gender, graduating_class, created_at
+        `;
+        const row = { ...(rows[0] as Record<string, unknown>), athlete_type: "athlete" };
+        return NextResponse.json({ data: row }, { status: 201 });
+      }
+      throw insertErr;
+    }
   } catch (err) {
     console.error("POST /api/athletes:", err);
     return NextResponse.json(

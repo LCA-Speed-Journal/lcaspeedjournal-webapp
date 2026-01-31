@@ -21,17 +21,23 @@ export default function Home() {
           Data entry
         </Link>
         <Link
+          href="/athletes"
+          className="rounded-lg border px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+        >
+          Athletes
+        </Link>
+        <Link
           href="/login"
           className="rounded-lg border px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
         >
           Coach login
         </Link>
-        <a
+        <Link
           href="/api/athletes"
           className="rounded-lg border px-4 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
         >
           API: Athletes
-        </a>
+        </Link>
       </div>
     </div>
   );

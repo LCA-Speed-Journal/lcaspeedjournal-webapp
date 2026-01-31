@@ -1,15 +1,20 @@
 -- LCA Speed Journal - Initial Schema
 -- Run this against your Vercel Postgres database (via dashboard or psql)
 
--- Athletes roster
+-- Athletes roster (athlete_type: 'athlete' | 'staff' | 'alumni'; staff/alumni omit graduating_class)
 CREATE TABLE IF NOT EXISTS athletes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   first_name TEXT NOT NULL,
   last_name TEXT NOT NULL,
   gender TEXT NOT NULL,
-  graduating_class INTEGER NOT NULL,
+  graduating_class INTEGER,
+  athlete_type TEXT NOT NULL DEFAULT 'athlete',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- For existing DBs: add athlete_type, make graduating_class nullable
+ALTER TABLE athletes ADD COLUMN IF NOT EXISTS athlete_type TEXT NOT NULL DEFAULT 'athlete';
+ALTER TABLE athletes ALTER COLUMN graduating_class DROP NOT NULL;
 
 -- Training sessions
 CREATE TABLE IF NOT EXISTS sessions (

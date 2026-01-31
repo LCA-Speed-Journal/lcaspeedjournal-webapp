@@ -37,8 +37,8 @@ Reference (outside repo): `Python Scripts/2026 Coding/LCA-Speed-Journal/` for pa
 ## Current State
 
 **Last Updated:** January 30, 2026  
-**Working On:** Athlete management (next)  
-**Recently Completed:** Live leaderboard — GET /api/leaderboard, leaderboard page (session/metric filters, group by gender, rank styling, SWR + useTransition, content-visibility)  
+**Working On:** Historical / progression (next)  
+**Recently Completed:** Athlete management — CRUD /api/athletes, roster UI (edit/delete), athlete_notes API + coach-only notes slide-out panel  
 **Blocked By:** None  
 
 ## Roadmap
@@ -58,7 +58,7 @@ Reference (outside repo): `Python Scripts/2026 Coding/LCA-Speed-Journal/` for pa
 - [x] **Live leaderboard:** GET `/api/leaderboard?session_id=...&metric=...&group_by=gender`; UI with filters, rank styling (e.g. gold/silver/bronze), responsive
   - Use SWR for leaderboard data (dedup + cache); use `useTransition` for filter changes
   - Apply `content-visibility: auto` to leaderboard list items for long lists
-- [ ] **Athlete management:** CRUD `/api/athletes`, roster UI, link data entry to athlete_id; `athlete_notes` + coach-only notes UI
+- [x] **Athlete management:** CRUD `/api/athletes`, roster UI, link data entry to athlete_id; `athlete_notes` + coach-only notes UI
 - [ ] **Historical / progression:** GET `/api/leaderboard/historical`, GET `/api/progression`; historical leaderboard + progression charts (read-only, no login)
   - Lazy-load chart component with `next/dynamic` (ssr: false) so charts don't bloat initial bundle
 

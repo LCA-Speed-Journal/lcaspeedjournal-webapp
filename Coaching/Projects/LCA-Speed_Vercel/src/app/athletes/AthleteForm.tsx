@@ -5,10 +5,13 @@ import useSWR from "swr";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+type AthleteType = "athlete" | "staff" | "alumni";
+
 export function AthleteForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [gender, setGender] = useState<"M" | "F">("M");
+  const [athleteType, setAthleteType] = useState<AthleteType>("athlete");
   const [graduatingClass, setGraduatingClass] = useState(
     () => new Date().getFullYear() + 2
   );
@@ -24,15 +27,19 @@ export function AthleteForm() {
     setSuccess("");
     setLoading(true);
     try {
+      const payload: Record<string, unknown> = {
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        gender,
+        athlete_type: athleteType,
+      };
+      if (athleteType === "athlete") {
+        payload.graduating_class = graduatingClass;
+      }
       const res = await fetch("/api/athletes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          gender,
-          graduating_class: graduatingClass,
-        }),
+        body: JSON.stringify(payload),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -86,6 +93,21 @@ export function AthleteForm() {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
+          <label htmlFor="athlete_type" className="mb-1 block text-sm font-medium">
+            Type
+          </label>
+          <select
+            id="athlete_type"
+            value={athleteType}
+            onChange={(e) => setAthleteType(e.target.value as AthleteType)}
+            className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+          >
+            <option value="athlete">Athlete</option>
+            <option value="staff">Staff</option>
+            <option value="alumni">Alumni</option>
+          </select>
+        </div>
+        <div>
           <label htmlFor="athlete_gender" className="mb-1 block text-sm font-medium">
             Gender
           </label>
@@ -99,21 +121,23 @@ export function AthleteForm() {
             <option value="F">F</option>
           </select>
         </div>
-        <div>
-          <label htmlFor="athlete_class" className="mb-1 block text-sm font-medium">
-            Graduating class
-          </label>
-          <input
-            id="athlete_class"
-            type="number"
-            min={2024}
-            max={2032}
-            value={graduatingClass}
-            onChange={(e) => setGraduatingClass(Number(e.target.value))}
-            className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
-            required
-          />
-        </div>
+        {athleteType === "athlete" && (
+          <div>
+            <label htmlFor="athlete_class" className="mb-1 block text-sm font-medium">
+              Graduating class
+            </label>
+            <input
+              id="athlete_class"
+              type="number"
+              min={2024}
+              max={2032}
+              value={graduatingClass}
+              onChange={(e) => setGraduatingClass(Number(e.target.value))}
+              className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+              required
+            />
+          </div>
+        )}
       </div>
 
       {error && (

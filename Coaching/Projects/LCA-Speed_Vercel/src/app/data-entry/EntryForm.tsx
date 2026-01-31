@@ -69,10 +69,15 @@ export function EntryForm() {
       day_splits?: Record<string, number[]> | null;
     }[];
   }>("/api/sessions", fetcher);
-  const { data: athletesRes } = useSWR<{ data: { id: string; first_name: string; last_name: string }[] }>(
-    "/api/athletes",
-    fetcher
-  );
+  const { data: athletesRes } = useSWR<{
+    data: {
+      id: string;
+      first_name: string;
+      last_name: string;
+      athlete_type?: string;
+      graduating_class?: number | null;
+    }[];
+  }>("/api/athletes", fetcher);
 
   const sessions = sessionsRes?.data ?? [];
   const athletes = athletesRes?.data ?? [];
@@ -164,11 +169,17 @@ export function EntryForm() {
           required
         >
           <option value="">Select athlete</option>
-          {athletes.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.first_name} {a.last_name}
-            </option>
-          ))}
+          {athletes.map((a) => {
+            const t = a.athlete_type ?? "athlete";
+            const suffix =
+              t === "staff" ? " (Staff)" : t === "alumni" ? " (Alumni)" : "";
+            return (
+              <option key={a.id} value={a.id}>
+                {a.first_name} {a.last_name}
+                {suffix}
+              </option>
+            );
+          })}
         </select>
       </div>
 
