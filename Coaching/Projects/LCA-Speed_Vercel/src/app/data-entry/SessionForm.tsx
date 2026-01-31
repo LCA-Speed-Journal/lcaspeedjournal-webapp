@@ -101,10 +101,10 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="max-w-xl space-y-4 rounded-lg border p-4 shadow-sm"
+      className="max-w-xl space-y-4 rounded-lg border border-border bg-surface p-4 shadow-lg shadow-black/20"
     >
       <div>
-        <label htmlFor="session_date" className="mb-1 block text-sm font-medium">
+        <label htmlFor="session_date" className="mb-1 block text-sm font-medium text-foreground">
           Session date
         </label>
         <input
@@ -112,21 +112,21 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
           type="date"
           value={sessionDate}
           onChange={(e) => setSessionDate(e.target.value)}
-          className="w-full rounded border px-3 py-2"
+          className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground focus:border-accent"
           required
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="phase" className="mb-1 block text-sm font-medium">
+          <label htmlFor="phase" className="mb-1 block text-sm font-medium text-foreground">
             Phase
           </label>
           <select
             id="phase"
             value={phase}
             onChange={(e) => setPhase(e.target.value)}
-            className="w-full rounded border px-3 py-2"
+            className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground focus:border-accent"
           >
             {phases.map((p) => (
               <option key={p} value={p}>
@@ -136,7 +136,7 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
           </select>
         </div>
         <div>
-          <label htmlFor="phase_week" className="mb-1 block text-sm font-medium">
+          <label htmlFor="phase_week" className="mb-1 block text-sm font-medium text-foreground">
             Phase week (1–5)
           </label>
           <input
@@ -146,30 +146,30 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
             max={5}
             value={phaseWeek}
             onChange={(e) => setPhaseWeek(Number(e.target.value))}
-            className="w-full rounded border px-3 py-2"
+            className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground focus:border-accent"
           />
         </div>
       </div>
 
       <div>
-        <span className="mb-2 block text-sm font-medium">Day metrics (optional)</span>
-        <div className="max-h-40 overflow-y-auto rounded border p-2">
+        <span className="mb-2 block text-sm font-medium text-foreground">Day metrics (optional)</span>
+        <div className="max-h-40 overflow-y-auto rounded border border-border bg-surface-elevated p-2">
           {metricOptions.slice(0, 50).map((m) => (
             <label
               key={m.key}
-              className="flex cursor-pointer items-center gap-2 py-1 text-sm"
+              className="flex cursor-pointer items-center gap-2 py-1 text-sm text-foreground"
             >
               <input
                 type="checkbox"
                 checked={selectedMetrics.includes(m.key)}
                 onChange={() => toggleMetric(m.key)}
-                className="rounded"
+                className="rounded border-border bg-surface text-accent focus:ring-accent"
               />
               {m.label}
             </label>
           ))}
           {metricOptions.length > 50 && (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-foreground-muted">
               +{metricOptions.length - 50} more metrics (select from first 50 for now)
             </p>
           )}
@@ -178,10 +178,10 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
 
       {cumulativeMetrics.length > 0 && (
         <div>
-          <span className="mb-2 block text-sm font-medium">
+          <span className="mb-2 block text-sm font-medium text-foreground">
             Custom splits (optional) — comma-separated meters, e.g. 5,5 or 10,10
           </span>
-          <p className="mb-2 text-xs text-zinc-500 dark:text-zinc-400">
+          <p className="mb-2 text-xs text-foreground-muted">
             Override defaults for cumulative metrics. Leave blank to use metric default.
           </p>
           <div className="space-y-2">
@@ -191,7 +191,7 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
                 <div key={m.key} className="flex items-center gap-3">
                   <label
                     htmlFor={`splits_${m.key}`}
-                    className="min-w-[120px] text-sm"
+                    className="min-w-[120px] text-sm text-foreground"
                   >
                     {m.label}
                   </label>
@@ -206,7 +206,7 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
                       }))
                     }
                     placeholder={defaultStr}
-                    className="flex-1 rounded border px-3 py-2 text-sm font-mono"
+                    className="flex-1 rounded border border-border bg-surface-elevated px-3 py-2 text-sm font-mono text-foreground placeholder:text-foreground-muted focus:border-accent"
                   />
                 </div>
               );
@@ -216,7 +216,7 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
       )}
 
       <div>
-        <label htmlFor="session_notes" className="mb-1 block text-sm font-medium">
+        <label htmlFor="session_notes" className="mb-1 block text-sm font-medium text-foreground">
           Session notes (optional)
         </label>
         <textarea
@@ -224,18 +224,18 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
           value={sessionNotes}
           onChange={(e) => setSessionNotes(e.target.value)}
           rows={2}
-          className="w-full rounded border px-3 py-2"
+          className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground placeholder:text-foreground-muted focus:border-accent"
           placeholder="e.g. Indoor, light day"
         />
       </div>
 
       {error && (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="text-sm text-danger" role="alert">
           {error}
         </p>
       )}
       {createdId && (
-        <p className="text-sm text-green-600" role="status">
+        <p className="text-sm text-accent" role="status">
           Session created. ID: <code className="font-mono">{createdId.slice(0, 8)}…</code>
         </p>
       )}
@@ -243,7 +243,7 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-black px-4 py-2 text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200"
+        className="w-full rounded-lg bg-accent px-4 py-2 font-medium text-background hover:bg-accent-hover disabled:opacity-50 transition-colors"
       >
         {loading ? "Creating…" : "Create session"}
       </button>

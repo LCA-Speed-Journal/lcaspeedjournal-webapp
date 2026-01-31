@@ -30,6 +30,7 @@ export function AthleteNotesPanel({
     athlete ? `/api/athletes/${athlete.id}/notes` : null,
     fetcher
   );
+  const retryAddNote = () => noteText.trim() && void handleAddNote({ preventDefault: () => {} } as React.FormEvent);
   const [noteText, setNoteText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -72,24 +73,24 @@ export function AthleteNotesPanel({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/40"
+      className="fixed inset-0 z-50 flex justify-end bg-black/60"
       role="dialog"
       onClick={onClose}
       aria-modal="true"
       aria-labelledby="notes-panel-title"
     >
       <div
-        className="flex w-full max-w-md flex-col bg-white shadow-xl dark:bg-zinc-900"
+        className="flex w-full max-w-md flex-col bg-surface shadow-xl border-l border-border"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 id="notes-panel-title" className="text-lg font-semibold">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2 id="notes-panel-title" className="text-lg font-semibold text-foreground">
             Notes — {athlete.first_name} {athlete.last_name}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="rounded p-1 text-foreground hover:bg-surface-elevated"
             aria-label="Close"
           >
             ✕
@@ -103,28 +104,36 @@ export function AthleteNotesPanel({
               onChange={(e) => setNoteText(e.target.value)}
               placeholder="Add a coach note…"
               rows={3}
-              className="mb-2 w-full rounded border px-3 py-2 text-sm"
+              className="mb-2 w-full rounded border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground placeholder:text-foreground-muted focus:border-accent"
               required
             />
             {error && (
-              <p className="mb-2 text-sm text-red-600 dark:text-red-400">
-                {error}
-              </p>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <p className="text-sm text-danger">{error}</p>
+                <button
+                  type="button"
+                  onClick={retryAddNote}
+                  disabled={loading || !noteText.trim()}
+                  className="rounded border border-border px-2 py-1 text-sm text-foreground hover:bg-surface-elevated disabled:opacity-50"
+                >
+                  Retry
+                </button>
+              </div>
             )}
             <button
               type="submit"
               disabled={loading}
-              className="rounded bg-black px-3 py-2 text-sm text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-black"
+              className="rounded bg-accent px-3 py-2 text-sm font-medium text-background hover:bg-accent-hover disabled:opacity-50"
             >
               {loading ? "Adding…" : "Add note"}
             </button>
           </form>
 
-          <h3 className="mb-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+          <h3 className="mb-2 text-sm font-medium text-foreground-muted">
             Notes
           </h3>
           {notes.length === 0 ? (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="text-sm text-foreground-muted">
               No notes yet.
             </p>
           ) : (
@@ -132,11 +141,11 @@ export function AthleteNotesPanel({
               {notes.map((n) => (
                 <li
                   key={n.id}
-                  className="rounded border px-3 py-2 text-sm"
+                  className="rounded border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground"
                   style={{ contentVisibility: "auto" }}
                 >
                   <p className="whitespace-pre-wrap">{n.note_text}</p>
-                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="mt-1 text-xs text-foreground-muted">
                     {formatDate(n.created_at)}
                     {n.created_by ? ` · ${n.created_by}` : ""}
                   </p>

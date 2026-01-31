@@ -5,7 +5,7 @@
 **App:** The LCA Speed Journal  
 **Goal:** Coaches doing all data entry in the app; live leaderboards, athlete management, and progression views.  
 **Stack:** Next.js 14+ (App Router), Vercel, Vercel Postgres, NextAuth.js (credentials), Tailwind CSS  
-**Current Phase:** Phase 1 - Foundation  
+**Current Phase:** Phase 3 - Polish  
 **User level:** Between vibe-coder and developer — explain steps and “why” in plain language; offer small, testable steps when stuck.
 
 ## How I Should Think
@@ -37,8 +37,8 @@ Reference (outside repo): `Python Scripts/2026 Coding/LCA-Speed-Journal/` for pa
 ## Current State
 
 **Last Updated:** January 31, 2026  
-**Working On:** Live leaderboard (next)  
-**Recently Completed:** Historical / progression — GET /api/leaderboard/historical, GET /api/progression, /historical page with date/phase/metric filters and Recharts progression chart (lazy-loaded)  
+**Working On:** Phase 3 responsive check (mobile-first, no horizontal scroll)  
+**Recently Completed:** Phase 3 UI theme — Cyberpunk dark theme (globals.css vars), neon accent (#00f5d4), gold/silver/bronze ranks, applied to home, leaderboard, historical, data-entry, athletes, login, forms, panels  
 **Blocked By:** None  
 
 ## Roadmap
@@ -55,19 +55,19 @@ Reference (outside repo): `Python Scripts/2026 Coding/LCA-Speed-Journal/` for pa
 
 - [x] **Data entry:** Session setup UI (date, phase, phase_week, day_metrics); store in `sessions`
 - [x] **Data entry:** Entry form (athletes + metrics, mobile-friendly); parsing (single_interval, cumulative, paired_components) and conversions (velocity_mph, distance_ft_from_cm/m, pass_through); POST to `/api/entries`, persist to `entries`
-- [ ] **Live leaderboard:** GET `/api/leaderboard?session_id=...&metric=...&group_by=gender`; UI with filters, rank styling (e.g. gold/silver/bronze), responsive
+- [x] **Live leaderboard:** GET `/api/leaderboard?session_id=...&metric=...&group_by=gender`; UI with filters, rank styling (e.g. gold/silver/bronze), responsive
   - Use SWR for leaderboard data (dedup + cache); use `useTransition` for filter changes
   - Apply `content-visibility: auto` to leaderboard list items for long lists
-- [ ] **Athlete management:** CRUD `/api/athletes`, roster UI, link data entry to athlete_id; `athlete_notes` + coach-only notes UI
+- [x] **Athlete management:** CRUD `/api/athletes`, roster UI, link data entry to athlete_id; `athlete_notes` + coach-only notes UI
 - [x] **Historical / progression:** GET `/api/leaderboard/historical`, GET `/api/progression`; historical leaderboard + progression charts (read-only, no login)
   - Lazy-load chart component with `next/dynamic` (ssr: false) so charts don't bloat initial bundle
 
 ### Phase 3: Polish
 
-- [ ] Error handling and clear messages (e.g. retry on network failure)
-- [ ] UI: clean, sleek, cyberpunk (dark/high-contrast, neon accents, strong typography)
+- [x] Error handling and clear messages (e.g. retry on network failure)
+- [x] UI: clean, sleek, cyberpunk (dark/high-contrast, neon accents, strong typography)
 - [ ] Mobile-first responsive; no horizontal scroll on small screens
-- [ ] Performance:
+- [x] Performance:
   - Index `session_id`, `metric_key`, `value` on `entries`; keep leaderboard payloads small (top N per group)
   - API routes: use `Promise.all()` for independent ops; start promises early, await late (see `code_patterns.md`)
   - Server components: fetch in sibling components to avoid waterfalls

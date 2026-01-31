@@ -1,31 +1,54 @@
 # Deploy to GitHub & Vercel
 
-## 1. Push the most updated changes to GitHub
+## 1. Push to GitHub for production
 
-**Current features:** Live leaderboard (session-metrics, card grid), **Historical & Progression** (GET `/api/leaderboard/historical`, GET `/api/progression`), `/historical` page with date/phase/metric filters and Recharts progression chart, home nav (Leaderboard, Historical, Athletes, Data entry, Coach login).
+Pushing to the `main` branch on GitHub triggers Vercel to build and deploy. Here’s how to push for production.
 
-**Note:** LCA-Speed_Vercel may live inside a parent repo (e.g. Starter-Vault). Run these commands from the **git root** (parent repo root if LCA-Speed_Vercel is a folder there; or from `LCA-Speed_Vercel` if it has its own `.git`).
+### Repo layout
+
+LCA-Speed_Vercel may live inside a parent repo (e.g. Starter-Vault). Run these commands from the **git root**:
+
+- **Parent repo:** if LCA-Speed_Vercel is a subfolder (e.g. `Starter-Vault`), use the parent repo root
+- **Standalone repo:** if LCA-Speed_Vercel has its own `.git`, use the LCA-Speed_Vercel directory
+
+### First-time setup (new GitHub repo)
+
+If the project is not yet on GitHub:
+
+1. On [github.com](https://github.com) → **New repository** → create `lcaspeedjournal-webapp` (or your preferred name)
+2. From your project root:
+
+   ```bash
+   # If LCA-Speed_Vercel is a subfolder (parent repo root):
+   cd "c:\Users\rossp\OneDrive\Documents\Obsidian\Starter-Vault"
+   git remote add origin https://github.com/YOUR_USERNAME/lcaspeedjournal-webapp.git
+
+   # Or if LCA-Speed_Vercel is its own repo:
+   cd "c:\Users\rossp\OneDrive\Documents\Obsidian\Starter-Vault\Coaching\Projects\LCA-Speed_Vercel"
+   git remote add origin https://github.com/YOUR_USERNAME/lcaspeedjournal-webapp.git
+
+   git push -u origin main
+   ```
+
+### Regular push to production
 
 ```bash
 # Option A — from Starter-Vault root (LCA-Speed_Vercel is a subfolder):
 cd "c:\Users\rossp\OneDrive\Documents\Obsidian\Starter-Vault"
 git add Coaching/Projects/LCA-Speed_Vercel/
+git status
+git commit -m "Your descriptive commit message"
+git push origin main
 
 # Option B — from LCA-Speed_Vercel if it is its own repo:
 cd "c:\Users\rossp\OneDrive\Documents\Obsidian\Starter-Vault\Coaching\Projects\LCA-Speed_Vercel"
 git add .
-
-# See what will be committed
 git status
-
-# Commit with a message that describes your latest changes, for example:
-git commit -m "Historical & Progression: historical leaderboard API, progression API, /historical page, Recharts chart, home nav and DEPLOY updates"
-
-# Push to main (triggers Vercel deploy if the project is connected)
+git commit -m "Your descriptive commit message"
 git push origin main
 ```
 
-**Tip:** Use a commit message that matches what you actually changed (e.g. "Fix historical useMemo lint; update DEPLOY smoke test" or "Add progression index note to DEPLOY").
+**Tip:** Use a clear commit message (e.g. "Phase 3 polish: gold theme, background animations, card borders" or "Fix leaderboard parsing error"). Pushing to `main` triggers Vercel deployment.
 
 ## 2. Connect to Vercel (if not already)
 

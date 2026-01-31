@@ -90,8 +90,7 @@ export function EntryForm() {
       : allOptions;
   const selectedMetric = options.find((o) => o.key === metricKey) ?? null;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submitEntry() {
     setError("");
     setSuccess("");
     setLoading(true);
@@ -121,15 +120,20 @@ export function EntryForm() {
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    void submitEntry();
+  }
+
   const canSubmit = sessionId && athleteId && metricKey && rawInput.trim();
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="max-w-xl space-y-4 rounded-lg border p-4 shadow-sm md:p-6"
+      className="max-w-xl space-y-4 rounded-lg border border-border bg-surface p-4 shadow-lg shadow-black/20 md:p-6"
     >
       <div>
-        <label htmlFor="entry_session" className="mb-1 block text-sm font-medium">
+        <label htmlFor="entry_session" className="mb-1 block text-sm font-medium text-foreground">
           Session
         </label>
         <select
@@ -145,7 +149,7 @@ export function EntryForm() {
               setRawInput("");
             }
           }}
-          className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+          className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
           required
         >
           <option value="">Select session</option>
@@ -158,14 +162,14 @@ export function EntryForm() {
       </div>
 
       <div>
-        <label htmlFor="entry_athlete" className="mb-1 block text-sm font-medium">
+        <label htmlFor="entry_athlete" className="mb-1 block text-sm font-medium text-foreground">
           Athlete
         </label>
         <select
           id="entry_athlete"
           value={athleteId}
           onChange={(e) => setAthleteId(e.target.value)}
-          className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+          className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
           required
         >
           <option value="">Select athlete</option>
@@ -184,10 +188,10 @@ export function EntryForm() {
       </div>
 
       <div>
-        <label htmlFor="entry_metric" className="mb-1 block text-sm font-medium">
+        <label htmlFor="entry_metric" className="mb-1 block text-sm font-medium text-foreground">
           Metric
           {sessionMetrics && sessionMetrics.length > 0 && (
-            <span className="ml-1 font-normal text-zinc-500">(from session)</span>
+            <span className="ml-1 font-normal text-foreground-muted">(from session)</span>
           )}
         </label>
         <select
@@ -197,7 +201,7 @@ export function EntryForm() {
             setMetricKey(e.target.value);
             setRawInput("");
           }}
-          className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+          className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
           required
         >
           <option value="">Select metric</option>
@@ -210,7 +214,7 @@ export function EntryForm() {
       </div>
 
       <div>
-        <label htmlFor="entry_raw" className="mb-1 block text-sm font-medium">
+        <label htmlFor="entry_raw" className="mb-1 block text-sm font-medium text-foreground">
           Value
         </label>
         <input
@@ -221,21 +225,36 @@ export function EntryForm() {
           value={rawInput}
           onChange={(e) => setRawInput(e.target.value)}
           placeholder={inputHint(selectedMetric, selectedSession?.day_splits)}
-          className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+          className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
           required
         />
-        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+        <p className="mt-1 text-xs text-foreground-muted">
           {inputHint(selectedMetric, selectedSession?.day_splits)}
         </p>
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-          {error}
-        </p>
+        <div className="flex flex-wrap items-center gap-2" role="alert">
+          <p className="text-sm text-danger">{error}</p>
+          <button
+            type="button"
+            onClick={() => canSubmit && void submitEntry()}
+            disabled={loading}
+            className="rounded border border-border px-2 py-1 text-sm text-foreground hover:bg-surface disabled:opacity-50"
+          >
+            Retry
+          </button>
+          <button
+            type="button"
+            onClick={() => setError("")}
+            className="rounded border border-border px-2 py-1 text-sm text-foreground hover:bg-surface"
+          >
+            Dismiss
+          </button>
+        </div>
       )}
       {success && (
-        <p className="text-sm text-green-600 dark:text-green-400" role="status">
+        <p className="text-sm text-accent" role="status">
           {success}
         </p>
       )}
@@ -243,7 +262,7 @@ export function EntryForm() {
       <button
         type="submit"
         disabled={loading || !canSubmit}
-        className="min-h-[44px] w-full rounded-lg bg-black px-4 py-3 text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200"
+        className="min-h-[44px] w-full rounded-lg bg-accent px-4 py-3 font-medium text-background hover:bg-accent-hover disabled:opacity-50 transition-colors"
       >
         {loading ? "Saving…" : "Save entry"}
       </button>

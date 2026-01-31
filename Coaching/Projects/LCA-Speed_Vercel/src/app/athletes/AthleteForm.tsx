@@ -60,11 +60,11 @@ export function AthleteForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="max-w-xl space-y-4 rounded-lg border p-4 shadow-sm md:p-6"
+      className="max-w-xl space-y-4 rounded-lg border border-border bg-surface p-4 shadow-lg shadow-black/20 md:p-6"
     >
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="athlete_first" className="mb-1 block text-sm font-medium">
+          <label htmlFor="athlete_first" className="mb-1 block text-sm font-medium text-foreground">
             First name
           </label>
           <input
@@ -72,12 +72,12 @@ export function AthleteForm() {
             type="text"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+            className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
             required
           />
         </div>
         <div>
-          <label htmlFor="athlete_last" className="mb-1 block text-sm font-medium">
+          <label htmlFor="athlete_last" className="mb-1 block text-sm font-medium text-foreground">
             Last name
           </label>
           <input
@@ -85,7 +85,7 @@ export function AthleteForm() {
             type="text"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+            className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
             required
           />
         </div>
@@ -93,14 +93,14 @@ export function AthleteForm() {
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label htmlFor="athlete_type" className="mb-1 block text-sm font-medium">
+          <label htmlFor="athlete_type" className="mb-1 block text-sm font-medium text-foreground">
             Type
           </label>
           <select
             id="athlete_type"
             value={athleteType}
             onChange={(e) => setAthleteType(e.target.value as AthleteType)}
-            className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+            className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
           >
             <option value="athlete">Athlete</option>
             <option value="staff">Staff</option>
@@ -108,14 +108,14 @@ export function AthleteForm() {
           </select>
         </div>
         <div>
-          <label htmlFor="athlete_gender" className="mb-1 block text-sm font-medium">
+          <label htmlFor="athlete_gender" className="mb-1 block text-sm font-medium text-foreground">
             Gender
           </label>
           <select
             id="athlete_gender"
             value={gender}
             onChange={(e) => setGender(e.target.value as "M" | "F")}
-            className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+            className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
           >
             <option value="M">M</option>
             <option value="F">F</option>
@@ -123,7 +123,7 @@ export function AthleteForm() {
         </div>
         {athleteType === "athlete" && (
           <div>
-            <label htmlFor="athlete_class" className="mb-1 block text-sm font-medium">
+            <label htmlFor="athlete_class" className="mb-1 block text-sm font-medium text-foreground">
               Graduating class
             </label>
             <input
@@ -133,7 +133,7 @@ export function AthleteForm() {
               max={2032}
               value={graduatingClass}
               onChange={(e) => setGraduatingClass(Number(e.target.value))}
-              className="min-h-[44px] w-full rounded border px-3 py-2 text-base"
+              className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
               required
             />
           </div>
@@ -141,12 +141,12 @@ export function AthleteForm() {
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+        <p className="text-sm text-danger" role="alert">
           {error}
         </p>
       )}
       {success && (
-        <p className="text-sm text-green-600 dark:text-green-400" role="status">
+        <p className="text-sm text-accent" role="status">
           {success}
         </p>
       )}
@@ -154,7 +154,7 @@ export function AthleteForm() {
       <button
         type="submit"
         disabled={loading}
-        className="min-h-[44px] w-full rounded-lg bg-black px-4 py-3 text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-black dark:hover:bg-zinc-200"
+        className="min-h-[44px] w-full rounded-lg bg-accent px-4 py-3 font-medium text-background hover:bg-accent-hover disabled:opacity-50 transition-colors"
       >
         {loading ? "Adding…" : "Add athlete"}
       </button>

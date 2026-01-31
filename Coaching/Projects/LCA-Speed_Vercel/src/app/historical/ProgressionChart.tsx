@@ -23,7 +23,7 @@ export default function ProgressionChart({
 }: Props) {
   if (points.length === 0) {
     return (
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="text-sm text-foreground-muted">
         No data points for this athlete and metric in the selected range.
       </p>
     );
@@ -53,7 +53,7 @@ export default function ProgressionChart({
             type="monotone"
             dataKey="value"
             name={metricDisplayName}
-            stroke="var(--color-neon, #22d3ee)"
+            stroke="var(--accent)"
             strokeWidth={2}
             dot={{ r: 3 }}
           />

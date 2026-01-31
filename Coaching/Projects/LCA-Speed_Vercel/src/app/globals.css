@@ -1,26 +1,58 @@
 @import "tailwindcss";
 
+/* Cyberpunk theme: dark, high-contrast, school gold accent */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0e;
+  --surface: #12121a;
+  --surface-elevated: #1a1a24;
+  --foreground: #e4e4e7;
+  --foreground-muted: #a1a1aa;
+  --border: #27272a;
+  --border-focus: #fbbf24;
+  --accent: #fbbf24;
+  --accent-dim: rgba(251, 191, 36, 0.15);
+  --accent-hover: #fcd34d;
+  --danger: #f87171;
+  --danger-dim: rgba(248, 113, 113, 0.15);
+  --gold: #fbbf24;
+  --silver: #9ca3af;
+  --bronze: #d97706;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--accent-dim);
+  --color-accent-hover: var(--accent-hover);
+  --color-danger: var(--danger);
+  --color-danger-dim: var(--danger-dim);
+  --color-gold: var(--gold);
+  --color-silver: var(--silver);
+  --color-bronze: var(--bronze);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+/* Focus ring: gold accent */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-dim);
+  color: var(--foreground);
+}
+

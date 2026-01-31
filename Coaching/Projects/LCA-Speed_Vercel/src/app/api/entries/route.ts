@@ -43,20 +43,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch session for day_splits / day_components overrides
-    const sessionRows = await sql`
-      SELECT day_splits, day_components
-      FROM sessions
-      WHERE id = ${session_id}
-      LIMIT 1
-    `;
-    if (!sessionRows.rows.length) {
+    // Fetch session and athlete in parallel (independent ops)
+    const [sessionResult, athleteResult] = await Promise.all([
+      sql`
+        SELECT day_splits, day_components
+        FROM sessions
+        WHERE id = ${session_id}
+        LIMIT 1
+      `,
+      sql`
+        SELECT id FROM athletes WHERE id = ${athlete_id} LIMIT 1
+      `,
+    ]);
+    if (!sessionResult.rows.length) {
       return NextResponse.json(
         { error: "Session not found" },
         { status: 404 }
       );
     }
-    const sess = sessionRows.rows[0] as {
+    if (!athleteResult.rows.length) {
+      return NextResponse.json(
+        { error: "Athlete not found" },
+        { status: 404 }
+      );
+    }
+    const sess = sessionResult.rows[0] as {
       day_splits?: Record<string, number[]>;
       day_components?: Record<string, string[]>;
     };
@@ -64,17 +75,6 @@ export async function POST(request: NextRequest) {
       sess.day_splits || sess.day_components
         ? { day_splits: sess.day_splits, day_components: sess.day_components }
         : undefined;
-
-    // Verify athlete exists
-    const athleteRows = await sql`
-      SELECT id FROM athletes WHERE id = ${athlete_id} LIMIT 1
-    `;
-    if (!athleteRows.rows.length) {
-      return NextResponse.json(
-        { error: "Athlete not found" },
-        { status: 404 }
-      );
-    }
 
     const parsed = parseEntry(metric_key, rawInputStr, sessionOverrides);
 
