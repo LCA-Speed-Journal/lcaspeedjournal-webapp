@@ -13,6 +13,11 @@ const ProgressionChart = dynamic(
   { ssr: false }
 );
 
+const HistoricalLeaderboardBar = dynamic(
+  () => import("./HistoricalLeaderboardBar").then((m) => m.default),
+  { ssr: false }
+);
+
 const fetcher = (url: string) =>
   fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText))));
 
@@ -42,9 +47,27 @@ function formatValue(n: number): string {
   return n.toFixed(2);
 }
 
+const MAX_PROGRESSION_ATHLETES = 5;
+
 type MetricOption = { key: string; display_name: string; display_units: string };
 type SessionItem = { id: string; session_date: string; phase?: string };
-type AthleteOption = { id: string; first_name: string; last_name: string };
+type AthleteOption = { id: string; first_name: string; last_name: string; gender?: string };
+type ProgressionSeriesItem = {
+  athlete_id: string;
+  first_name?: string;
+  last_name?: string;
+  points: ProgressionPoint[];
+};
+type ProgressionResponse = {
+  data: {
+    points?: ProgressionPoint[];
+    series?: ProgressionSeriesItem[];
+    metric_display_name: string;
+    units: string;
+    team_avg_male_points?: ProgressionPoint[];
+    team_avg_female_points?: ProgressionPoint[];
+  };
+};
 
 export default function HistoricalClient() {
   const [from, setFrom] = useState(() => defaultFrom());
@@ -52,8 +75,11 @@ export default function HistoricalClient() {
   const [phase, setPhase] = useState("");
   const [metric, setMetric] = useState("");
   const [groupByGender, setGroupByGender] = useState(false);
-  const [athleteId, setAthleteId] = useState("");
+  const [leaderboardView, setLeaderboardView] = useState<"bar" | "cards">("bar");
+  const [showLeaderboardTeamAvg, setShowLeaderboardTeamAvg] = useState(false);
+  const [athleteIds, setAthleteIds] = useState<string[]>([]);
   const [progressionMetric, setProgressionMetric] = useState("");
+  const [showTeamAvg, setShowTeamAvg] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const { data: metricsData } = useSWR<{ data: { metrics: MetricOption[] } }>(
@@ -90,21 +116,58 @@ export default function HistoricalClient() {
   }>(historicalUrl, fetcher);
 
   const progressionUrl =
-    athleteId && progressionMetric
-      ? `/api/progression?athlete_id=${encodeURIComponent(athleteId)}&metric=${encodeURIComponent(progressionMetric)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+    athleteIds.length > 0 && progressionMetric && from && to
+      ? `/api/progression?${athleteIds.map((id) => `athlete_id=${encodeURIComponent(id)}`).join("&")}&metric=${encodeURIComponent(progressionMetric)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${showTeamAvg ? "&team_avg=1" : ""}`
       : null;
-  const { data: progressionData } = useSWR<{
-    data: { points: ProgressionPoint[]; metric_display_name: string; units: string };
-  }>(progressionUrl, fetcher);
+  const { data: progressionData } = useSWR<ProgressionResponse>(progressionUrl, fetcher);
 
   const rows = historicalData?.data?.rows ?? [];
   const male = historicalData?.data?.male ?? [];
   const female = historicalData?.data?.female ?? [];
   const units = historicalData?.data?.units ?? "";
   const showGrouped = groupByGender && (male.length > 0 || female.length > 0);
-  const progressionPoints = progressionData?.data?.points ?? [];
+
+  const leaderboardMaleAvg =
+    male.length > 0 ? male.reduce((s, r) => s + r.display_value, 0) / male.length : null;
+  const leaderboardFemaleAvg =
+    female.length > 0 ? female.reduce((s, r) => s + r.display_value, 0) / female.length : null;
+
+  const progressionSeries = useMemo(() => {
+    const d = progressionData?.data;
+    if (!d) return [];
+    if (d.series && d.series.length > 0) return d.series;
+    if (d.points && athleteIds.length > 0) {
+      const id = athleteIds[0];
+      const athlete = athletes.find((a) => a.id === id);
+      return [
+        {
+          athlete_id: id,
+          first_name: athlete?.first_name ?? "",
+          last_name: athlete?.last_name ?? "",
+          points: d.points,
+        },
+      ];
+    }
+    return [];
+  }, [progressionData?.data, athleteIds, athletes]);
+
   const progressionUnits = progressionData?.data?.units ?? "";
   const progressionMetricName = progressionData?.data?.metric_display_name ?? progressionMetric;
+  const teamAvgMalePointsRaw = progressionData?.data?.team_avg_male_points ?? [];
+  const teamAvgFemalePointsRaw = progressionData?.data?.team_avg_female_points ?? [];
+
+  const hasMaleSelected = athleteIds.some((id) => {
+    const a = athletes.find((x) => x.id === id);
+    const g = (a?.gender ?? "").toLowerCase();
+    return g === "m" || g === "male";
+  });
+  const hasFemaleSelected = athleteIds.some((id) => {
+    const a = athletes.find((x) => x.id === id);
+    const g = (a?.gender ?? "").toLowerCase();
+    return g === "f" || g === "female";
+  });
+  const teamAvgMalePoints = showTeamAvg && hasMaleSelected ? teamAvgMalePointsRaw : [];
+  const teamAvgFemalePoints = showTeamAvg && hasFemaleSelected ? teamAvgFemalePointsRaw : [];
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background px-6 py-8 md:px-8 md:py-10">
@@ -188,6 +251,42 @@ export default function HistoricalClient() {
             />
             <span className="text-sm text-foreground-muted">Group by gender</span>
           </label>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-foreground-muted">View:</span>
+            <div className="flex rounded-lg border border-border bg-surface-elevated p-0.5">
+              <button
+                type="button"
+                onClick={() => setLeaderboardView("bar")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  leaderboardView === "bar"
+                    ? "bg-accent text-background"
+                    : "text-foreground-muted hover:text-foreground"
+                }`}
+              >
+                Bar chart
+              </button>
+              <button
+                type="button"
+                onClick={() => setLeaderboardView("cards")}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  leaderboardView === "cards"
+                    ? "bg-accent text-background"
+                    : "text-foreground-muted hover:text-foreground"
+                }`}
+              >
+                Cards
+              </button>
+            </div>
+          </div>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showLeaderboardTeamAvg}
+              onChange={(e) => setShowLeaderboardTeamAvg(e.target.checked)}
+              className="h-4 w-4 rounded border-border bg-surface text-accent focus:ring-accent"
+            />
+            <span className="text-sm text-foreground-muted">Show team averages</span>
+          </label>
         </div>
         {isPending && (
           <p className="mb-2 text-xs text-foreground-muted">Updating…</p>
@@ -212,7 +311,35 @@ export default function HistoricalClient() {
         )}
         {!historicalError && rows.length > 0 && (
           <div className="space-y-4">
-            {showGrouped ? (
+            {leaderboardView === "bar" ? (
+              <HistoricalLeaderboardBar
+                rows={rows}
+                male={male}
+                female={female}
+                units={units}
+                groupByGender={groupByGender}
+                metricDisplayName={historicalData?.data?.metric_display_name ?? metric}
+                showTeamAvg={showLeaderboardTeamAvg}
+                maleAvg={leaderboardMaleAvg}
+                femaleAvg={leaderboardFemaleAvg}
+              />
+            ) : (
+              <>
+                {showLeaderboardTeamAvg && (leaderboardMaleAvg != null || leaderboardFemaleAvg != null) && (
+                  <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border/80 bg-surface-elevated px-4 py-2 text-sm text-foreground-muted">
+                    {leaderboardMaleAvg != null && (
+                      <span>
+                        Men&apos;s Average: <span className="font-mono font-medium text-foreground">{formatValue(leaderboardMaleAvg)} {units}</span>
+                      </span>
+                    )}
+                    {leaderboardFemaleAvg != null && (
+                      <span>
+                        Women&apos;s Average: <span className="font-mono font-medium text-foreground">{formatValue(leaderboardFemaleAvg)} {units}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+              {showGrouped ? (
               <>
                 {male.length > 0 && (
                   <div>
@@ -293,6 +420,8 @@ export default function HistoricalClient() {
                 ))}
               </div>
             )}
+            </>
+            )}
           </div>
         )}
           </section>
@@ -303,24 +432,56 @@ export default function HistoricalClient() {
             Progression
           </p>
           <p className="mb-4 text-sm text-foreground-muted">
-          Best value per session for one athlete and metric (uses the same date range above).
+          Best value per session for selected athlete(s) and metric (uses the same date range above). Select up to {MAX_PROGRESSION_ATHLETES} athletes.
         </p>
         <div className="mb-4 flex flex-wrap items-end gap-4">
-          <label className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-foreground-muted">Athlete</span>
-            <select
-              value={athleteId}
-              onChange={(e) => setAthleteId(e.target.value)}
-              className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground focus:border-accent"
-            >
-              <option value="">Select athlete</option>
-              {athletes.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.first_name} {a.last_name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-foreground-muted">Athletes</span>
+            <div className="flex flex-wrap items-center gap-2">
+              {athleteIds.map((id) => {
+                const a = athletes.find((x) => x.id === id);
+                const label = a ? `${a.first_name} ${a.last_name}` : id.slice(0, 8);
+                return (
+                  <span
+                    key={id}
+                    className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface-elevated px-2 py-1 text-sm text-foreground"
+                  >
+                    {label}
+                    <button
+                      type="button"
+                      onClick={() => setAthleteIds((prev) => prev.filter((x) => x !== id))}
+                      className="rounded p-0.5 text-foreground-muted hover:bg-surface hover:text-foreground"
+                      aria-label={`Remove ${label}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                );
+              })}
+              {athleteIds.length < MAX_PROGRESSION_ATHLETES && (
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    if (id && !athleteIds.includes(id)) {
+                      setAthleteIds((prev) => [...prev, id].slice(0, MAX_PROGRESSION_ATHLETES));
+                    }
+                    e.target.value = "";
+                  }}
+                  className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground-muted focus:border-accent focus:text-foreground"
+                >
+                  <option value="">Add athlete…</option>
+                  {athletes
+                    .filter((a) => !athleteIds.includes(a.id))
+                    .map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.first_name} {a.last_name}
+                      </option>
+                    ))}
+                </select>
+              )}
+            </div>
+          </div>
           <label className="flex flex-col gap-1">
             <span className="text-sm font-medium text-foreground-muted">Metric</span>
             <select
@@ -336,17 +497,28 @@ export default function HistoricalClient() {
               ))}
             </select>
           </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={showTeamAvg}
+              onChange={(e) => setShowTeamAvg(e.target.checked)}
+              className="h-4 w-4 rounded border-border bg-surface text-accent focus:ring-accent"
+            />
+            <span className="text-sm text-foreground-muted">Show team averages</span>
+          </label>
         </div>
-        {athleteId && progressionMetric && (
+        {athleteIds.length > 0 && progressionMetric && (
           <ProgressionChart
-            points={progressionPoints}
+            series={progressionSeries}
             metricDisplayName={progressionMetricName}
             units={progressionUnits}
+            teamAvgMalePoints={teamAvgMalePoints}
+            teamAvgFemalePoints={teamAvgFemalePoints}
           />
         )}
-        {(!athleteId || !progressionMetric) && (
+        {(!athleteIds.length || !progressionMetric) && (
           <p className="text-sm text-foreground-muted">
-            Select an athlete and metric to see progression.
+            Select athlete(s) and metric to see progression.
           </p>
         )}
         </div>

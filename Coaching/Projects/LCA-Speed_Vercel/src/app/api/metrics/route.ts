@@ -1,19 +1,31 @@
 /**
- * Metrics registry API - GET (public).
- * Returns all metric keys and display info for historical/progression filters.
+ * Metrics API - GET (public).
+ * Returns list of metrics from registry; includes synthetic Max Velocity when mph metrics exist.
  */
 import { NextResponse } from "next/server";
 import { getMetricsRegistry } from "@/lib/parser";
+import { getMaxVelocityKey, hasVelocityMetrics } from "@/lib/velocity-metrics";
 
 export async function GET() {
   try {
     const registry = getMetricsRegistry();
-    const metrics = Object.entries(registry).map(([key, def]) => ({
+    const metrics = Object.entries(registry).map(([key, d]) => ({
       key,
-      display_name: def.display_name ?? key,
-      display_units: def.display_units ?? "",
+      display_name: d.display_name ?? key,
+      display_units: d.display_units ?? "",
     }));
-    return NextResponse.json({ data: { metrics } });
+
+    if (hasVelocityMetrics()) {
+      metrics.push({
+        key: getMaxVelocityKey(),
+        display_name: "Max Velocity",
+        display_units: "mph",
+      });
+    }
+
+    return NextResponse.json({
+      data: { metrics },
+    });
   } catch (err) {
     console.error("GET /api/metrics:", err);
     return NextResponse.json(

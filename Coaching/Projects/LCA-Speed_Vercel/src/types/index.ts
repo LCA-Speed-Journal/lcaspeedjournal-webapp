@@ -15,11 +15,11 @@ export type LeaderboardRow = {
   gender: string;
   display_value: number;
   units: string;
+  source_metric_key?: string; // optional, for Max Velocity tooltip
 };
 
 export type ProgressionPoint = {
-  session_id: string;
   session_date: string;
   display_value: number;
-  units: string;
+  units?: string;
 };
