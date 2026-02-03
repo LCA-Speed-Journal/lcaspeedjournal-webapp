@@ -247,6 +247,37 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    let seasonBestMap = new Map<string, number>();
+    if (rows.length > 0 && seasonStart && seasonEnd) {
+      const athleteIds = rows.map((r) => r.athlete_id);
+      const seasonResult = sortAsc
+        ? await sql`
+            SELECT e.athlete_id, MIN(e.display_value)::float AS best_value
+            FROM entries e
+            JOIN sessions s ON s.id = e.session_id
+            WHERE e.metric_key = ${metric}
+              AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+              AND (${component}::text IS NULL OR e.component = ${component})
+              AND e.athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
+              AND s.session_date >= ${seasonStart}::date AND s.session_date <= ${seasonEnd}::date
+            GROUP BY e.athlete_id
+          `
+        : await sql`
+            SELECT e.athlete_id, MAX(e.display_value)::float AS best_value
+            FROM entries e
+            JOIN sessions s ON s.id = e.session_id
+            WHERE e.metric_key = ${metric}
+              AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+              AND (${component}::text IS NULL OR e.component = ${component})
+              AND e.athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
+              AND s.session_date >= ${seasonStart}::date AND s.session_date <= ${seasonEnd}::date
+            GROUP BY e.athlete_id
+          `;
+      for (const r of seasonResult.rows as BestRow[]) {
+        seasonBestMap.set(r.athlete_id, Number(r.best_value));
+      }
+    }
+
     const leaderboardRows: LeaderboardRow[] = rows.map((r) => {
       const current = Number(r.display_value);
       const prev = prevMap.get(r.athlete_id);
@@ -266,6 +297,13 @@ export async function GET(request: NextRequest) {
         out.previous_session_date = prev.previous_session_date;
         out.percent_change = rounded;
         out.trend = computeTrend(rounded, sortAsc, neutralBand);
+      }
+      const allTimeBest = allTimeBestMap.get(r.athlete_id);
+      const seasonBest = seasonBestMap.get(r.athlete_id);
+      if (allTimeBest != null && Math.abs(current - allTimeBest) < 1e-9) {
+        out.best_type = "pb";
+      } else if (seasonBest != null && Math.abs(current - seasonBest) < 1e-9) {
+        out.best_type = "sb";
       }
       return out;
     });
