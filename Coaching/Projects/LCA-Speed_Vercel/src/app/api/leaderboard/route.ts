@@ -63,6 +63,11 @@ export async function GET(request: NextRequest) {
         { status: 404 }
       );
     }
+    const sessionDateStr = (sessionRows.rows[0] as { session_date: string }).session_date;
+    const sessionDate = new Date(sessionDateStr + "T12:00:00");
+    const year = sessionDate.getFullYear();
+    const seasonStart = `${year}-01-01`;
+    const seasonEnd = `${year}-12-31`;
     // Time (e.g. "s") = lower is better = ascending; else descending
     const sortAsc = (metricDef.display_units ?? "").toLowerCase() === "s";
     const neutralBand = sortAsc ? TIME_NEUTRAL_BAND : DISTANCE_NEUTRAL_BAND;
