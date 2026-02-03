@@ -23,6 +23,8 @@ type MetricDef = {
   conversion_formula: ConversionFormula | string;
   input_structure: "single_interval" | "cumulative" | "paired_components";
   default_splits: (number | string)[];
+  category?: string;
+  subcategory?: string;
 };
 
 const metrics = metricsData as Record<string, MetricDef>;

@@ -9,6 +9,9 @@ export type Athlete = {
   created_at: string;
 };
 
+/** Session-to-session comparison: up = better, down = worse, neutral = within band */
+export type LeaderboardTrend = "up" | "neutral" | "down";
+
 export type LeaderboardRow = {
   rank: number;
   athlete_id: string;
@@ -18,6 +21,11 @@ export type LeaderboardRow = {
   display_value: number;
   units: string;
   source_metric_key?: string; // optional, for Max Velocity tooltip
+  // Session-to-session comparison (optional; absent when no prior session)
+  previous_display_value?: number;
+  previous_session_date?: string;
+  percent_change?: number;
+  trend?: LeaderboardTrend;
 };
 
 export type ProgressionPoint = {

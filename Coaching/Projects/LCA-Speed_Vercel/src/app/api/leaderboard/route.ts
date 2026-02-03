@@ -1,11 +1,30 @@
 /**
  * Leaderboard API - GET (public).
  * Returns ranked rows for a session + metric; optional group_by=gender.
+ * Includes optional session-to-session comparison (previous_display_value, percent_change, trend).
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
-import type { LeaderboardRow } from "@/types";
+import type { LeaderboardRow, LeaderboardTrend } from "@/types";
+
+const TIME_NEUTRAL_BAND = 0.8;
+const DISTANCE_NEUTRAL_BAND = 1.5;
+
+function computeTrend(
+  percentChange: number,
+  sortAsc: boolean,
+  band: number
+): LeaderboardTrend {
+  const abs = Math.abs(percentChange);
+  if (abs <= band) return "neutral";
+  if (sortAsc) {
+    // Time: negative percent = improvement
+    return percentChange < 0 ? "up" : "down";
+  }
+  // Distance/speed: positive percent = improvement
+  return percentChange > 0 ? "up" : "down";
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,9 +53,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Session exists?
+    // Session exists and get session_date for previous-session lookup
     const sessionRows = await sql`
-      SELECT id FROM sessions WHERE id = ${session_id} LIMIT 1
+      SELECT id, session_date FROM sessions WHERE id = ${session_id} LIMIT 1
     `;
     if (!sessionRows.rows.length) {
       return NextResponse.json(
@@ -44,9 +63,9 @@ export async function GET(request: NextRequest) {
         { status: 404 }
       );
     }
-
     // Time (e.g. "s") = lower is better = ascending; else descending
     const sortAsc = (metricDef.display_units ?? "").toLowerCase() === "s";
+    const neutralBand = sortAsc ? TIME_NEUTRAL_BAND : DISTANCE_NEUTRAL_BAND;
 
     type Row = {
       rank: number;
@@ -120,15 +139,103 @@ export async function GET(request: NextRequest) {
       rows = result.rows as Row[];
     }
 
-    const leaderboardRows: LeaderboardRow[] = rows.map((r) => ({
-      rank: r.rank,
-      athlete_id: r.athlete_id,
-      first_name: r.first_name,
-      last_name: r.last_name,
-      gender: r.gender,
-      display_value: Number(r.display_value),
-      units: r.units,
-    }));
+    // Previous-session best per athlete (most recent prior session, same metric+interval+component)
+    type PrevRow = { athlete_id: string; previous_display_value: number; previous_session_date: string };
+    let prevMap = new Map<string, { previous_display_value: number; previous_session_date: string }>();
+    if (rows.length > 0) {
+      const athleteIds = rows.map((r) => r.athlete_id);
+      const prevResult = sortAsc
+        ? await sql`
+            WITH current_session AS (SELECT id, session_date FROM sessions WHERE id = ${session_id}),
+            last_prior_session AS (
+              SELECT e.athlete_id, MAX(s.session_date) AS prev_session_date
+              FROM entries e
+              JOIN sessions s ON s.id = e.session_id
+              CROSS JOIN current_session cs
+              WHERE s.session_date < cs.session_date
+                AND e.metric_key = ${metric}
+                AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                AND (${component}::text IS NULL OR e.component = ${component})
+                AND e.athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
+              GROUP BY e.athlete_id
+            ),
+            prev_best AS (
+              SELECT DISTINCT ON (e.athlete_id)
+                e.athlete_id,
+                e.display_value AS previous_display_value,
+                s.session_date::text AS previous_session_date
+              FROM entries e
+              JOIN sessions s ON s.id = e.session_id
+              JOIN last_prior_session l ON l.athlete_id = e.athlete_id AND l.prev_session_date = s.session_date
+              WHERE e.metric_key = ${metric}
+                AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                AND (${component}::text IS NULL OR e.component = ${component})
+              ORDER BY e.athlete_id, e.display_value ASC
+            )
+            SELECT athlete_id, previous_display_value, previous_session_date FROM prev_best
+          `
+        : await sql`
+            WITH current_session AS (SELECT id, session_date FROM sessions WHERE id = ${session_id}),
+            last_prior_session AS (
+              SELECT e.athlete_id, MAX(s.session_date) AS prev_session_date
+              FROM entries e
+              JOIN sessions s ON s.id = e.session_id
+              CROSS JOIN current_session cs
+              WHERE s.session_date < cs.session_date
+                AND e.metric_key = ${metric}
+                AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                AND (${component}::text IS NULL OR e.component = ${component})
+                AND e.athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
+              GROUP BY e.athlete_id
+            ),
+            prev_best AS (
+              SELECT DISTINCT ON (e.athlete_id)
+                e.athlete_id,
+                e.display_value AS previous_display_value,
+                s.session_date::text AS previous_session_date
+              FROM entries e
+              JOIN sessions s ON s.id = e.session_id
+              JOIN last_prior_session l ON l.athlete_id = e.athlete_id AND l.prev_session_date = s.session_date
+              WHERE e.metric_key = ${metric}
+                AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                AND (${component}::text IS NULL OR e.component = ${component})
+              ORDER BY e.athlete_id, e.display_value DESC
+            )
+            SELECT athlete_id, previous_display_value, previous_session_date FROM prev_best
+          `;
+      for (const p of prevResult.rows as PrevRow[]) {
+        const prevVal = Number(p.previous_display_value);
+        if (prevVal !== 0) {
+          prevMap.set(p.athlete_id, {
+            previous_display_value: prevVal,
+            previous_session_date: p.previous_session_date,
+          });
+        }
+      }
+    }
+
+    const leaderboardRows: LeaderboardRow[] = rows.map((r) => {
+      const current = Number(r.display_value);
+      const prev = prevMap.get(r.athlete_id);
+      const out: LeaderboardRow = {
+        rank: r.rank,
+        athlete_id: r.athlete_id,
+        first_name: r.first_name,
+        last_name: r.last_name,
+        gender: r.gender,
+        display_value: current,
+        units: r.units,
+      };
+      if (prev != null && prev.previous_display_value !== 0) {
+        const percentChange = (current - prev.previous_display_value) / prev.previous_display_value * 100;
+        const rounded = Math.round(percentChange * 10) / 10;
+        out.previous_display_value = prev.previous_display_value;
+        out.previous_session_date = prev.previous_session_date;
+        out.percent_change = rounded;
+        out.trend = computeTrend(rounded, sortAsc, neutralBand);
+      }
+      return out;
+    });
 
     const payload = {
       data: {

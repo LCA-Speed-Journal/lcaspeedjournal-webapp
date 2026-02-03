@@ -14,6 +14,8 @@
   --accent-hover: #fcd34d;
   --danger: #f87171;
   --danger-dim: rgba(248, 113, 113, 0.15);
+  --success: #22c55e;
+  --success-dim: rgba(34, 197, 94, 0.2);
   --gold: #fbbf24;
   --silver: #9ca3af;
   --bronze: #d97706;
@@ -31,6 +33,8 @@
   --color-accent-hover: var(--accent-hover);
   --color-danger: var(--danger);
   --color-danger-dim: var(--danger-dim);
+  --color-success: var(--success);
+  --color-success-dim: var(--success-dim);
   --color-gold: var(--gold);
   --color-silver: var(--silver);
   --color-bronze: var(--bronze);

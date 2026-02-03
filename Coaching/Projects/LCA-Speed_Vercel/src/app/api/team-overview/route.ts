@@ -43,7 +43,7 @@ export async function GET() {
       const q = await sql`
         SELECT eg.id AS event_group_id, eg.name, COUNT(aeg.athlete_id)::text AS count
         FROM event_groups eg
-        LEFT JOIN athlete_event_groups aeg ON aeg.event_group_id = eg.id AND aeg.athlete_id = ANY(${ids})
+        LEFT JOIN athlete_event_groups aeg ON aeg.event_group_id = eg.id AND aeg.athlete_id = ANY(${ids as unknown as string})
         GROUP BY eg.id, eg.name, eg.display_order
         ORDER BY eg.display_order, eg.name
       `;
@@ -70,7 +70,7 @@ export async function GET() {
       const entriesRows = await sql`
         SELECT e.athlete_id, e.metric_key, MIN(e.display_value) AS min_val, MAX(e.display_value) AS max_val, MAX(e.units) AS units
         FROM entries e
-        WHERE e.athlete_id = ANY(${ids})
+        WHERE e.athlete_id = ANY(${ids as unknown as string})
         GROUP BY e.athlete_id, e.metric_key
       `;
       const entries = entriesRows.rows as {
@@ -82,7 +82,7 @@ export async function GET() {
       }[];
 
       const athletesRows = await sql`
-        SELECT id, first_name, last_name FROM athletes WHERE id = ANY(${ids})
+        SELECT id, first_name, last_name FROM athletes WHERE id = ANY(${ids as unknown as string})
       `;
       const athletesMap = new Map(
         (athletesRows.rows as { id: string; first_name: string; last_name: string }[]).map((a) => [a.id, a])
@@ -177,7 +177,7 @@ export async function GET() {
       const archRows = await sql`
         SELECT rsi_type, sprint_archetype
         FROM athlete_archetypes
-        WHERE athlete_id = ANY(${ids})
+        WHERE athlete_id = ANY(${ids as unknown as string})
       `;
       const arch = archRows.rows as { rsi_type: string | null; sprint_archetype: string | null }[];
       const rsiMap = new Map<string, number>();
@@ -206,7 +206,7 @@ export async function GET() {
         SELECT COALESCE(sp.label, ak.custom_text) AS label
         FROM athlete_superpowers ak
         LEFT JOIN superpower_presets sp ON sp.id = ak.preset_id
-        WHERE ak.athlete_id = ANY(${ids})
+        WHERE ak.athlete_id = ANY(${ids as unknown as string})
           AND (sp.label IS NOT NULL OR ak.custom_text IS NOT NULL)
       `;
       const counts = new Map<string, number>();
@@ -229,7 +229,7 @@ export async function GET() {
         SELECT COALESCE(kp.label, ak.custom_text) AS label
         FROM athlete_kryptonite ak
         LEFT JOIN kryptonite_presets kp ON kp.id = ak.preset_id
-        WHERE ak.athlete_id = ANY(${ids})
+        WHERE ak.athlete_id = ANY(${ids as unknown as string})
           AND (kp.label IS NOT NULL OR ak.custom_text IS NOT NULL)
       `;
       const counts = new Map<string, number>();
@@ -258,7 +258,7 @@ export async function GET() {
         SELECT n.athlete_id, n.note_text, n.created_at, a.first_name, a.last_name
         FROM athlete_notes n
         JOIN athletes a ON a.id = n.athlete_id
-        WHERE n.athlete_id = ANY(${ids})
+        WHERE n.athlete_id = ANY(${ids as unknown as string})
         ORDER BY n.created_at DESC
         LIMIT 10
       `;

@@ -320,6 +320,14 @@ function ComponentLeaderboard({
 }
 
 function LeaderboardCard({ row, units }: { row: LeaderboardRow; units: string }) {
+  const hasComparison = row.trend != null && row.percent_change != null;
+  const pillLabel = hasComparison
+    ? formatPillAriaLabel(row.trend!, row.percent_change!)
+    : undefined;
+  const pillTitle = row.previous_session_date
+    ? `vs ${formatSessionDateForTooltip(row.previous_session_date)}`
+    : undefined;
+
   return (
     <div
       className={`relative flex flex-col rounded-lg border p-3 ${rankClass(row.rank)}`}
@@ -334,8 +342,46 @@ function LeaderboardCard({ row, units }: { row: LeaderboardRow; units: string })
       <span className="mt-2 font-mono text-lg font-semibold tabular-nums">
         {formatValue(row.display_value)} <span className="text-sm font-normal text-foreground-muted">{units}</span>
       </span>
+      {hasComparison && (
+        <span
+          className={`mt-2 self-end font-mono text-xs tabular-nums px-2 py-0.5 rounded-full border ${pillClass(row.trend!)}`}
+          title={pillTitle}
+          aria-label={pillLabel}
+        >
+          {formatPillContent(row.trend!, row.percent_change!)}
+        </span>
+      )}
     </div>
   );
+}
+
+function pillClass(trend: "up" | "neutral" | "down"): string {
+  if (trend === "up") return "bg-success/20 text-success border-success/50";
+  if (trend === "down") return "bg-danger/20 text-danger border-danger/50";
+  return "bg-foreground-muted/15 text-foreground-muted border-border";
+}
+
+function formatPillContent(trend: "up" | "neutral" | "down", percentChange: number): string {
+  const abs = Math.abs(percentChange).toFixed(1);
+  if (trend === "up") return `↑ ${abs}%`;
+  if (trend === "down") return `↓ ${abs}%`;
+  return "−";
+}
+
+function formatPillAriaLabel(trend: "up" | "neutral" | "down", percentChange: number): string {
+  const abs = Math.abs(percentChange).toFixed(1);
+  if (trend === "up") return `${abs}% better than last session`;
+  if (trend === "down") return `${abs}% worse than last session`;
+  return "About the same as last session";
+}
+
+function formatSessionDateForTooltip(isoDate: string): string {
+  try {
+    const d = new Date(isoDate + "T12:00:00");
+    return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+  } catch {
+    return isoDate;
+  }
 }
 
 function formatValue(n: number): string {
