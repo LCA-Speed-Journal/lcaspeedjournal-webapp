@@ -63,9 +63,21 @@ export async function GET(request: NextRequest) {
         { status: 404 }
       );
     }
-    const sessionDateStr = (sessionRows.rows[0] as { session_date: string }).session_date;
+    const rawSessionDate = (sessionRows.rows[0] as { session_date: string | Date }).session_date;
+    const sessionDateStr =
+      typeof rawSessionDate === "string"
+        ? rawSessionDate
+        : rawSessionDate instanceof Date
+          ? rawSessionDate.toISOString().slice(0, 10)
+          : String(rawSessionDate).slice(0, 10);
     const sessionDate = new Date(sessionDateStr + "T12:00:00");
     const year = sessionDate.getFullYear();
+    if (Number.isNaN(year)) {
+      return NextResponse.json(
+        { error: "Invalid session date" },
+        { status: 400 }
+      );
+    }
     const seasonStart = `${year}-01-01`;
     const seasonEnd = `${year}-12-31`;
     // Time (e.g. "s") = lower is better = ascending; else descending
@@ -146,7 +158,7 @@ export async function GET(request: NextRequest) {
 
     // Previous-session best per athlete (most recent prior session, same metric+interval+component)
     type PrevRow = { athlete_id: string; previous_display_value: number; previous_session_date: string };
-    let prevMap = new Map<string, { previous_display_value: number; previous_session_date: string }>();
+    const prevMap = new Map<string, { previous_display_value: number; previous_session_date: string }>();
     if (rows.length > 0) {
       const athleteIds = rows.map((r) => r.athlete_id);
       const prevResult = sortAsc
@@ -220,7 +232,7 @@ export async function GET(request: NextRequest) {
     }
 
     type BestRow = { athlete_id: string; best_value: number };
-    let allTimeBestMap = new Map<string, number>();
+    const allTimeBestMap = new Map<string, number>();
     if (rows.length > 0) {
       const athleteIds = rows.map((r) => r.athlete_id);
       const allTimeResult = sortAsc
@@ -247,7 +259,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    let seasonBestMap = new Map<string, number>();
+    const seasonBestMap = new Map<string, number>();
     if (rows.length > 0 && seasonStart && seasonEnd) {
       const athleteIds = rows.map((r) => r.athlete_id);
       const seasonResult = sortAsc
