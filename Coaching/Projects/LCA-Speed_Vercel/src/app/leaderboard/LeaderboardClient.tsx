@@ -342,15 +342,37 @@ function LeaderboardCard({ row, units }: { row: LeaderboardRow; units: string })
       <span className="mt-2 font-mono text-lg font-semibold tabular-nums">
         {formatValue(row.display_value)} <span className="text-sm font-normal text-foreground-muted">{units}</span>
       </span>
-      {hasComparison && (
-        <span
-          className={`mt-2 self-end font-mono text-xs tabular-nums px-2 py-0.5 rounded-full border ${pillClass(row.trend!)}`}
-          title={pillTitle}
-          aria-label={pillLabel}
-        >
-          {formatPillContent(row.trend!, row.percent_change!)}
+      <div className="mt-2 flex items-center justify-between">
+        <span className="min-w-0">
+          {row.best_type === "pb" && (
+            <span
+              className="inline-block px-2 py-0.5 rounded-full border text-xs font-semibold bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/50"
+              title="Personal best"
+              aria-label="Personal best"
+            >
+              PB
+            </span>
+          )}
+          {row.best_type === "sb" && (
+            <span
+              className="inline-block px-2 py-0.5 rounded-full border text-xs font-semibold bg-foreground-muted/20 text-foreground-muted border-border"
+              title="Season best"
+              aria-label="Season best"
+            >
+              SB
+            </span>
+          )}
         </span>
-      )}
+        {hasComparison && (
+          <span
+            className={`font-mono text-xs tabular-nums px-2 py-0.5 rounded-full border shrink-0 ${pillClass(row.trend!)}`}
+            title={pillTitle}
+            aria-label={pillLabel}
+          >
+            {formatPillContent(row.trend!, row.percent_change!)}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
