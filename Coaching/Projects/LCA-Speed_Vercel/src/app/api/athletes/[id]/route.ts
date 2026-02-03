@@ -15,7 +15,7 @@ export async function GET(
     let row: Record<string, unknown>;
     try {
       const { rows } = await sql`
-        SELECT id, first_name, last_name, gender, graduating_class, athlete_type, created_at
+        SELECT id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at
         FROM athletes
         WHERE id = ${id}
         LIMIT 1
@@ -28,6 +28,7 @@ export async function GET(
       const msg = String((legacyErr as Error)?.message ?? "");
       if (
         msg.includes("athlete_type") ||
+        msg.includes("active") ||
         msg.includes("column") ||
         msg.includes("does not exist")
       ) {
@@ -40,7 +41,7 @@ export async function GET(
         if (rows.length === 0) {
           return NextResponse.json({ error: "Athlete not found" }, { status: 404 });
         }
-        row = { ...(rows[0] as Record<string, unknown>), athlete_type: "athlete" };
+        row = { ...(rows[0] as Record<string, unknown>), athlete_type: "athlete", active: true };
       } else {
         throw legacyErr;
       }
@@ -67,8 +68,9 @@ export async function PUT(
   const { id } = await params;
   try {
     const body = await request.json();
-    const { first_name, last_name, gender, graduating_class, athlete_type } = body;
+    const { first_name, last_name, gender, graduating_class, athlete_type, active } = body;
     const type = athlete_type ?? "athlete";
+    const isActive = active !== undefined ? Boolean(active) : true;
 
     if (!first_name || !last_name || !gender) {
       return NextResponse.json(
@@ -90,9 +92,9 @@ export async function PUT(
       const { rows } = await sql`
         UPDATE athletes
         SET first_name = ${first_name}, last_name = ${last_name},
-            gender = ${gender}, graduating_class = ${gradClass}, athlete_type = ${type}
+            gender = ${gender}, graduating_class = ${gradClass}, athlete_type = ${type}, active = ${isActive}
         WHERE id = ${id}
-        RETURNING id, first_name, last_name, gender, graduating_class, athlete_type, created_at
+        RETURNING id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at
       `;
       if (rows.length === 0) {
         return NextResponse.json({ error: "Athlete not found" }, { status: 404 });
@@ -100,23 +102,70 @@ export async function PUT(
       return NextResponse.json({ data: rows[0] });
     } catch (updateErr) {
       const msg = String((updateErr as Error)?.message ?? "");
-      if (
-        (msg.includes("athlete_type") || msg.includes("column") || msg.includes("does not exist")) &&
-        type === "athlete" &&
-        gradClass != null
-      ) {
-        const { rows } = await sql`
-          UPDATE athletes
-          SET first_name = ${first_name}, last_name = ${last_name},
-              gender = ${gender}, graduating_class = ${gradClass}
-          WHERE id = ${id}
-          RETURNING id, first_name, last_name, gender, graduating_class, created_at
-        `;
-        if (rows.length === 0) {
-          return NextResponse.json({ error: "Athlete not found" }, { status: 404 });
+      const isActiveColumnMissing =
+        msg.includes("active") && (msg.includes("column") || msg.includes("does not exist"));
+      if (isActiveColumnMissing) {
+        try {
+          await sql`
+            ALTER TABLE athletes ADD COLUMN IF NOT EXISTS active BOOLEAN NOT NULL DEFAULT true
+          `;
+          const { rows } = await sql`
+            UPDATE athletes
+            SET first_name = ${first_name}, last_name = ${last_name},
+                gender = ${gender}, graduating_class = ${gradClass}, athlete_type = ${type}, active = ${isActive}
+            WHERE id = ${id}
+            RETURNING id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at
+          `;
+          if (rows.length === 0) {
+            return NextResponse.json({ error: "Athlete not found" }, { status: 404 });
+          }
+          return NextResponse.json({ data: rows[0] });
+        } catch (alterOrRetryErr) {
+          console.error("PUT /api/athletes/[id]: add active column and retry failed:", alterOrRetryErr);
+          return NextResponse.json(
+            { error: "Failed to update athlete. Run scripts/migrate-phase-a-dashboard.sql to add the active column." },
+            { status: 500 }
+          );
         }
-        const row = { ...(rows[0] as Record<string, unknown>), athlete_type: "athlete" };
-        return NextResponse.json({ data: row });
+      }
+      const isOtherColumnError =
+        msg.includes("athlete_type") ||
+        msg.includes("column") ||
+        msg.includes("does not exist");
+      if (isOtherColumnError) {
+        try {
+          const { rows } = await sql`
+            UPDATE athletes
+            SET first_name = ${first_name}, last_name = ${last_name},
+                gender = ${gender}, graduating_class = ${gradClass}, athlete_type = ${type}
+            WHERE id = ${id}
+            RETURNING id, first_name, last_name, gender, graduating_class, athlete_type, created_at
+          `;
+          if (rows.length === 0) {
+            return NextResponse.json({ error: "Athlete not found" }, { status: 404 });
+          }
+          const activeValue = active !== undefined ? Boolean(active) : true;
+          const row = { ...(rows[0] as Record<string, unknown>), active: activeValue };
+          return NextResponse.json({ data: row });
+        } catch (fallbackErr) {
+          const fallbackMsg = String((fallbackErr as Error)?.message ?? "");
+          if (fallbackMsg.includes("athlete_type") || fallbackMsg.includes("column")) {
+            const { rows } = await sql`
+              UPDATE athletes
+              SET first_name = ${first_name}, last_name = ${last_name},
+                  gender = ${gender}, graduating_class = ${gradClass}
+              WHERE id = ${id}
+              RETURNING id, first_name, last_name, gender, graduating_class, created_at
+            `;
+            if (rows.length === 0) {
+              return NextResponse.json({ error: "Athlete not found" }, { status: 404 });
+            }
+            const activeValue = active !== undefined ? Boolean(active) : true;
+            const row = { ...(rows[0] as Record<string, unknown>), athlete_type: type, active: activeValue };
+            return NextResponse.json({ data: row });
+          }
+          throw fallbackErr;
+        }
       }
       throw updateErr;
     }

@@ -13,6 +13,7 @@ type Athlete = {
   gender: string;
   graduating_class: number | null;
   athlete_type?: string;
+  active?: boolean;
   created_at: string;
 };
 
@@ -23,7 +24,12 @@ function formatAthleteLabel(a: Athlete): string {
   return String(a.graduating_class ?? "");
 }
 
-export function AthleteRoster() {
+type AthleteRosterProps = {
+  selectedAthleteId?: string | null;
+  onAthleteSelect?: (id: string | null) => void;
+};
+
+export function AthleteRoster({ selectedAthleteId, onAthleteSelect }: AthleteRosterProps = {}) {
   const { data, mutate } = useSWR<{ data: Athlete[] }>("/api/athletes", fetcher);
   const retryRoster = () => void mutate();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -34,6 +40,31 @@ export function AthleteRoster() {
 
   const athletes = data?.data ?? [];
 
+  // Group athletes by graduating class
+  const grouped = athletes.reduce((acc, athlete) => {
+    const label = formatAthleteLabel(athlete);
+    if (!acc[label]) {
+      acc[label] = [];
+    }
+    acc[label].push(athlete);
+    return acc;
+  }, {} as Record<string, Athlete[]>);
+
+  // Sort groups: numeric years descending first, then Staff and Alumni as separate groups at the bottom
+  const sortedGroupKeys = Object.keys(grouped).sort((a, b) => {
+    const aNum = Number(a);
+    const bNum = Number(b);
+    if (!isNaN(aNum) && !isNaN(bNum)) return bNum - aNum; // Descending years (2027, 2026, ...)
+    if (!isNaN(aNum)) return -1; // Year groups before Staff/Alumni
+    if (!isNaN(bNum)) return 1;
+    // Non-year groups: Staff first, then Alumni at the very bottom
+    if (a === "Staff" && b === "Alumni") return -1;
+    if (a === "Alumni" && b === "Staff") return 1;
+    if (a === "Staff" || a === "Alumni") return 1; // other labels after Staff/Alumni
+    if (b === "Staff" || b === "Alumni") return -1;
+    return 0;
+  });
+
   async function handleUpdate(
     id: string,
     updates: {
@@ -42,6 +73,7 @@ export function AthleteRoster() {
       gender: string;
       graduating_class: number | null;
       athlete_type: string;
+      active?: boolean;
     }
   ) {
     setError("");
@@ -58,12 +90,36 @@ export function AthleteRoster() {
         return;
       }
       setEditingId(null);
-      mutate();
+      const updated = json.data as Athlete;
+      mutate(
+        (prev) =>
+          prev
+            ? {
+                ...prev,
+                data: prev.data.map((a) => (a.id === updated.id ? updated : a)),
+              }
+            : prev,
+        { revalidate: false }
+      );
     } catch {
       setError("Network error");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleToggleActive(id: string, currentActive: boolean) {
+    const athlete = athletes.find((a) => a.id === id);
+    if (!athlete) return;
+    
+    await handleUpdate(id, {
+      first_name: athlete.first_name,
+      last_name: athlete.last_name,
+      gender: athlete.gender,
+      graduating_class: athlete.graduating_class,
+      athlete_type: athlete.athlete_type ?? "athlete",
+      active: !currentActive,
+    });
   }
 
   async function handleDelete(id: string) {
@@ -98,7 +154,7 @@ export function AthleteRoster() {
     : null;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {notesAthlete && (
         <AthleteNotesPanel
           athlete={notesAthlete}
@@ -118,73 +174,107 @@ export function AthleteRoster() {
           </button>
         </div>
       )}
-      <ul className="space-y-2">
-        {athletes.map((a) => (
-          <li
-            key={a.id}
-            className="flex flex-col gap-2 rounded border px-3 py-2 text-sm"
-          >
-            {editingId === a.id ? (
-              <AthleteEditForm
-                athlete={a}
-                onSave={(updates) => handleUpdate(a.id, updates)}
-                onCancel={() => setEditingId(null)}
-                disabled={loading}
-              />
-            ) : (
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span>
-                  {a.first_name} {a.last_name} — {a.gender} ({formatAthleteLabel(a)})
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setNotesOpenId(a.id)}
-                    className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-surface-elevated"
-                  >
-                    Notes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditingId(a.id)}
-                    className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-surface-elevated"
-                  >
-                    Edit
-                  </button>
-                  {deleteConfirmId === a.id ? (
-                    <>
-                      <span className="text-xs text-gold">Delete?</span>
+      
+      {/* Grouped roster */}
+      {sortedGroupKeys.map((groupLabel) => (
+        <div key={groupLabel} className="space-y-2">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-accent">
+            {groupLabel}
+          </h3>
+          <ul className="space-y-2">
+            {grouped[groupLabel].map((a) => (
+              <li
+                key={a.id}
+                className={`flex flex-col gap-2 rounded border px-3 py-2 text-sm transition-all ${
+                  selectedAthleteId === a.id
+                    ? "border-accent bg-surface-elevated"
+                    : "border-border hover:border-border/60"
+                }`}
+              >
+                {editingId === a.id ? (
+                  <AthleteEditForm
+                    athlete={a}
+                    onSave={(updates) => handleUpdate(a.id, updates)}
+                    onCancel={() => setEditingId(null)}
+                    disabled={loading}
+                  />
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between gap-2">
                       <button
                         type="button"
-                        onClick={() => handleDelete(a.id)}
-                        disabled={loading}
-                        className="rounded border border-danger px-2 py-1 text-xs text-danger hover:bg-danger-dim"
+                        onClick={() => onAthleteSelect?.(a.id)}
+                        className="flex-1 text-left hover:text-accent transition-colors"
                       >
-                        Yes
+                        <span className="font-medium">
+                          {a.first_name} {a.last_name}
+                        </span>
+                        <span className="text-foreground-muted ml-2">
+                          {a.gender}
+                        </span>
                       </button>
+                      <label className="flex items-center gap-1.5 text-xs text-foreground-muted cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={a.active ?? true}
+                          onChange={() => handleToggleActive(a.id, a.active ?? true)}
+                          disabled={loading}
+                          className="rounded border-border text-accent focus:ring-accent focus:ring-offset-0 disabled:opacity-50"
+                        />
+                        Active
+                      </label>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => setDeleteConfirmId(null)}
+                        onClick={() => setNotesOpenId(a.id)}
                         className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-surface-elevated"
                       >
-                        No
+                        Notes
                       </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setDeleteConfirmId(a.id)}
-                      className="rounded border border-danger px-2 py-1 text-xs text-danger hover:bg-danger-dim"
-                    >
-                      Delete
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(a.id)}
+                        className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-surface-elevated"
+                      >
+                        Edit
+                      </button>
+                      {deleteConfirmId === a.id ? (
+                        <>
+                          <span className="text-xs text-gold">Delete?</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(a.id)}
+                            disabled={loading}
+                            className="rounded border border-danger px-2 py-1 text-xs text-danger hover:bg-danger-dim"
+                          >
+                            Yes
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmId(null)}
+                            className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-surface-elevated"
+                          >
+                            No
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmId(a.id)}
+                          className="rounded border border-danger px-2 py-1 text-xs text-danger hover:bg-danger-dim"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }
@@ -204,6 +294,7 @@ function AthleteEditForm({
     gender: string;
     graduating_class: number | null;
     athlete_type: string;
+    active?: boolean;
   }) => void;
   onCancel: () => void;
   disabled: boolean;
@@ -220,13 +311,15 @@ function AthleteEditForm({
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onSave({
+    const payload = {
       first_name: firstName.trim(),
       last_name: lastName.trim(),
       gender,
       graduating_class: athleteType === "athlete" ? graduatingClass : null,
       athlete_type: athleteType,
-    });
+      ...(typeof athlete.active === "boolean" && { active: athlete.active }),
+    };
+    onSave(payload);
   }
 
   return (

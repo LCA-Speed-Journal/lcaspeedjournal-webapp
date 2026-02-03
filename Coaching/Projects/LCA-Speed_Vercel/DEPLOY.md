@@ -80,6 +80,8 @@ If the production database doesn't have tables yet:
 
 If you have an existing database (created before Staff/Alumni support), also run `scripts/migrate-add-athlete-type.sql` to add the `athlete_type` column.
 
+**Manage Athletes dashboard (Event Groups, etc.):** Run `scripts/migrate-phase-a-dashboard.sql` to add the `active` column, `event_groups`, `athlete_event_groups`, and other Phase A tables. Without this, "Manage Event Groups" and athlete event-group assignment will show "Event groups table not found."
+
 **Optional (progression performance):** If progression queries feel slow on large data, run `scripts/migrate-progression-index.sql` against your Postgres DB to add `idx_entries_athlete_metric`.
 
 ## 4b. Seed 2024 & 2025 historical data (optional)
