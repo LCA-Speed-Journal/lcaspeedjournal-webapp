@@ -9,26 +9,6 @@ Pushing to the `main` branch on GitHub triggers Vercel to build and deploy. Here
 LCA-Speed_Vercel may live inside a parent repo (e.g. Starter-Vault). Run these commands from the **git root**:
 
 - **Parent repo:** if LCA-Speed_Vercel is a subfolder (e.g. `Starter-Vault`), use the parent repo root
-- **Standalone repo:** if LCA-Speed_Vercel has its own `.git`, use the LCA-Speed_Vercel directory
-
-### First-time setup (new GitHub repo)
-
-If the project is not yet on GitHub:
-
-1. On [github.com](https://github.com) → **New repository** → create `lcaspeedjournal-webapp` (or your preferred name)
-2. From your project root:
-
-   ```bash
-   # If LCA-Speed_Vercel is a subfolder (parent repo root):
-   cd "c:\Users\rossp\OneDrive\Documents\Obsidian\Starter-Vault"
-   git remote add origin https://github.com/YOUR_USERNAME/lcaspeedjournal-webapp.git
-
-   # Or if LCA-Speed_Vercel is its own repo:
-   cd "c:\Users\rossp\OneDrive\Documents\Obsidian\Starter-Vault\Coaching\Projects\LCA-Speed_Vercel"
-   git remote add origin https://github.com/YOUR_USERNAME/lcaspeedjournal-webapp.git
-
-   git push -u origin main
-   ```
 
 ### Regular push to production
 
@@ -40,13 +20,6 @@ git status
 git commit -m "Your descriptive commit message"
 git push origin main
 
-# Option B — from LCA-Speed_Vercel if it is its own repo:
-cd "c:\Users\rossp\OneDrive\Documents\Obsidian\Starter-Vault\Coaching\Projects\LCA-Speed_Vercel"
-git add .
-git status
-git commit -m "Your descriptive commit message"
-git push origin main
-```
 
 **Tip:** Use a clear commit message (e.g. "Phase 3 polish: gold theme, background animations, card borders" or "Fix leaderboard parsing error"). Pushing to `main` triggers Vercel deployment.
 
@@ -106,7 +79,20 @@ The seed script uses the **transformed** CSVs only (metric_key matches `src/lib/
 - If connected to GitHub: pushing to `main` triggers a deploy automatically
 - Or in Vercel: **Deployments → Redeploy** to manually trigger
 
-## 6. Smoke test
+## 6. Data validation (optional)
+
+To check for mislabeled or inconsistent data (wrong metric_key, units mismatch, invalid gender/athlete_type, duplicates, outliers):
+
+```bash
+cd Coaching/Projects/LCA-Speed_Vercel
+npm run validate
+```
+
+Requires `POSTGRES_URL` (e.g. in `.env.local`). Writes `scripts/validation-report.json` and prints a summary of potential errors to validate or fix.
+
+**Fix jump units (in/m → ft):** If Seated-Broad (or other horizontal jumps) were stored in inches, or Triple-Broad/Standing-Triple in meters, but the leaderboard shows "ft", run `scripts/migrate-normalize-jump-units-to-ft.sql` in your Postgres Query tab (Vercel Storage → Postgres → Query, or Neon SQL Editor). It converts in → ft and m → ft and sets `units = 'ft'`.
+
+## 7. Smoke test
 
 1. Visit your Vercel URL
 2. Confirm **Leaderboard** (pick session + metric) and **Historical** (date range + metric; progression: athlete + metric) load without errors

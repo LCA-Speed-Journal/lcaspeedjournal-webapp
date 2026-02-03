@@ -1,0 +1,539 @@
+{
+  "generated_at": "2026-02-03T05:15:36.429Z",
+  "summary": {
+    "total_issues": 5,
+    "by_category": {
+      "entries": 3,
+      "trends": 2
+    },
+    "by_code": {
+      "units_mismatch": 1,
+      "duplicate_entry": 1,
+      "outlier_value": 1,
+      "per_athlete_trend_outlier": 1,
+      "cross_metric_order_violation": 1
+    }
+  },
+  "issues": [
+    {
+      "category": "entries",
+      "code": "units_mismatch",
+      "message": "Entries have units that don't match the metric's display_units.",
+      "count": 846,
+      "sample": [
+        {
+          "metric_key": "10-20m_Split",
+          "entry_units": "s",
+          "expected_units": "mph",
+          "count": 329
+        },
+        {
+          "metric_key": "20-30m_Split",
+          "entry_units": "s",
+          "expected_units": "mph",
+          "count": 250
+        },
+        {
+          "metric_key": "10-30m_Split",
+          "entry_units": "s",
+          "expected_units": "mph",
+          "count": 51
+        },
+        {
+          "metric_key": "30-40m_Split",
+          "entry_units": "s",
+          "expected_units": "mph",
+          "count": 130
+        },
+        {
+          "metric_key": "40-50m_Split",
+          "entry_units": "s",
+          "expected_units": "mph",
+          "count": 11
+        },
+        {
+          "metric_key": "30-45m_Split",
+          "entry_units": "s",
+          "expected_units": "mph",
+          "count": 31
+        },
+        {
+          "metric_key": "45-55m_Split",
+          "entry_units": "s",
+          "expected_units": "mph",
+          "count": 29
+        },
+        {
+          "metric_key": "10-20m_Medium-Sled",
+          "entry_units": "s",
+          "expected_units": "mph",
+          "count": 15
+        }
+      ],
+      "suggested_action": "Update entries.units to match metrics.json display_units for each metric_key (or re-import with correct units)."
+    },
+    {
+      "category": "entries",
+      "code": "duplicate_entry",
+      "message": "Duplicate entries (same session, athlete, metric, interval_index, component).",
+      "count": 1663,
+      "sample": [
+        {
+          "session_id": "aa76fa90-10af-4996-b4bd-f3598eae97c5",
+          "athlete_id": "072d5f5d-edee-40ed-944b-bc091f3173b0",
+          "metric_key": "10-20m_Split",
+          "interval_index": null,
+          "component": null,
+          "cnt": 3
+        },
+        {
+          "session_id": "bf167c96-751a-4927-9ea5-23868e4339aa",
+          "athlete_id": "0682136b-3542-4a1e-9202-304e0a807bc8",
+          "metric_key": "10-20m_Split",
+          "interval_index": null,
+          "component": null,
+          "cnt": 2
+        },
+        {
+          "session_id": "0011c170-339d-417d-a2c3-36e63af3af88",
+          "athlete_id": "5972b7ec-d35d-4e45-a6ce-e9d1bef05c1f",
+          "metric_key": "10m_Accel",
+          "interval_index": null,
+          "component": null,
+          "cnt": 2
+        },
+        {
+          "session_id": "368f1775-2772-4ceb-bb81-a5fff58fb4f2",
+          "athlete_id": "6143af73-b27f-489d-b271-2931cd6dbb47",
+          "metric_key": "24/28s_Drill",
+          "interval_index": null,
+          "component": null,
+          "cnt": 2
+        },
+        {
+          "session_id": "0011c170-339d-417d-a2c3-36e63af3af88",
+          "athlete_id": "fd7b19d7-483b-4aef-82a7-475506e9dfd8",
+          "metric_key": "10m_Accel",
+          "interval_index": null,
+          "component": null,
+          "cnt": 2
+        },
+        {
+          "session_id": "0011c170-339d-417d-a2c3-36e63af3af88",
+          "athlete_id": "d27a3bef-22a0-4928-b062-ea3bd6518700",
+          "metric_key": "20m_Accel",
+          "interval_index": null,
+          "component": null,
+          "cnt": 3
+        },
+        {
+          "session_id": "ca5f72ba-d314-4345-96cc-6ecd70b9aafc",
+          "athlete_id": "a01dd6d4-113a-48eb-922e-6d48aeacd2b1",
+          "metric_key": "Triple-Broad",
+          "interval_index": null,
+          "component": null,
+          "cnt": 2
+        },
+        {
+          "session_id": "4ffdffb3-f3ab-4766-82fb-980075af3de9",
+          "athlete_id": "2a101f6a-5305-4ed1-8daf-9c73aa1cee5f",
+          "metric_key": "20-30m_Split",
+          "interval_index": null,
+          "component": null,
+          "cnt": 2
+        },
+        {
+          "session_id": "56290441-ca4e-44e8-bd31-587e8bbe668b",
+          "athlete_id": "9361bef6-727c-4050-a2d8-a5bb5250febe",
+          "metric_key": "10-20m_Split",
+          "interval_index": null,
+          "component": null,
+          "cnt": 2
+        },
+        {
+          "session_id": "686f20fb-cf9a-4e6b-aa9a-0b6ca7407056",
+          "athlete_id": "9274844f-81d3-4e37-b310-698bc9ce9dc8",
+          "metric_key": "10m_Accel",
+          "interval_index": null,
+          "component": null,
+          "cnt": 2
+        }
+      ],
+      "suggested_action": "Keep one row per (session_id, athlete_id, metric_key, interval_index, component) and delete or merge duplicates."
+    },
+    {
+      "category": "entries",
+      "code": "outlier_value",
+      "message": "Entries with values outside typical range (possible typo or wrong unit).",
+      "count": 3,
+      "sample": [
+        {
+          "metric_key": "10m_Accel",
+          "min": 1,
+          "max": 120,
+          "unit": "s",
+          "count": 3
+        }
+      ],
+      "suggested_action": "Review raw_input and value/display_value; correct or remove if typo."
+    },
+    {
+      "category": "trends",
+      "code": "per_athlete_trend_outlier",
+      "message": "Entries that don't match the athlete's usual range for that metric (possible typo or mislabel).",
+      "count": 436,
+      "sample": [
+        {
+          "id": "3f3d82d7-ef89-4993-94b9-271815dc291e",
+          "athlete_name": "Izzy Kane",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-04-01",
+          "display_value": "16.33",
+          "athlete_median": "15.757.875",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "506e1339-2c10-4a4d-956c-e77e7a0e0124",
+          "athlete_name": "Colin Anderson",
+          "metric_key": "20m_Accel",
+          "session_date": "2024-03-15",
+          "display_value": "3.46",
+          "athlete_median": "2.991.555",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "8d4a2e44-a923-424e-b05d-1bf46e0c9e33",
+          "athlete_name": "Colin Anderson",
+          "metric_key": "20m_Accel",
+          "session_date": "2024-03-25",
+          "display_value": "3.21",
+          "athlete_median": "2.991.555",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "5f9e7f40-edf4-4dad-930f-49ae837f59ce",
+          "athlete_name": "Colin Anderson",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-03-11",
+          "display_value": "20.34",
+          "athlete_median": "19.289.725",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "5f674b32-0440-4b03-94ae-9d0d049dece2",
+          "athlete_name": "Colin Anderson",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-03-15",
+          "display_value": "19.97",
+          "athlete_median": "19.289.725",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "b01fdccf-82df-49f7-b1a9-1675a1ddf307",
+          "athlete_name": "Colin Anderson",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-03-25",
+          "display_value": "21.1",
+          "athlete_median": "19.289.725",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "9d477918-ba9e-4d1a-b5f7-2a5d2eb973e0",
+          "athlete_name": "Colin Anderson",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-03-25",
+          "display_value": "20.71",
+          "athlete_median": "19.289.725",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "046162ad-28a4-4332-bb0c-af1e12cd8390",
+          "athlete_name": "Colin Anderson",
+          "metric_key": "10-20m_Split",
+          "session_date": "2025-03-28",
+          "display_value": "20.71",
+          "athlete_median": "19.289.725",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "679f4b5d-921c-446a-9f3e-3e7838a37663",
+          "athlete_name": "Liam Shaffer",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-03-22",
+          "display_value": "17.48",
+          "athlete_median": "16.698.345",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "53dd4f2c-2210-4fd6-a00d-e5522c0f1f88",
+          "athlete_name": "Liam Shaffer",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-03-25",
+          "display_value": "18.34",
+          "athlete_median": "16.698.345",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "f55a8a46-fc34-4bdb-ba48-8a74e0481912",
+          "athlete_name": "Liam Shaffer",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-03-25",
+          "display_value": "18.19",
+          "athlete_median": "16.698.345",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "6b7feef3-a8ca-4a9b-a25d-03275dfab23e",
+          "athlete_name": "Liam Shaffer",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-04-17",
+          "display_value": "17.75",
+          "athlete_median": "16.698.345",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "e7cbf4a0-16de-4757-8254-ec913c6e17e4",
+          "athlete_name": "Liam Shaffer",
+          "metric_key": "20m_Accel",
+          "session_date": "2024-03-15",
+          "display_value": "3.81",
+          "athlete_median": "3.551.85",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "9f22c8e3-1ae9-4c63-a021-86de680e2667",
+          "athlete_name": "Liam Shaffer",
+          "metric_key": "20m_Accel",
+          "session_date": "2024-03-15",
+          "display_value": "3.75",
+          "athlete_median": "3.551.85",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "a79c8633-6ff9-4463-9fe2-216265b1798e",
+          "athlete_name": "Nels Zenner",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-03-18",
+          "display_value": "17.08",
+          "athlete_median": "13.986.99",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "6f4bdeb8-878d-4381-acbd-9de6dd8fb8fa",
+          "athlete_name": "Nels Zenner",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-03-25",
+          "display_value": "16.09",
+          "athlete_median": "13.986.99",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "54da37c9-358c-43ab-ad02-638399b45f0b",
+          "athlete_name": "Nels Zenner",
+          "metric_key": "20m_Accel",
+          "session_date": "2024-03-11",
+          "display_value": "4.07",
+          "athlete_median": "3.991.995",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "d78cdc3a-a145-4548-b232-5546da13d563",
+          "athlete_name": "Tom Kanowitz",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-03-25",
+          "display_value": "18.34",
+          "athlete_median": "15.327.765",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "7d6cbea0-ef2a-409e-8cbe-57d73c939012",
+          "athlete_name": "Tom Kanowitz",
+          "metric_key": "10-20m_Split",
+          "session_date": "2024-03-25",
+          "display_value": "16.95",
+          "athlete_median": "15.327.765",
+          "direction": "abnormally_high"
+        },
+        {
+          "id": "a7cdb79f-dc8d-4c69-bcf1-1fa6f7e65302",
+          "athlete_name": "Tom Kanowitz",
+          "metric_key": "10-20m_Split",
+          "session_date": "2025-03-14",
+          "display_value": "16.33",
+          "athlete_median": "15.327.765",
+          "direction": "abnormally_high"
+        }
+      ],
+      "suggested_action": "Review raw_input and session; confirm metric_key and value. May be real improvement/regression or data error."
+    },
+    {
+      "category": "trends",
+      "code": "cross_metric_order_violation",
+      "message": "Same-session entries violate expected order (e.g. Triple-Broad should be greater than Standing-Broad; 30m time should be greater than 10m). Possible misclassified metric or typo.",
+      "count": 14,
+      "sample": [
+        {
+          "athlete_name": "Filbert Amenumey",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (6.83) should be >= Seated-Broad (90)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "90",
+          "more_value": "6.83",
+          "entry_id_less": "818ee30f-2291-480c-b950-c530df6aec43",
+          "entry_id_more": "b6bc8a5b-fcf1-43fa-84d5-c705a938f06c"
+        },
+        {
+          "athlete_name": "Henry Gauger",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (6.55) should be >= Seated-Broad (85.2)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "85.2",
+          "more_value": "6.55",
+          "entry_id_less": "eca7d38c-2e35-48ac-bfbe-a820ed831fda",
+          "entry_id_more": "ca227356-96d3-441f-9feb-56c3b3447392"
+        },
+        {
+          "athlete_name": "Eda Tolar",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (5.09) should be >= Seated-Broad (70.8)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "70.8",
+          "more_value": "5.09",
+          "entry_id_less": "2e933cf3-6ef7-40a2-82aa-6d175c78868e",
+          "entry_id_more": "f74fef08-827a-47ed-a64e-73b822cfced4"
+        },
+        {
+          "athlete_name": "Levi Sutkowski",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (7.77) should be >= Seated-Broad (92.4)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "92.4",
+          "more_value": "7.77",
+          "entry_id_less": "1ecb5839-0221-44b7-b5d4-159bb1b23dc1",
+          "entry_id_more": "814f8e6c-bfae-4f84-b3b2-f57846fb5e0d"
+        },
+        {
+          "athlete_name": "Will Smith",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (7.51) should be >= Seated-Broad (87.6)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "87.6",
+          "more_value": "7.51",
+          "entry_id_less": "c1d7e5ff-832f-48b8-9253-2d79913708c5",
+          "entry_id_more": "3081ae2f-f564-432b-9cd9-34fced3b149d"
+        },
+        {
+          "athlete_name": "William Gilbert",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (8.49) should be >= Seated-Broad (92.4)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "92.4",
+          "more_value": "8.49",
+          "entry_id_less": "ac1081f8-97f8-43f6-ba28-1f06ff96004c",
+          "entry_id_more": "20312664-5de7-4206-af29-5275fe9283df"
+        },
+        {
+          "athlete_name": "Zack Smith",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (7.38) should be >= Seated-Broad (94.8)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "94.8",
+          "more_value": "7.38",
+          "entry_id_less": "bdf079dc-4fd5-4a4b-97ad-155303043ced",
+          "entry_id_more": "18a06e1c-c7f2-4aff-842c-2cbdcb3ef3cb"
+        },
+        {
+          "athlete_name": "Addy Dixon",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (5.81) should be >= Seated-Broad (81.6)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "81.6",
+          "more_value": "5.81",
+          "entry_id_less": "9dfcb657-e4d8-4ca1-b981-20a68879b8e8",
+          "entry_id_more": "93dd5407-f42b-4ebb-9ea1-bc06d42ec28a"
+        },
+        {
+          "athlete_name": "Lauren Sjobeck",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (5.53) should be >= Seated-Broad (73.8)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "73.8",
+          "more_value": "5.53",
+          "entry_id_less": "57971be2-5c14-4201-891a-d6dfdaeff7d5",
+          "entry_id_more": "55d92e50-2c6e-4273-a41b-876b4b456c0b"
+        },
+        {
+          "athlete_name": "Gracie K",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (5.56) should be >= Seated-Broad (78.6)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "78.6",
+          "more_value": "5.56",
+          "entry_id_less": "1444c500-a495-414a-a3dc-84604d86555e",
+          "entry_id_more": "bc1c1503-c1b4-42d3-871b-2dbcaa01ac6b"
+        },
+        {
+          "athlete_name": "Bella Najarian",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (5.39) should be >= Seated-Broad (67.2)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "67.2",
+          "more_value": "5.39",
+          "entry_id_less": "0ed0f9ca-d253-463a-802b-6e083160fb44",
+          "entry_id_more": "f4e320c5-df90-49d0-b28f-aa47090fac89"
+        },
+        {
+          "athlete_name": "Sophia Anderson",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (7.5) should be >= Seated-Broad (93.6)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "93.6",
+          "more_value": "7.5",
+          "entry_id_less": "e92b8a56-08f4-4416-9302-8ee746fb28a7",
+          "entry_id_more": "986b1900-90a6-471e-ae4b-786114f8b3c2"
+        },
+        {
+          "athlete_name": "Clarence Dixon",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (7.16) should be >= Seated-Broad (81.6)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "81.6",
+          "more_value": "7.16",
+          "entry_id_less": "4890f1fa-a351-48a1-a180-5b65a0fb0f2f",
+          "entry_id_more": "c6003ba7-0f61-4b15-875c-34d2b37a7619"
+        },
+        {
+          "athlete_name": "Ben Montag",
+          "session_date": "2025-03-26",
+          "rule": "Triple-Broad (7.94) should be >= Seated-Broad (99.6)",
+          "less_metric": "Seated-Broad",
+          "more_metric": "Triple-Broad",
+          "less_value": "99.6",
+          "more_value": "7.94",
+          "entry_id_less": "3ca451f4-2614-4d3f-94b9-41bea3c02a4f",
+          "entry_id_more": "78e8cee8-f90b-4277-8d68-064cbaf35f05"
+        }
+      ],
+      "suggested_action": "Confirm metric_key and value for both entries; fix if one was entered as wrong metric or wrong number."
+    }
+  ],
+  "stats": {
+    "total_entries": 2112,
+    "total_athletes": 51,
+    "total_sessions": 35,
+    "distinct_metric_keys": 23
+  }
+}

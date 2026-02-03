@@ -255,7 +255,7 @@ function ComponentLeaderboard({
   const rows = data?.data?.rows ?? [];
   const male = data?.data?.male ?? [];
   const female = data?.data?.female ?? [];
-  const units = data?.data?.units ?? metric.units;
+  const defaultUnits = data?.data?.units ?? metric.units;
   const showGrouped = groupByGender && (male.length > 0 || female.length > 0);
 
   return (
@@ -290,7 +290,7 @@ function ComponentLeaderboard({
                   <p className="mb-2 text-xs font-medium text-foreground-muted">Boys</p>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {male.map((r) => (
-                      <LeaderboardCard key={r.athlete_id} row={r} units={units} />
+                      <LeaderboardCard key={r.athlete_id} row={r} units={r.units ?? defaultUnits} />
                     ))}
                   </div>
                 </div>
@@ -300,7 +300,7 @@ function ComponentLeaderboard({
                   <p className="mb-2 text-xs font-medium text-foreground-muted">Girls</p>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {female.map((r) => (
-                      <LeaderboardCard key={r.athlete_id} row={r} units={units} />
+                      <LeaderboardCard key={r.athlete_id} row={r} units={r.units ?? defaultUnits} />
                     ))}
                   </div>
                 </div>
@@ -309,7 +309,7 @@ function ComponentLeaderboard({
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {rows.map((r) => (
-                <LeaderboardCard key={r.athlete_id} row={r} units={units} />
+                <LeaderboardCard key={r.athlete_id} row={r} units={r.units ?? defaultUnits} />
               ))}
             </div>
           )}
