@@ -26,6 +26,8 @@ export type LeaderboardRow = {
   previous_session_date?: string;
   percent_change?: number;
   trend?: LeaderboardTrend;
+  /** PB = all-time best for this metric (+ component); SB = season best (calendar year), only when not PB */
+  best_type?: "pb" | "sb";
 };
 
 export type ProgressionPoint = {
