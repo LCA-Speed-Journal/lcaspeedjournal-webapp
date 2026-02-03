@@ -219,6 +219,34 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    type BestRow = { athlete_id: string; best_value: number };
+    let allTimeBestMap = new Map<string, number>();
+    if (rows.length > 0) {
+      const athleteIds = rows.map((r) => r.athlete_id);
+      const allTimeResult = sortAsc
+        ? await sql`
+            SELECT e.athlete_id, MIN(e.display_value)::float AS best_value
+            FROM entries e
+            WHERE e.metric_key = ${metric}
+              AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+              AND (${component}::text IS NULL OR e.component = ${component})
+              AND e.athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
+            GROUP BY e.athlete_id
+          `
+        : await sql`
+            SELECT e.athlete_id, MAX(e.display_value)::float AS best_value
+            FROM entries e
+            WHERE e.metric_key = ${metric}
+              AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+              AND (${component}::text IS NULL OR e.component = ${component})
+              AND e.athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
+            GROUP BY e.athlete_id
+          `;
+      for (const r of allTimeResult.rows as BestRow[]) {
+        allTimeBestMap.set(r.athlete_id, Number(r.best_value));
+      }
+    }
+
     const leaderboardRows: LeaderboardRow[] = rows.map((r) => {
       const current = Number(r.display_value);
       const prev = prevMap.get(r.athlete_id);
