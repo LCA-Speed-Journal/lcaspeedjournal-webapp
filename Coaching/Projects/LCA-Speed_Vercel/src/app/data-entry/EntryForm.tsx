@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import metricsData from "@/lib/metrics.json";
 
@@ -55,9 +55,19 @@ export function EntryForm() {
   const [athleteId, setAthleteId] = useState("");
   const [metricKey, setMetricKey] = useState("");
   const [rawInput, setRawInput] = useState("");
+  const [splitValues, setSplitValues] = useState<string[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const handler = () => setIsMobile(mq.matches);
+    handler();
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   const { data: sessionsRes } = useSWR<{
     data: {
@@ -90,10 +100,32 @@ export function EntryForm() {
       : allOptions;
   const selectedMetric = options.find((o) => o.key === metricKey) ?? null;
 
+  const cumulativeSplits =
+    selectedSession?.day_splits?.[metricKey] ?? selectedMetric?.defaultSplits;
+  const splitCount = Array.isArray(cumulativeSplits) && cumulativeSplits.length > 0
+    ? cumulativeSplits.length
+    : 0;
+  const showMobileSplits =
+    isMobile &&
+    selectedMetric?.inputStructure === "cumulative" &&
+    splitCount > 0;
+
+  useEffect(() => {
+    if (showMobileSplits && splitValues.length !== splitCount) {
+      setSplitValues(Array(splitCount).fill(""));
+    }
+    if (!showMobileSplits && splitValues.length > 0) {
+      setSplitValues([]);
+    }
+  }, [showMobileSplits, splitCount, metricKey, sessionId]);
+
   async function submitEntry() {
     setError("");
     setSuccess("");
     setLoading(true);
+    const rawToSend = showMobileSplits
+      ? splitValues.map((v) => v.trim()).join("|")
+      : rawInput.trim();
     try {
       const res = await fetch("/api/entries", {
         method: "POST",
@@ -102,7 +134,7 @@ export function EntryForm() {
           session_id: sessionId,
           athlete_id: athleteId,
           metric_key: metricKey,
-          raw_input: rawInput.trim(),
+          raw_input: rawToSend,
         }),
       });
       const json = await res.json();
@@ -113,6 +145,7 @@ export function EntryForm() {
       const count = json.data?.count ?? 1;
       setSuccess(`Saved ${count} ${count === 1 ? "entry" : "entries"}`);
       setRawInput("");
+      if (showMobileSplits) setSplitValues(Array(splitCount).fill(""));
     } catch {
       setError("Network error");
     } finally {
@@ -125,7 +158,13 @@ export function EntryForm() {
     void submitEntry();
   }
 
-  const canSubmit = sessionId && athleteId && metricKey && rawInput.trim();
+  const allSplitsFilled =
+    !showMobileSplits || splitValues.length === 0 ||
+    splitValues.every((v) => v.trim() !== "");
+  const hasValue = showMobileSplits
+    ? allSplitsFilled && splitValues.length === splitCount
+    : rawInput.trim() !== "";
+  const canSubmit = sessionId && athleteId && metricKey && hasValue;
 
   return (
     <form
@@ -147,6 +186,7 @@ export function EntryForm() {
             if (metricKey && dm && dm.length > 0 && !dm.includes(metricKey)) {
               setMetricKey("");
               setRawInput("");
+              setSplitValues([]);
             }
           }}
           className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
@@ -200,6 +240,7 @@ export function EntryForm() {
           onChange={(e) => {
             setMetricKey(e.target.value);
             setRawInput("");
+            setSplitValues([]);
           }}
           className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
           required
@@ -217,17 +258,45 @@ export function EntryForm() {
         <label htmlFor="entry_raw" className="mb-1 block text-sm font-medium text-foreground">
           Value
         </label>
-        <input
-          id="entry_raw"
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          value={rawInput}
-          onChange={(e) => setRawInput(e.target.value)}
-          placeholder={inputHint(selectedMetric, selectedSession?.day_splits)}
-          className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
-          required
-        />
+        {showMobileSplits ? (
+          <div className="space-y-2">
+            {splitValues.map((val, i) => (
+              <div key={i}>
+                <label
+                  htmlFor={`entry_split_${i}`}
+                  className="mb-0.5 block text-xs text-foreground-muted"
+                >
+                  Split {i + 1}
+                </label>
+                <input
+                  id={`entry_split_${i}`}
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={val}
+                  onChange={(e) => {
+                    const next = [...splitValues];
+                    next[i] = e.target.value;
+                    setSplitValues(next);
+                  }}
+                  className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <input
+            id="entry_raw"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            value={rawInput}
+            onChange={(e) => setRawInput(e.target.value)}
+            placeholder={inputHint(selectedMetric, selectedSession?.day_splits)}
+            className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
+            required
+          />
+        )}
         <p className="mt-1 text-xs text-foreground-muted">
           {inputHint(selectedMetric, selectedSession?.day_splits)}
         </p>
