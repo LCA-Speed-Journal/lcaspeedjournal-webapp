@@ -68,43 +68,39 @@ export default async function DataEntryPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background px-6 py-8 md:px-8 md:py-10">
+    <div className="relative min-h-screen overflow-hidden bg-background">
       <PageBackground />
-      <div className="relative z-10 mx-auto max-w-6xl">
-        <div className="rounded-2xl border-2 border-border/80 bg-surface/90 p-6 shadow-2xl shadow-black/30 backdrop-blur-sm ring-1 ring-white/5 md:p-8" style={{ boxShadow: "0 0 15px 2px rgba(255,255,255,0.04), 0 25px 50px -12px rgba(0,0,0,0.3)" }}>
-          <DataEntryLayout
-            sidebar={
-              <>
-                <section className="mb-6">
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wider text-foreground-muted">
-                    New session
-                  </p>
-                  <SessionForm
-                    phases={PHASES}
-                    metricOptions={metricOptions}
-                  />
-                </section>
-                <section>
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wider text-foreground-muted">
-                    Recent sessions
-                  </p>
-                  <Suspense fallback={<p className="text-sm text-foreground-muted">Loading recent sessions…</p>}>
-                    <RecentSessionsList />
-                  </Suspense>
-                </section>
-              </>
-            }
-            main={
-              <section>
-                <p className="mb-3 text-xs font-medium uppercase tracking-wider text-foreground-muted">
-                  Add entry
-                </p>
-                <EntryForm />
-              </section>
-            }
-          />
-        </div>
-      </div>
+      <DataEntryLayout
+        sidebar={
+          <>
+            <section className="mb-6">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wider text-foreground-muted">
+                New session
+              </p>
+              <SessionForm
+                phases={PHASES}
+                metricOptions={metricOptions}
+              />
+            </section>
+            <section>
+              <p className="mb-3 text-xs font-medium uppercase tracking-wider text-foreground-muted">
+                Recent sessions
+              </p>
+              <Suspense fallback={<p className="text-sm text-foreground-muted">Loading recent sessions…</p>}>
+                <RecentSessionsList />
+              </Suspense>
+            </section>
+          </>
+        }
+        main={
+          <section>
+            <p className="mb-3 text-xs font-medium uppercase tracking-wider text-foreground-muted">
+              Add entry
+            </p>
+            <EntryForm />
+          </section>
+        }
+      />
     </div>
   );
 }
