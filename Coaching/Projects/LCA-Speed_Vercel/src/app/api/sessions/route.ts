@@ -69,6 +69,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const week = Number(phase_week);
+    if (Number.isNaN(week) || week < 0 || week > 5) {
+      return NextResponse.json(
+        { error: "phase_week must be between 0 and 5" },
+        { status: 400 }
+      );
+    }
+
     const dayMetricsJson =
       Array.isArray(day_metrics) && day_metrics.length > 0
         ? JSON.stringify(day_metrics)
@@ -96,7 +104,7 @@ export async function POST(request: NextRequest) {
       VALUES (
         ${String(session_date)},
         ${String(phase)},
-        ${Number(phase_week)},
+        ${week},
         ${dayMetricsJson},
         ${daySplitsJson},
         ${notes}
