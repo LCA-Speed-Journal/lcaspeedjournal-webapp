@@ -16,6 +16,7 @@ const PHASES = [
   "Preparation",
   "Competition",
   "Championship",
+  "Other",
 ] as const;
 
 /** Metric key, label, and structure for session setup */
@@ -173,7 +174,8 @@ async function RecentSessionsList() {
           className="flex items-center justify-between rounded border border-border bg-surface px-3 py-2 text-sm text-foreground"
         >
           <span>
-            {formatDate(s.session_date as string | Date)} — {s.phase} week {s.phase_week}
+            {formatDate(s.session_date as string | Date)} — {s.phase}
+            {Number(s.phase_week) === 0 ? "" : ` week ${s.phase_week}`}
           </span>
           <span className="font-mono text-foreground-muted">{s.id.slice(0, 8)}…</span>
         </li>

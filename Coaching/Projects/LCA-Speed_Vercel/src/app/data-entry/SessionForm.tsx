@@ -79,7 +79,7 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
         body: JSON.stringify({
           session_date: sessionDate,
           phase,
-          phase_week: phaseWeek,
+          phase_week: phase === "Other" ? 0 : phaseWeek,
           day_metrics: selectedMetrics.length > 0 ? selectedMetrics : undefined,
           day_splits,
           session_notes: sessionNotes.trim() || undefined,
@@ -135,20 +135,22 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
             ))}
           </select>
         </div>
-        <div>
-          <label htmlFor="phase_week" className="mb-1 block text-sm font-medium text-foreground">
-            Phase week (1–5)
-          </label>
-          <input
-            id="phase_week"
-            type="number"
-            min={1}
-            max={5}
-            value={phaseWeek}
-            onChange={(e) => setPhaseWeek(Number(e.target.value))}
-            className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground focus:border-accent"
-          />
-        </div>
+        {phase !== "Other" && (
+          <div>
+            <label htmlFor="phase_week" className="mb-1 block text-sm font-medium text-foreground">
+              Phase week (1–5)
+            </label>
+            <input
+              id="phase_week"
+              type="number"
+              min={1}
+              max={5}
+              value={phaseWeek}
+              onChange={(e) => setPhaseWeek(Number(e.target.value))}
+              className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground focus:border-accent"
+            />
+          </div>
+        )}
       </div>
 
       <div>
