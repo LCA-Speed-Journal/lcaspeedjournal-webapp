@@ -33,9 +33,17 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
   const [sessionNotes, setSessionNotes] = useState("");
+  const [metricSearch, setMetricSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [createdId, setCreatedId] = useState<string | null>(null);
+
+  const filteredMetrics =
+    metricSearch.trim() === ""
+      ? metricOptions
+      : metricOptions.filter((m) =>
+          m.label.toLowerCase().includes(metricSearch.trim().toLowerCase())
+        );
 
   function toggleMetric(key: string) {
     const isDeselecting = selectedMetrics.includes(key);
@@ -155,8 +163,15 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
 
       <div>
         <span className="mb-2 block text-sm font-medium text-foreground">Day metrics (optional)</span>
+        <input
+          type="text"
+          placeholder="Search metrics…"
+          value={metricSearch}
+          onChange={(e) => setMetricSearch(e.target.value)}
+          className="mb-2 w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground focus:border-accent"
+        />
         <div className="max-h-40 overflow-y-auto rounded border border-border bg-surface-elevated p-2">
-          {metricOptions.slice(0, 50).map((m) => (
+          {filteredMetrics.map((m) => (
             <label
               key={m.key}
               className="flex cursor-pointer items-center gap-2 py-1 text-sm text-foreground"
@@ -170,10 +185,8 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
               {m.label}
             </label>
           ))}
-          {metricOptions.length > 50 && (
-            <p className="text-xs text-foreground-muted">
-              +{metricOptions.length - 50} more metrics (select from first 50 for now)
-            </p>
+          {filteredMetrics.length === 0 && (
+            <p className="text-xs text-foreground-muted">No metrics match</p>
           )}
         </div>
       </div>
