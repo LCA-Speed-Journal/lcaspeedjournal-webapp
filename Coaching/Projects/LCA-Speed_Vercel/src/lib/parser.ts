@@ -29,6 +29,13 @@ type MetricDef = {
 
 const metrics = metricsData as Record<string, MetricDef>;
 
+function splitValues(raw: string): string[] {
+  return raw
+    .split(/[|,]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 function getMetric(displayName: string): MetricDef | undefined {
   return metrics[displayName];
 }
@@ -143,7 +150,7 @@ function parseCumulative(
   rawInput: string,
   splits: number[]
 ): ParsedEntry[] {
-  const parts = rawInput.split("|").map((s) => s.trim());
+  const parts = splitValues(rawInput);
   const cumulativeValues = parts.map((p) => {
     const v = parseFloat(p);
     if (Number.isNaN(v)) throw new Error(`Cannot parse cumulative value "${p}"`);
@@ -270,7 +277,7 @@ function parsePairedComponents(
   rawInput: string,
   labels: string[]
 ): ParsedEntry[] {
-  const parts = rawInput.split("|").map((s) => s.trim());
+  const parts = splitValues(rawInput);
   const values = parts.map((p) => {
     const v = parseFloat(p);
     if (Number.isNaN(v)) throw new Error(`Cannot parse component value "${p}"`);
