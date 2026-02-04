@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import useSWR from "swr";
 import metricsData from "@/lib/metrics.json";
 
@@ -50,9 +50,27 @@ function inputHint(
   return "";
 }
 
+type AthleteItem = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  athlete_type?: string;
+  graduating_class?: number | null;
+};
+
+function athleteDisplayName(a: AthleteItem): string {
+  const t = a.athlete_type ?? "athlete";
+  const suffix = t === "staff" ? " (Staff)" : t === "alumni" ? " (Alumni)" : "";
+  return `${a.first_name} ${a.last_name}${suffix}`;
+}
+
 export function EntryForm() {
   const [sessionId, setSessionId] = useState("");
-  const [athleteId, setAthleteId] = useState("");
+  const [activeOnly, setActiveOnly] = useState(true);
+  const [athleteQuery, setAthleteQuery] = useState("");
+  const [selectedAthlete, setSelectedAthlete] = useState<{ id: string; displayName: string } | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [metricKey, setMetricKey] = useState("");
   const [rawInput, setRawInput] = useState("");
   const [splitValues, setSplitValues] = useState<string[]>([]);
@@ -60,6 +78,8 @@ export function EntryForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const athleteInputRef = useRef<HTMLInputElement>(null);
+  const listboxRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -79,18 +99,42 @@ export function EntryForm() {
       day_splits?: Record<string, number[]> | null;
     }[];
   }>("/api/sessions", fetcher);
-  const { data: athletesRes } = useSWR<{
-    data: {
-      id: string;
-      first_name: string;
-      last_name: string;
-      athlete_type?: string;
-      graduating_class?: number | null;
-    }[];
-  }>("/api/athletes", fetcher);
+  const { data: athletesAllRes } = useSWR<{ data: AthleteItem[] }>("/api/athletes", fetcher);
+  const { data: athletesActiveRes } = useSWR<{ data: AthleteItem[] }>("/api/athletes?active=true", fetcher);
 
   const sessions = sessionsRes?.data ?? [];
-  const athletes = athletesRes?.data ?? [];
+  const athletes = activeOnly ? (athletesActiveRes?.data ?? []) : (athletesAllRes?.data ?? []);
+  const athleteId = selectedAthlete?.id ?? "";
+  const athleteSearch = athleteQuery.trim().toLowerCase();
+  const filteredAthletes = athleteSearch
+    ? athletes.filter(
+        (a) =>
+          `${a.first_name} ${a.last_name}`.toLowerCase().includes(athleteSearch)
+      )
+    : athletes;
+
+  const openDropdown = useCallback(() => setDropdownOpen(true), []);
+  const closeDropdown = useCallback(() => {
+    setDropdownOpen(false);
+    setHighlightedIndex(0);
+  }, []);
+  const selectAthlete = useCallback((a: AthleteItem) => {
+    setSelectedAthlete({ id: a.id, displayName: athleteDisplayName(a) });
+    setAthleteQuery("");
+    setDropdownOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (dropdownOpen) setHighlightedIndex(0);
+  }, [athleteQuery, athletes, activeOnly, dropdownOpen]);
+
+  useEffect(() => {
+    const el = listboxRef.current?.querySelector(
+      `#entry_athlete_option_${filteredAthletes[highlightedIndex]?.id}`
+    );
+    el?.scrollIntoView({ block: "nearest" });
+  }, [highlightedIndex, filteredAthletes]);
+
   const allOptions = metricOptions();
   const selectedSession = sessions.find((s) => s.id === sessionId);
   const sessionMetrics = selectedSession?.day_metrics;
@@ -202,29 +246,121 @@ export function EntryForm() {
       </div>
 
       <div>
+        <label className="mb-2 flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            checked={activeOnly}
+            onChange={() => setActiveOnly((v) => !v)}
+            className="rounded border-border bg-surface text-accent focus:ring-accent"
+          />
+          <span className="text-sm font-medium text-foreground">Active only</span>
+        </label>
         <label htmlFor="entry_athlete" className="mb-1 block text-sm font-medium text-foreground">
           Athlete
         </label>
-        <select
-          id="entry_athlete"
-          value={athleteId}
-          onChange={(e) => setAthleteId(e.target.value)}
-          className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
-          required
-        >
-          <option value="">Select athlete</option>
-          {athletes.map((a) => {
-            const t = a.athlete_type ?? "athlete";
-            const suffix =
-              t === "staff" ? " (Staff)" : t === "alumni" ? " (Alumni)" : "";
-            return (
-              <option key={a.id} value={a.id}>
-                {a.first_name} {a.last_name}
-                {suffix}
-              </option>
-            );
-          })}
-        </select>
+        <div className="relative">
+          <input
+            id="entry_athlete"
+            ref={athleteInputRef}
+            type="text"
+            autoComplete="off"
+            value={selectedAthlete ? selectedAthlete.displayName : athleteQuery}
+            onChange={(e) => {
+              setAthleteQuery(e.target.value);
+              setSelectedAthlete(null);
+              setDropdownOpen(true);
+            }}
+            onFocus={() => setDropdownOpen(true)}
+            onBlur={() => setTimeout(closeDropdown, 150)}
+            onKeyDown={(e) => {
+              if (!dropdownOpen) {
+                if (e.key === "ArrowDown" || e.key === " ") openDropdown();
+                return;
+              }
+              if (e.key === "Escape") {
+                closeDropdown();
+                athleteInputRef.current?.blur();
+                return;
+              }
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setHighlightedIndex((i) =>
+                  i < filteredAthletes.length - 1 ? i + 1 : 0
+                );
+                return;
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setHighlightedIndex((i) =>
+                  i > 0 ? i - 1 : filteredAthletes.length - 1
+                );
+                return;
+              }
+              if (e.key === "Enter" && filteredAthletes[highlightedIndex]) {
+                e.preventDefault();
+                selectAthlete(filteredAthletes[highlightedIndex]);
+              }
+            }}
+            placeholder="Search or select athlete…"
+            className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 pr-8 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
+            aria-expanded={dropdownOpen}
+            aria-autocomplete="list"
+            aria-controls="entry_athlete_listbox"
+            aria-activedescendant={
+              dropdownOpen && filteredAthletes[highlightedIndex]
+                ? `entry_athlete_option_${filteredAthletes[highlightedIndex].id}`
+                : undefined
+            }
+          />
+          {selectedAthlete && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedAthlete(null);
+                setAthleteQuery("");
+                athleteInputRef.current?.focus();
+              }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-0.5 text-xs text-foreground-muted hover:bg-surface hover:text-foreground"
+              aria-label="Clear athlete"
+            >
+              Clear
+            </button>
+          )}
+          {dropdownOpen && (
+            <ul
+              id="entry_athlete_listbox"
+              ref={listboxRef}
+              role="listbox"
+              className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded border border-border bg-surface-elevated py-1 shadow-lg"
+            >
+              {filteredAthletes.length === 0 ? (
+                <li className="px-3 py-2 text-sm text-foreground-muted">
+                  No athletes match
+                </li>
+              ) : (
+                filteredAthletes.map((a, i) => (
+                  <li
+                    key={a.id}
+                    id={`entry_athlete_option_${a.id}`}
+                    role="option"
+                    aria-selected={selectedAthlete?.id === a.id}
+                    className={`cursor-pointer px-3 py-2 text-sm ${
+                      i === highlightedIndex
+                        ? "bg-accent/20 text-foreground"
+                        : "text-foreground hover:bg-surface"
+                    }`}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      selectAthlete(a);
+                    }}
+                  >
+                    {athleteDisplayName(a)}
+                  </li>
+                ))
+              )}
+            </ul>
+          )}
+        </div>
       </div>
 
       <div>
