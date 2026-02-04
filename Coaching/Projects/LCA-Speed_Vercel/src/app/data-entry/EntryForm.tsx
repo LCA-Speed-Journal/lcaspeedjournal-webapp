@@ -40,7 +40,7 @@ function inputHint(
       ? splits.map((m) => `${m}m`).join(", ")
       : null;
     const ex = n === 2 ? "0.95|1.85" : n === 3 ? "0.95|1.85|2.65" : "0.95|1.85|2.65|3.40";
-    const base = `e.g. ${ex} (${n} pipe-separated values, ${metric.inputUnits})`;
+    const base = `e.g. ${ex} (${n} pipe- or comma-separated values, ${metric.inputUnits})`;
     return splitsStr ? `Splits: ${splitsStr} — ${base}` : base;
   }
   if (metric.inputStructure === "paired_components") {
