@@ -109,7 +109,7 @@ async function main() {
     `;
     const totalBad = await sql`
       SELECT COUNT(*)::int AS cnt FROM entries
-      WHERE metric_key = ANY(${unknownKeys})
+      WHERE metric_key = ANY(${unknownKeys as unknown as string})
     `;
     issues.push({
       category: "entries",
@@ -218,13 +218,13 @@ async function main() {
     const badComponent = await sql`
       SELECT e.id, e.metric_key, e.component, e.value
       FROM entries e
-      WHERE e.metric_key = ANY(${pairedMetrics})
+      WHERE e.metric_key = ANY(${pairedMetrics as unknown as string})
         AND (e.component IS NULL OR TRIM(e.component) NOT IN ('L', 'R'))
     `;
     if (badComponent.rows.length > 0) {
       const countRes = await sql`
         SELECT COUNT(*)::int AS cnt FROM entries e
-        WHERE e.metric_key = ANY(${pairedMetrics})
+        WHERE e.metric_key = ANY(${pairedMetrics as unknown as string})
           AND (e.component IS NULL OR TRIM(e.component) NOT IN ('L', 'R'))
       `;
       issues.push({
