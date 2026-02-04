@@ -4,10 +4,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import metricsData from "@/lib/metrics.json";
+import Link from "next/link";
 import { PageBackground } from "@/app/components/PageBackground";
+import { DataEntryLayout } from "./DataEntryLayout";
 import { SessionForm } from "./SessionForm";
 import { EntryForm } from "./EntryForm";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -69,56 +70,39 @@ export default async function DataEntryPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-background px-6 py-8 md:px-8 md:py-10">
       <PageBackground />
-      <div className="relative z-10 mx-auto max-w-4xl">
+      <div className="relative z-10 mx-auto max-w-6xl">
         <div className="rounded-2xl border-2 border-border/80 bg-surface/90 p-6 shadow-2xl shadow-black/30 backdrop-blur-sm ring-1 ring-white/5 md:p-8" style={{ boxShadow: "0 0 15px 2px rgba(255,255,255,0.04), 0 25px 50px -12px rgba(0,0,0,0.3)" }}>
-          <header className="mb-8 flex items-center justify-between">
-            <div>
-              <div className="mb-4 inline-block h-1 w-16 rounded-full bg-accent" />
-              <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-                Data entry
-              </h1>
-            </div>
-            <div className="flex gap-2">
-              <Link
-                href="/athletes"
-                className="rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
-              >
-                Athletes
-              </Link>
-              <Link
-                href="/"
-                className="rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
-              >
-                Home
-              </Link>
-            </div>
-          </header>
-
-          <section className="mb-8">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wider text-foreground-muted">
-              New session
-            </p>
-            <SessionForm
-              phases={PHASES}
-              metricOptions={metricOptions}
-            />
-          </section>
-
-          <section className="mb-8">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wider text-foreground-muted">
-              Add entry
-            </p>
-            <EntryForm />
-          </section>
-
-          <section>
-            <p className="mb-3 text-xs font-medium uppercase tracking-wider text-foreground-muted">
-              Recent sessions
-            </p>
-            <Suspense fallback={<p className="text-sm text-foreground-muted">Loading recent sessions…</p>}>
-              <RecentSessionsList />
-            </Suspense>
-          </section>
+          <DataEntryLayout
+            sidebar={
+              <>
+                <section className="mb-6">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wider text-foreground-muted">
+                    New session
+                  </p>
+                  <SessionForm
+                    phases={PHASES}
+                    metricOptions={metricOptions}
+                  />
+                </section>
+                <section>
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wider text-foreground-muted">
+                    Recent sessions
+                  </p>
+                  <Suspense fallback={<p className="text-sm text-foreground-muted">Loading recent sessions…</p>}>
+                    <RecentSessionsList />
+                  </Suspense>
+                </section>
+              </>
+            }
+            main={
+              <section>
+                <p className="mb-3 text-xs font-medium uppercase tracking-wider text-foreground-muted">
+                  Add entry
+                </p>
+                <EntryForm />
+              </section>
+            }
+          />
         </div>
       </div>
     </div>
