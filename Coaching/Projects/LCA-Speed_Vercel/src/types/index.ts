@@ -30,6 +30,15 @@ export type LeaderboardRow = {
   best_type?: "pb" | "sb";
 };
 
+/** Animation trigger derived from diff(prev, current) leaderboard rows. One per card per refetch. */
+export type LeaderboardAnimationTrigger =
+  | "new-entry"
+  | "new-entry-top-three"
+  | "new-top-three"
+  | "new-pb"
+  | "new-sb"
+  | "value-updated";
+
 export type ProgressionPoint = {
   session_date: string;
   display_value: number;
