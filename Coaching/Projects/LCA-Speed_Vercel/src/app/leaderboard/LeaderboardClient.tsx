@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef, useEffect } from "react";
 import useSWR from "swr";
 import Link from "next/link";
+import { motion, useReducedMotion } from "framer-motion";
 import { PageBackground } from "@/app/components/PageBackground";
 import type { LeaderboardRow, LeaderboardAnimationTrigger } from "@/types";
 import type { SessionMetric, SessionMetricComponent } from "@/app/api/leaderboard/session-metrics/route";
@@ -383,6 +384,57 @@ function ComponentLeaderboard({
   );
 }
 
+const CARD_TRANSITION = { duration: 0.35, ease: [0, 0, 0.2, 1] as const };
+const CARD_TRANSITION_FAST = { duration: 0.25, ease: [0, 0, 0.2, 1] as const };
+
+function getCardVariants(reducedMotion: boolean): Record<string, { initial?: object; animate?: object; transition?: object }> {
+  const idleState = { opacity: 1, y: 0, scale: 1 };
+  if (reducedMotion) {
+    return {
+      idle: { initial: idleState, animate: idleState },
+      "new-entry": { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0 } },
+      "new-entry-top-three": { initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0 } },
+      "new-top-three": { initial: idleState, animate: idleState },
+      "new-pb": { initial: idleState, animate: idleState },
+      "new-sb": { initial: idleState, animate: idleState },
+      "value-updated": { initial: idleState, animate: idleState },
+    };
+  }
+  return {
+    idle: { initial: idleState, animate: idleState },
+    "new-entry": {
+      initial: { opacity: 0, y: 4 },
+      animate: { opacity: 1, y: 0 },
+      transition: CARD_TRANSITION,
+    },
+    "new-entry-top-three": {
+      initial: { opacity: 0, y: 4 },
+      animate: { opacity: 1, y: 0, scale: 1.03 },
+      transition: { duration: 0.45, ease: [0, 0, 0.2, 1] },
+    },
+    "new-top-three": {
+      initial: { scale: 1 },
+      animate: { scale: [1, 1.03, 1] },
+      transition: { duration: 0.5, ease: [0, 0, 0.2, 1] },
+    },
+    "new-pb": {
+      initial: { scale: 1 },
+      animate: { scale: [1, 1.03, 1] },
+      transition: { duration: 0.4, ease: [0, 0, 0.2, 1] },
+    },
+    "new-sb": {
+      initial: { opacity: 1 },
+      animate: { opacity: [1, 0.85, 1] },
+      transition: { duration: 0.4, ease: [0, 0, 0.2, 1] },
+    },
+    "value-updated": {
+      initial: { scale: 1 },
+      animate: { scale: [1, 1.02, 1] },
+      transition: CARD_TRANSITION_FAST,
+    },
+  };
+}
+
 function LeaderboardCard({
   row,
   units,
@@ -392,6 +444,8 @@ function LeaderboardCard({
   units: string;
   animationTrigger?: LeaderboardAnimationTrigger | null;
 }) {
+  const reducedMotion = useReducedMotion();
+  const variants = getCardVariants(reducedMotion ?? false);
   const hasComparison = row.trend != null && row.percent_change != null;
   const pillLabel = hasComparison
     ? formatPillAriaLabel(row.trend!, row.percent_change!)
@@ -399,11 +453,16 @@ function LeaderboardCard({
   const pillTitle = row.previous_session_date
     ? `vs ${formatSessionDateForTooltip(row.previous_session_date)}`
     : undefined;
+  const variantKey = animationTrigger ?? "idle";
 
   return (
-    <div
+    <motion.div
+      layout
       className={`relative flex flex-col rounded-lg border p-3 ${rankClass(row.rank)}`}
       style={{ contentVisibility: "auto", containIntrinsicSize: "0 80px" }}
+      initial={variantKey}
+      animate={variantKey}
+      variants={variants}
     >
       <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
         #{row.rank}
@@ -449,7 +508,7 @@ function LeaderboardCard({
           </span>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
