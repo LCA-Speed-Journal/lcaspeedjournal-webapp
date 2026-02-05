@@ -6,6 +6,7 @@ import useSWR from "swr";
 import type { EventGroup } from "@/types";
 import type { SuperpowerPreset, KryptonitePreset } from "@/types";
 import { PresetList } from "@/app/athletes/ManagePresetsDialog";
+import { ThemeToggle } from "@/app/components/ThemeToggle";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -135,6 +136,17 @@ export function SettingsClient() {
         </header>
 
         <div className="space-y-8">
+          {/* Theme */}
+          <section className="rounded-xl border border-border bg-surface-elevated p-4">
+            <h2 className="mb-4 text-xl font-semibold text-foreground">
+              Theme
+            </h2>
+            <p className="mb-4 text-sm text-foreground-muted">
+              Choose light, dark, or follow your system. Preference is not saved (resets on refresh).
+            </p>
+            <ThemeToggle />
+          </section>
+
           {/* Event groups */}
           <section className="rounded-xl border border-border bg-surface-elevated p-4">
             <h2 className="mb-4 text-xl font-semibold text-foreground">
