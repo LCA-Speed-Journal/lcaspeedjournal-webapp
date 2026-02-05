@@ -1,6 +1,0 @@
----
-tags:
-  - work
-  - "#role"
-related:
----

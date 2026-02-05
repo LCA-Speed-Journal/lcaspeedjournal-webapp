@@ -1,2 +1,0 @@
-Minor change to a process, say steps 1-9 are the same but step 10 changes.
-Would give the updated policy, then ask a single question about step 10, then a checkbox acknowledging they’ve seen the change.

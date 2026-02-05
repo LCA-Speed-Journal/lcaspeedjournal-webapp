@@ -1,3 +1,0 @@
-- [[Nicotine]]
-- [[Caffeine]]
-- [[Ephedrine]]

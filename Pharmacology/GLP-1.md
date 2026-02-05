@@ -1,4 +1,0 @@
-## Compounds
-- [[Retatrutide]]
-- [[Semaglutide]]
-- [[Tirzepatide]]

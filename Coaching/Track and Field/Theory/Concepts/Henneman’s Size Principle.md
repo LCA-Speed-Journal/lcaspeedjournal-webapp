@@ -1,1 +1,0 @@
-## *Motor Units are Recruited in order of size (smallest to largest), based on the force required*

@@ -1,4 +1,0 @@
-- [[Semax]]
-- [[Selank]]
-- [[Bromantane]]
-- [[Dihexa]]
