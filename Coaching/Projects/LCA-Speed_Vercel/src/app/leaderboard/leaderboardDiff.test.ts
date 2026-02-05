@@ -4,14 +4,10 @@ import type { LeaderboardRow } from "@/types";
 
 function row(overrides: Partial<LeaderboardRow> & { athlete_id: string; rank: number; display_value: number }): LeaderboardRow {
   return {
-    athlete_id: overrides.athlete_id,
-    rank: overrides.rank,
     first_name: "A",
     last_name: "B",
     gender: "m",
-    display_value: overrides.display_value,
     units: "s",
-    best_type: overrides.best_type,
     ...overrides,
   };
 }

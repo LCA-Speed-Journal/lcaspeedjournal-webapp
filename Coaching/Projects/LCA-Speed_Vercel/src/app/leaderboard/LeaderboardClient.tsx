@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import { PageBackground } from "@/app/components/PageBackground";
-import type { LeaderboardRow } from "@/types";
+import type { LeaderboardRow, LeaderboardAnimationTrigger } from "@/types";
 import type { SessionMetric, SessionMetricComponent } from "@/app/api/leaderboard/session-metrics/route";
+import { computeLeaderboardTriggers } from "./leaderboardDiff";
 
 type SessionItem = { id: string; session_date: string; phase?: string; phase_week?: number };
 
@@ -252,6 +253,54 @@ function ComponentLeaderboard({
     };
   }>(url, fetcher);
 
+  const prevDataRef = useRef<{
+    rows: LeaderboardRow[];
+    male: LeaderboardRow[];
+    female: LeaderboardRow[];
+  } | null>(null);
+  const [triggerMap, setTriggerMap] = useState<Map<string, LeaderboardAnimationTrigger>>(new Map());
+  const clearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (url !== lastUrlRef.current) {
+      prevDataRef.current = null;
+      lastUrlRef.current = url;
+    }
+    const payload = data?.data;
+    if (!payload) return;
+    const rows = payload.rows ?? [];
+    const male = payload.male ?? [];
+    const female = payload.female ?? [];
+    if (prevDataRef.current === null) {
+      prevDataRef.current = { rows, male, female };
+      return;
+    }
+    const showGrouped = groupByGender && (male.length > 0 || female.length > 0);
+    let merged: Map<string, LeaderboardAnimationTrigger>;
+    if (showGrouped) {
+      merged = new Map(computeLeaderboardTriggers(prevDataRef.current.male, male));
+      for (const [id, t] of computeLeaderboardTriggers(prevDataRef.current.female, female)) {
+        merged.set(id, t);
+      }
+    } else {
+      merged = computeLeaderboardTriggers(prevDataRef.current.rows, rows);
+    }
+    setTriggerMap(merged);
+    prevDataRef.current = { rows, male, female };
+    if (clearTimeoutRef.current != null) clearTimeout(clearTimeoutRef.current);
+    clearTimeoutRef.current = setTimeout(() => {
+      setTriggerMap(new Map());
+      clearTimeoutRef.current = null;
+    }, 2000);
+    return () => {
+      if (clearTimeoutRef.current != null) {
+        clearTimeout(clearTimeoutRef.current);
+        clearTimeoutRef.current = null;
+      }
+    };
+  }, [data, url, groupByGender]);
+
   const rows = data?.data?.rows ?? [];
   const male = data?.data?.male ?? [];
   const female = data?.data?.female ?? [];
@@ -290,7 +339,12 @@ function ComponentLeaderboard({
                   <p className="mb-2 text-xs font-medium text-foreground-muted">Boys</p>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {male.map((r) => (
-                      <LeaderboardCard key={r.athlete_id} row={r} units={r.units ?? defaultUnits} />
+                      <LeaderboardCard
+                        key={r.athlete_id}
+                        row={r}
+                        units={r.units ?? defaultUnits}
+                        animationTrigger={triggerMap.get(r.athlete_id) ?? null}
+                      />
                     ))}
                   </div>
                 </div>
@@ -300,7 +354,12 @@ function ComponentLeaderboard({
                   <p className="mb-2 text-xs font-medium text-foreground-muted">Girls</p>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {female.map((r) => (
-                      <LeaderboardCard key={r.athlete_id} row={r} units={r.units ?? defaultUnits} />
+                      <LeaderboardCard
+                        key={r.athlete_id}
+                        row={r}
+                        units={r.units ?? defaultUnits}
+                        animationTrigger={triggerMap.get(r.athlete_id) ?? null}
+                      />
                     ))}
                   </div>
                 </div>
@@ -309,7 +368,12 @@ function ComponentLeaderboard({
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {rows.map((r) => (
-                <LeaderboardCard key={r.athlete_id} row={r} units={r.units ?? defaultUnits} />
+                <LeaderboardCard
+                  key={r.athlete_id}
+                  row={r}
+                  units={r.units ?? defaultUnits}
+                  animationTrigger={triggerMap.get(r.athlete_id) ?? null}
+                />
               ))}
             </div>
           )}
@@ -319,7 +383,15 @@ function ComponentLeaderboard({
   );
 }
 
-function LeaderboardCard({ row, units }: { row: LeaderboardRow; units: string }) {
+function LeaderboardCard({
+  row,
+  units,
+  animationTrigger = null,
+}: {
+  row: LeaderboardRow;
+  units: string;
+  animationTrigger?: LeaderboardAnimationTrigger | null;
+}) {
   const hasComparison = row.trend != null && row.percent_change != null;
   const pillLabel = hasComparison
     ? formatPillAriaLabel(row.trend!, row.percent_change!)
