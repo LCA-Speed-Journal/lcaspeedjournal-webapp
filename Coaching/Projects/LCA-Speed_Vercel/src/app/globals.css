@@ -1,7 +1,27 @@
 @import "tailwindcss";
 
-/* Cyberpunk theme: dark, high-contrast, school gold accent */
+/* Light (default) and dark theme; same variable names, school gold accent */
 :root {
+  --background: #fafafa;
+  --surface: #f4f4f5;
+  --surface-elevated: #e4e4e7;
+  --foreground: #18181b;
+  --foreground-muted: #71717a;
+  --border: #d4d4d8;
+  --border-focus: #fbbf24;
+  --accent: #fbbf24;
+  --accent-dim: rgba(251, 191, 36, 0.15);
+  --accent-hover: #f59e0b;
+  --danger: #dc2626;
+  --danger-dim: rgba(220, 38, 38, 0.15);
+  --success: #16a34a;
+  --success-dim: rgba(22, 163, 74, 0.2);
+  --gold: #fbbf24;
+  --silver: #6b7280;
+  --bronze: #b45309;
+}
+
+.dark {
   --background: #0a0a0e;
   --surface: #12121a;
   --surface-elevated: #1a1a24;
