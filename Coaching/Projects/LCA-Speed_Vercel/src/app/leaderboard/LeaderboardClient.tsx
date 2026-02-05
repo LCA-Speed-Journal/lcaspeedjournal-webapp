@@ -307,6 +307,7 @@ function ComponentLeaderboard({
   const female = data?.data?.female ?? [];
   const defaultUnits = data?.data?.units ?? metric.units;
   const showGrouped = groupByGender && (male.length > 0 || female.length > 0);
+  const reducedMotion = useReducedMotion();
 
   return (
     <div className="mt-2">
@@ -338,7 +339,7 @@ function ComponentLeaderboard({
               {male.length > 0 && (
                 <div>
                   <p className="mb-2 text-xs font-medium text-foreground-muted">Boys</p>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <motion.div layout={!reducedMotion} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {male.map((r) => (
                       <LeaderboardCard
                         key={r.athlete_id}
@@ -347,13 +348,13 @@ function ComponentLeaderboard({
                         animationTrigger={triggerMap.get(r.athlete_id) ?? null}
                       />
                     ))}
-                  </div>
+                  </motion.div>
                 </div>
               )}
               {female.length > 0 && (
                 <div>
                   <p className="mb-2 text-xs font-medium text-foreground-muted">Girls</p>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <motion.div layout={!reducedMotion} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {female.map((r) => (
                       <LeaderboardCard
                         key={r.athlete_id}
@@ -362,12 +363,12 @@ function ComponentLeaderboard({
                         animationTrigger={triggerMap.get(r.athlete_id) ?? null}
                       />
                     ))}
-                  </div>
+                  </motion.div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <motion.div layout={!reducedMotion} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {rows.map((r) => (
                 <LeaderboardCard
                   key={r.athlete_id}
@@ -376,7 +377,7 @@ function ComponentLeaderboard({
                   animationTrigger={triggerMap.get(r.athlete_id) ?? null}
                 />
               ))}
-            </div>
+            </motion.div>
           )}
         </>
       )}
