@@ -8,7 +8,7 @@ created: 2025-09-02 15:00
 modified: 2025-09-02 15:00
 ___
 # Overview
-From initially 41 meetings, SD tried to narrow down to **“what does L&D need to do here, vs what’s not actually a training need.”**
+From initially 41 meetings, SD tried to narrow down to **“what does L&D need to do here, vs what’s not actually a training need.”** 
 ## Immediate Asks: This Week
 - [x] Read through **key tasks** 📅 2025-09-03 ✅ 2025-10-03
 - [x] Read through **summary** of each project 📅 2025-09-03 ✅ 2025-10-03
@@ -22,7 +22,7 @@ From initially 41 meetings, SD tried to narrow down to **“what does L&D need t
 # What are the Important Pieces
 **Dates** are the most important. 
 Workload for us *is* significant, but in actuality, a lot of the initiatives break down to **smaller components**
-	(e.g. integrating with T3, etc.)
+	(e.g. integrating with T3, etc.) 
 
 # Things Assigned to Me
 ## Procurement 

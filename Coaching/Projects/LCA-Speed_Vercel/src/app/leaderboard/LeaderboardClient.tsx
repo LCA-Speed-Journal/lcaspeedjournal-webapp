@@ -336,17 +336,21 @@ function LeaderboardCard({ row, units }: { row: LeaderboardRow; units: string })
       <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
         #{row.rank}
       </span>
-      <span className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight">
+      <span
+        className={`min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight ${row.rank === 1 ? "text-gold-text" : ""}`}
+      >
         {row.first_name} {row.last_name}
       </span>
-      <span className="mt-2 font-mono text-lg font-semibold tabular-nums">
+      <span
+        className={`mt-2 font-mono text-lg font-semibold tabular-nums ${row.rank === 1 ? "text-gold-text" : ""}`}
+      >
         {formatValue(row.display_value)} <span className="text-sm font-normal text-foreground-muted">{units}</span>
       </span>
       <div className="mt-2 flex items-center justify-between">
         <span className="min-w-0">
           {row.best_type === "pb" && (
             <span
-              className="inline-block px-2 py-0.5 rounded-full border text-xs font-semibold bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/50"
+              className="inline-block px-2 py-0.5 rounded-full border text-xs font-semibold bg-pb-bg text-pb-text border-pb-border"
               title="Personal best"
               aria-label="Personal best"
             >

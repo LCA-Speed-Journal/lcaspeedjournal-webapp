@@ -21,7 +21,7 @@ export default function Home() {
           <div className="mt-8">
             <Link
               href="/leaderboard"
-              className="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3.5 font-semibold text-background shadow-[0_8px_30px_-6px_rgba(251,191,36,0.35)] transition-all hover:bg-accent-hover hover:shadow-[0_10px_40px_-8px_rgba(251,191,36,0.4)] hover:scale-[1.02] active:scale-[0.98]"
+              className="btn-accent-shadow inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3.5 font-semibold text-background transition-all hover:bg-accent-hover hover:scale-[1.02] active:scale-[0.98]"
             >
               <span aria-hidden>→</span>
               Leaderboard

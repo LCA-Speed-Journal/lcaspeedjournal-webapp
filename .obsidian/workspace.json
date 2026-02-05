@@ -10,7 +10,7 @@
           {
             "id": "86462fd6c30c0275",
             "type": "split",
-            "dimension": 23.439099283520985,
+            "dimension": 56.80473372781066,
             "children": [
               {
                 "id": "cc78d39fa5afb743",
@@ -248,7 +248,7 @@
           {
             "id": "2b6928baea115c36",
             "type": "tabs",
-            "dimension": 28.454452405322417,
+            "dimension": 43.19526627218934,
             "children": [
               {
                 "id": "1a23d9a93354f64b",
@@ -337,46 +337,14 @@
                   "icon": "lucide-file-text",
                   "title": "middle_distance_guide"
                 }
-              }
-            ],
-            "currentTab": 2
-          },
-          {
-            "id": "66222411c1f29cfd",
-            "type": "tabs",
-            "dimension": 48.106448311156605,
-            "children": [
-              {
-                "id": "d08e8ad73a2500a4",
-                "type": "leaf",
-                "state": {
-                  "type": "markdown",
-                  "state": {
-                    "file": "Work/FPP Overview.md",
-                    "mode": "source",
-                    "source": false,
-                    "backlinks": true,
-                    "backlinkOpts": {
-                      "collapseAll": false,
-                      "extraContext": false,
-                      "sortOrder": "alphabetical",
-                      "showSearch": false,
-                      "searchQuery": "",
-                      "backlinkCollapsed": false,
-                      "unlinkedCollapsed": true
-                    }
-                  },
-                  "icon": "lucide-file",
-                  "title": "FPP Overview"
-                }
               },
               {
-                "id": "77d2607d143ca939",
+                "id": "2f9b7013df03cf85",
                 "type": "leaf",
                 "state": {
                   "type": "markdown",
                   "state": {
-                    "file": "APM PM Advancement Overview.md",
+                    "file": "The Force System — Preview.md",
                     "mode": "source",
                     "source": false,
                     "backlinks": true,
@@ -391,10 +359,11 @@
                     }
                   },
                   "icon": "lucide-file",
-                  "title": "APM PM Advancement Overview"
+                  "title": "The Force System — Preview"
                 }
               }
-            ]
+            ],
+            "currentTab": 4
           }
         ],
         "direction": "vertical"
@@ -641,8 +610,57 @@
               "icon": "lucide-file",
               "title": "Learning and Development"
             }
+          },
+          {
+            "id": "d08e8ad73a2500a4",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Work/FPP Overview.md",
+                "mode": "source",
+                "source": false,
+                "backlinks": true,
+                "backlinkOpts": {
+                  "collapseAll": false,
+                  "extraContext": false,
+                  "sortOrder": "alphabetical",
+                  "showSearch": false,
+                  "searchQuery": "",
+                  "backlinkCollapsed": false,
+                  "unlinkedCollapsed": true
+                }
+              },
+              "icon": "lucide-file",
+              "title": "FPP Overview"
+            }
+          },
+          {
+            "id": "77d2607d143ca939",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "APM PM Advancement Overview.md",
+                "mode": "source",
+                "source": false,
+                "backlinks": true,
+                "backlinkOpts": {
+                  "collapseAll": false,
+                  "extraContext": false,
+                  "sortOrder": "alphabetical",
+                  "showSearch": false,
+                  "searchQuery": "",
+                  "backlinkCollapsed": false,
+                  "unlinkedCollapsed": true
+                }
+              },
+              "icon": "lucide-file",
+              "title": "APM PM Advancement Overview"
+            }
           }
-        ]
+        ],
+        "currentTab": 4
       }
     ],
     "direction": "horizontal",
@@ -667,54 +685,54 @@
       "periodic-notes:Open today": false
     }
   },
-  "active": "d08e8ad73a2500a4",
+  "active": "2f9b7013df03cf85",
   "lastOpenFiles": [
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/symlinked/_/node_modules/foo.js",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/multirepo/packages/package-a/package.json",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/multirepo/packages/package-a/index.js",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/multirepo/packages/package-b/package.json",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/multirepo/packages/package-b/index.js",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/shadowed_core/node_modules/util/index.js",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/symlinked/_/symlink_target",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/same_names/foo/index.js",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/module_dir/zmodules/bbb/main.js",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/nested_symlinks/mylib/package.json",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-config-next/node_modules/resolve/test/resolver/symlinked/_/node_modules",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/@typescript-eslint/typescript-estree/node_modules/minimatch/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/@typescript-eslint/typescript-estree/node_modules/semver/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/@typescript-eslint/typescript-estree/node_modules/brace-expansion/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/@typescript-eslint/eslint-plugin/node_modules/ignore/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/@eslint-community/eslint-utils/node_modules/eslint-visitor-keys/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/tsconfig-paths/node_modules/json5/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/tsconfig-paths/node_modules/json5/LICENSE.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/sharp/node_modules/semver/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/tinyglobby/node_modules/picomatch/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/tinyglobby/node_modules/fdir/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/openid-client/node_modules/yallist/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/openid-client/node_modules/lru-cache/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/is-bun-module/node_modules/semver/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/fast-glob/node_modules/glob-parent/README.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/fast-glob/node_modules/glob-parent/CHANGELOG.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/tabindex-no-positive.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/scope.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/role-supports-aria-props.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/role-has-required-aria-props.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/prefer-tag-over-role.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/no-static-element-interactions.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/no-redundant-roles.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/no-onchange.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/no-noninteractive-tabindex.md",
-    "Coaching/Projects/LCA-Speed Vercel/node_modules/eslint-plugin-jsx-a11y/docs/rules/no-noninteractive-element-interactions.md",
+    "Coaching/Projects/LCA-Speed_Vercel/src/app/components/ThemeBar.tsx",
+    "Coaching/Projects/LCA-Speed_Vercel/src/app/components/ThemeToggle.tsx",
+    "Coaching/Projects/LCA-Speed_Vercel/src/app/components/ThemeProvider.tsx",
+    "Coaching/Projects/LCA-Speed_Vercel/docs/plans/2026-02-04-light-mode-toggle-implementation.md",
+    "Coaching/Projects/LCA-Speed_Vercel/docs/plans/2026-02-04-light-mode-toggle-design.md",
+    "Coaching/Projects/LCA-Speed_Vercel/src/app/data-entry/DataEntryLayout.tsx",
+    "Coaching/Projects/LCA-Speed_Vercel/docs/plans/2026-02-03-data-entry-polish-implementation.md",
+    "Coaching/Projects/LCA-Speed_Vercel/docs/plans/2026-02-03-data-entry-polish-design.md",
+    "Coaching/Projects/LCA-Speed_Vercel/scripts/merge-duplicate-athlete.sql",
+    "Coaching/Projects/LCA-Speed_Vercel/node_modules/tsx/package.json",
+    "Coaching/Projects/LCA-Speed_Vercel/scripts/validation-per-athlete-outliers-full.md",
+    "Coaching/Projects/LCA-Speed_Vercel/scripts/validation-per-athlete-outliers-full.json",
+    "Coaching/Projects/LCA-Speed_Vercel/scripts/validation-per-athlete-outliers-summary.md",
+    "Coaching/Projects/LCA-Speed_Vercel/scripts/EDIT-ONE-ROW.md",
+    "Coaching/Projects/LCA-Speed_Vercel/scripts/migrate-normalize-jump-units-to-ft.sql",
+    "Coaching/Projects/LCA-Speed_Vercel/scripts/validation-report.json",
+    "Coaching/Projects/LCA-Speed_Vercel/node_modules/@esbuild/win32-x64/README.md",
+    "Coaching/Projects/LCA-Speed_Vercel/node_modules/@esbuild/win32-x64/package.json",
+    "Coaching/Projects/LCA-Speed_Vercel/node_modules/esbuild/LICENSE.md",
+    "Coaching/Projects/LCA-Speed_Vercel/node_modules/esbuild/package.json",
+    "Coaching/Projects/LCA-Speed_Vercel/docs/plans/2026-02-02-pb-sb-leaderboard-implementation.md",
+    "Coaching/Projects/LCA-Speed_Vercel/docs/plans/2026-02-02-pb-sb-leaderboard-design.md",
+    "Coaching/Projects/LCA-Speed_Vercel/docs/plans/PHASE-A-README.md",
+    "The Force System — Preview.md",
+    "Work/FPP Overview.md",
+    "Work/Projects/Value-Prop/Intro-Module Storyboard.md",
+    "Coaching/Projects/LCA-Speed_Vercel/docs/plans/2026-02-02-session-to-session-leaderboard-design.md",
+    "Coaching/Projects/LCA-Speed_Vercel/docs/plans/2026-02-02-manage-athletes-dashboard-design.md",
+    "Coaching/Projects/LCA-Speed_Vercel/docs/plans/2026-02-01-historical-page-implementation.md",
+    "Coaching/Projects/LCA-Speed_Vercel/docs/plans/2026-02-01-historical-page-design.md",
+    "Coaching/Projects/LCA-Speed_Vercel/node_modules/recharts/node_modules/react-is/README.md",
+    "Coaching/Projects/LCA-Speed_Vercel/node_modules/fast-equals/README.md",
+    "Coaching/Projects/LCA-Speed_Vercel/node_modules/recharts-scale/README.md",
+    "Coaching/Projects/LCA-Speed_Vercel/node_modules/recharts-scale/CHANGELOG.md",
+    "Coaching/Projects/LCA-Speed_Vercel/node_modules/tiny-invariant/README.md",
+    "Coaching/Projects/LCA-Speed_Vercel/node_modules/lodash/README.md",
+    "Coaching/Projects/LCA-Speed_Vercel/public/window.svg",
+    "Coaching/Projects/LCA-Speed_Vercel/public/vercel.svg",
+    "Coaching/Projects/LCA-Speed_Vercel/public/next.svg",
+    "Coaching/Projects/LCA-Speed_Vercel/public/globe.svg",
+    "Coaching/Projects/LCA-Speed_Vercel/public/file.svg",
     "Coaching/Projects/LCA-Speed Vercel/public/window.svg",
     "Coaching/Projects/LCA-Speed Vercel/public/next.svg",
     "Coaching/Projects/LCA-Speed Vercel/public/globe.svg",
     "Coaching/Projects/LCA-Speed Vercel/public/file.svg",
     "Coaching/Projects/LCA-Speed Vercel/public/vercel.svg",
-    "Coaching/Projects/LCA-Speed Vercel/lca-speed-journal/public/window.svg",
-    "Coaching/Projects/LCA-Speed Vercel/lca-speed-journal/public/vercel.svg",
-    "Coaching/Projects/LCA-Speed Vercel/lca-speed-journal/public/next.svg",
-    "Coaching/Projects/LCA-Speed Vercel/lca-speed-journal/public/globe.svg",
-    "Coaching/Projects/LCA-Speed Vercel/lca-speed-journal/public/file.svg",
     "Untitled.canvas"
   ]
 }

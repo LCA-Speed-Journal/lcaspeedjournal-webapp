@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Light (default) and dark theme; same variable names, school gold accent */
+/* Light (default) and dark theme; light uses blue accent/grid, dark uses gold */
 :root {
   --background: #fafafa;
   --surface: #f4f4f5;
@@ -8,17 +8,24 @@
   --foreground: #18181b;
   --foreground-muted: #71717a;
   --border: #d4d4d8;
-  --border-focus: #fbbf24;
-  --accent: #fbbf24;
-  --accent-dim: rgba(251, 191, 36, 0.15);
-  --accent-hover: #f59e0b;
+  --border-focus: #2d4a6f;
+  --accent: #2d4a6f;
+  --accent-dim: rgba(45, 74, 111, 0.15);
+  --accent-hover: #243a5c;
+  --accent-shadow: rgba(45, 74, 111, 0.35);
+  --page-bg-grid: rgb(30, 64, 175);
+  --page-bg-grid-opacity: 0.11;
   --danger: #dc2626;
   --danger-dim: rgba(220, 38, 38, 0.15);
   --success: #16a34a;
   --success-dim: rgba(22, 163, 74, 0.2);
   --gold: #fbbf24;
+  --gold-text: #c9a227;
   --silver: #6b7280;
   --bronze: #b45309;
+  --pb-text: #b45309;
+  --pb-bg: rgba(180, 83, 9, 0.2);
+  --pb-border: rgba(180, 83, 9, 0.5);
 }
 
 .dark {
@@ -32,13 +39,20 @@
   --accent: #fbbf24;
   --accent-dim: rgba(251, 191, 36, 0.15);
   --accent-hover: #fcd34d;
+  --accent-shadow: rgba(251, 191, 36, 0.35);
+  --page-bg-grid: var(--foreground);
+  --page-bg-grid-opacity: 0.06;
   --danger: #f87171;
   --danger-dim: rgba(248, 113, 113, 0.15);
   --success: #22c55e;
   --success-dim: rgba(34, 197, 94, 0.2);
   --gold: #fbbf24;
+  --gold-text: #eeb522;
   --silver: #9ca3af;
   --bronze: #d97706;
+  --pb-text: #f59e0b;
+  --pb-bg: rgba(245, 158, 11, 0.2);
+  --pb-border: rgba(245, 158, 11, 0.5);
 }
 
 @theme inline {
@@ -56,8 +70,12 @@
   --color-success: var(--success);
   --color-success-dim: var(--success-dim);
   --color-gold: var(--gold);
+  --color-gold-text: var(--gold-text);
   --color-silver: var(--silver);
   --color-bronze: var(--bronze);
+  --color-pb-text: var(--pb-text);
+  --color-pb-bg: var(--pb-bg);
+  --color-pb-border: var(--pb-border);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -68,10 +86,18 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Focus ring: gold accent */
+/* Focus ring: theme accent */
 *:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* CTA button: theme-aware shadow (homepage Leaderboard, etc.) */
+.btn-accent-shadow {
+  box-shadow: 0 8px 30px -6px var(--accent-shadow);
+}
+.btn-accent-shadow:hover {
+  box-shadow: 0 10px 40px -8px var(--accent-shadow);
 }
 
 /* Selection */

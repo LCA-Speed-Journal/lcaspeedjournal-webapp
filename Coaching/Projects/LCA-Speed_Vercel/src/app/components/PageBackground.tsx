@@ -23,11 +23,12 @@ export function PageBackground() {
       />
       {/* Grid: slow drift for depth */}
       <div
-        className="page-bg-grid absolute inset-0 opacity-[0.06]"
+        className="page-bg-grid absolute inset-0"
         style={{
+          opacity: "var(--page-bg-grid-opacity)",
           backgroundImage: `
-            linear-gradient(var(--foreground) 1px, transparent 1px),
-            linear-gradient(90deg, var(--foreground) 1px, transparent 1px)
+            linear-gradient(var(--page-bg-grid) 1px, transparent 1px),
+            linear-gradient(90deg, var(--page-bg-grid) 1px, transparent 1px)
           `,
           backgroundSize: "48px 48px",
           animation: GRID_ANIMATION,
