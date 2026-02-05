@@ -33,7 +33,7 @@ describe("computeLeaderboardTriggers", () => {
     const prev = [row({ athlete_id: "1", rank: 1, display_value: 10 })];
     const next = [
       row({ athlete_id: "1", rank: 2, display_value: 10 }),
-      row({ athlete_id: "2", rank: 1, display_value: 9 }),
+      row({ athlete_id: "2", rank: 4, display_value: 9 }),
     ];
     const result = computeLeaderboardTriggers(prev, next);
     expect(result.get("2")).toBe("new-entry");
