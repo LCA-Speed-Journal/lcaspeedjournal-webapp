@@ -2,6 +2,20 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import useSWR from "swr";
+
+/** Polling interval in ms when page is visible; 0 disables polling. */
+const LIVE_LEADERBOARD_REFRESH_MS = 10000;
+
+function usePageVisible(): boolean {
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const handler = () => setVisible(document.visibilityState === "visible");
+    handler();
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, []);
+  return visible;
+}
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { PageBackground } from "@/app/components/PageBackground";
@@ -51,6 +65,7 @@ export function LeaderboardClient() {
   /** Per-metric set of selected component keys; default to first (Overall) when expanding */
   const [selectedComponentsByMetric, setSelectedComponentsByMetric] = useState<Record<string, Set<string>>>({});
   const [isPending, startTransition] = useTransition();
+  const isVisible = usePageVisible();
 
   const { data: sessionsData } = useSWR<{ data: SessionItem[] }>("/api/sessions", fetcher);
   const sessions = sessionsData?.data ?? [];
@@ -59,7 +74,10 @@ export function LeaderboardClient() {
     sessionId ? `/api/leaderboard/session-metrics?session_id=${encodeURIComponent(sessionId)}` : null;
   const { data: sessionMetricsData } = useSWR<{ data: { metrics: SessionMetric[] } }>(
     sessionMetricsUrl,
-    fetcher
+    fetcher,
+    {
+      refreshInterval: sessionId && isVisible ? LIVE_LEADERBOARD_REFRESH_MS : 0,
+    }
   );
   const metrics = sessionMetricsData?.data?.metrics ?? [];
 
@@ -244,6 +262,7 @@ function ComponentLeaderboard({
   groupByGender: boolean;
 }) {
   const url = buildLeaderboardUrl(sessionId, metric.metric_key, component, groupByGender);
+  const isVisible = usePageVisible();
   const { data, error, isLoading, mutate } = useSWR<{
     data: {
       rows: LeaderboardRow[];
@@ -252,7 +271,9 @@ function ComponentLeaderboard({
       metric_display_name: string;
       units: string;
     };
-  }>(url, fetcher);
+  }>(url, fetcher, {
+    refreshInterval: isVisible ? LIVE_LEADERBOARD_REFRESH_MS : 0,
+  });
 
   const prevDataRef = useRef<{
     rows: LeaderboardRow[];

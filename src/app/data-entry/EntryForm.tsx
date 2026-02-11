@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import metricsData from "@/lib/metrics.json";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -65,6 +65,7 @@ function athleteDisplayName(a: AthleteItem): string {
 }
 
 export function EntryForm() {
+  const { mutate: globalMutate } = useSWRConfig();
   const [sessionId, setSessionId] = useState("");
   const [activeOnly, setActiveOnly] = useState(true);
   const [athleteQuery, setAthleteQuery] = useState("");
@@ -190,6 +191,12 @@ export function EntryForm() {
       setSuccess(`Saved ${count} ${count === 1 ? "entry" : "entries"}`);
       setRawInput("");
       if (showMobileSplits) setSplitValues(Array(splitCount).fill(""));
+      // Invalidate leaderboard cache so live leaderboard (and any open tab) refetches
+      void globalMutate(
+        (key) => typeof key === "string" && key.startsWith("/api/leaderboard"),
+        undefined,
+        { revalidate: true }
+      );
     } catch {
       setError("Network error");
     } finally {
