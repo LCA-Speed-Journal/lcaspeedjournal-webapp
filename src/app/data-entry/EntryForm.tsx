@@ -64,9 +64,16 @@ function athleteDisplayName(a: AthleteItem): string {
   return `${a.first_name} ${a.last_name}${suffix}`;
 }
 
-export function EntryForm() {
+type EntryFormProps = {
+  /** When set, session dropdown is hidden and this id is used for POST. */
+  sessionId?: string;
+  /** Called after successful POST (e.g. to mutate entries list). */
+  onSuccess?: () => void;
+};
+
+export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProps = {}) {
   const { mutate: globalMutate } = useSWRConfig();
-  const [sessionId, setSessionId] = useState("");
+  const [sessionId, setSessionId] = useState(sessionIdProp ?? "");
   const [activeOnly, setActiveOnly] = useState(true);
   const [athleteQuery, setAthleteQuery] = useState("");
   const [selectedAthlete, setSelectedAthlete] = useState<{ id: string; displayName: string } | null>(null);
@@ -81,6 +88,10 @@ export function EntryForm() {
   const [success, setSuccess] = useState("");
   const athleteInputRef = useRef<HTMLInputElement>(null);
   const listboxRef = useRef<HTMLUListElement>(null);
+
+  useEffect(() => {
+    if (sessionIdProp) setSessionId(sessionIdProp);
+  }, [sessionIdProp]);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -136,8 +147,9 @@ export function EntryForm() {
     el?.scrollIntoView({ block: "nearest" });
   }, [highlightedIndex, filteredAthletes]);
 
+  const effectiveSessionId = sessionIdProp ?? sessionId;
   const allOptions = metricOptions();
-  const selectedSession = sessions.find((s) => s.id === sessionId);
+  const selectedSession = sessions.find((s) => s.id === effectiveSessionId);
   const sessionMetrics = selectedSession?.day_metrics;
   const options =
     Array.isArray(sessionMetrics) && sessionMetrics.length > 0
@@ -176,7 +188,7 @@ export function EntryForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          session_id: sessionId,
+          session_id: effectiveSessionId,
           athlete_id: athleteId,
           metric_key: metricKey,
           raw_input: rawToSend,
@@ -197,6 +209,7 @@ export function EntryForm() {
         undefined,
         { revalidate: true }
       );
+      onSuccess?.();
     } catch {
       setError("Network error");
     } finally {
@@ -215,42 +228,44 @@ export function EntryForm() {
   const hasValue = showMobileSplits
     ? allSplitsFilled && splitValues.length === splitCount
     : rawInput.trim() !== "";
-  const canSubmit = sessionId && athleteId && metricKey && hasValue;
+  const canSubmit = effectiveSessionId && athleteId && metricKey && hasValue;
 
   return (
     <form
       onSubmit={handleSubmit}
       className="max-w-xl space-y-4 rounded-lg border border-border bg-surface p-4 shadow-lg shadow-black/20 md:p-6"
     >
-      <div>
-        <label htmlFor="entry_session" className="mb-1 block text-sm font-medium text-foreground">
-          Session
-        </label>
-        <select
-          id="entry_session"
-          value={sessionId}
-          onChange={(e) => {
-            const newId = e.target.value;
-            setSessionId(newId);
-            const sess = sessions.find((s) => s.id === newId);
-            const dm = Array.isArray(sess?.day_metrics) ? sess!.day_metrics : null;
-            if (metricKey && dm && dm.length > 0 && !dm.includes(metricKey)) {
-              setMetricKey("");
-              setRawInput("");
-              setSplitValues([]);
-            }
-          }}
-          className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
-          required
-        >
-          <option value="">Select session</option>
-          {sessions.map((s) => (
-            <option key={s.id} value={s.id}>
-              {String(s.session_date).slice(0, 10)} — {s.phase} wk {s.phase_week}
-            </option>
-          ))}
-        </select>
-      </div>
+      {!sessionIdProp && (
+        <div>
+          <label htmlFor="entry_session" className="mb-1 block text-sm font-medium text-foreground">
+            Session
+          </label>
+          <select
+            id="entry_session"
+            value={sessionId}
+            onChange={(e) => {
+              const newId = e.target.value;
+              setSessionId(newId);
+              const sess = sessions.find((s) => s.id === newId);
+              const dm = Array.isArray(sess?.day_metrics) ? sess!.day_metrics : null;
+              if (metricKey && dm && dm.length > 0 && !dm.includes(metricKey)) {
+                setMetricKey("");
+                setRawInput("");
+                setSplitValues([]);
+              }
+            }}
+            className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
+            required
+          >
+            <option value="">Select session</option>
+            {sessions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {String(s.session_date).slice(0, 10)} — {s.phase} wk {s.phase_week}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div>
         <label className="mb-2 flex cursor-pointer items-center gap-2">

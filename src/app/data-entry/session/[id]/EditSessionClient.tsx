@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import metricsData from "@/lib/metrics.json";
+import { EntryForm } from "../../EntryForm";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -46,10 +47,28 @@ type SessionData = {
   session_notes?: string | null;
 };
 
+type EntryRow = {
+  id: string;
+  session_id: string;
+  athlete_id: string;
+  metric_key: string;
+  interval_index: number | null;
+  component: string | null;
+  value: number;
+  display_value: number;
+  units: string;
+  raw_input: string | null;
+  created_at: string;
+  first_name: string;
+  last_name: string;
+};
+
 export function EditSessionClient({ sessionId }: { sessionId: string }) {
   const { mutate } = useSWRConfig();
   const sessionKey = `/api/sessions/${sessionId}`;
+  const entriesKey = `/api/entries?session_id=${sessionId}`;
   const { data, error, isLoading } = useSWR<{ data?: SessionData }>(sessionKey, fetcher);
+  const { data: entriesRes, mutate: mutateEntries } = useSWR<{ data?: EntryRow[] }>(entriesKey, fetcher);
   const [initialized, setInitialized] = useState(false);
 
   const [sessionDate, setSessionDate] = useState("");
@@ -302,6 +321,55 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
             {saveLoading ? "Saving…" : "Save session"}
           </button>
         </form>
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-lg font-bold text-foreground">Entries</h2>
+        {entriesRes?.data && entriesRes.data.length > 0 ? (
+          <div className="overflow-x-auto rounded-lg border border-border bg-surface">
+            <table className="w-full min-w-[400px] text-sm">
+              <thead>
+                <tr className="border-b border-border bg-surface-elevated text-left text-foreground-muted">
+                  <th className="px-3 py-2 font-medium">Athlete</th>
+                  <th className="px-3 py-2 font-medium">Metric</th>
+                  <th className="px-3 py-2 font-medium">Value</th>
+                  <th className="px-3 py-2 font-medium">Units</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entriesRes.data.map((row) => (
+                  <tr key={row.id} className="border-b border-border/50 text-foreground">
+                    <td className="px-3 py-2">
+                      {row.first_name} {row.last_name}
+                    </td>
+                    <td className="px-3 py-2">{row.metric_key}</td>
+                    <td className="px-3 py-2 font-mono">{row.display_value}</td>
+                    <td className="px-3 py-2 text-foreground-muted">{row.units}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-foreground-muted">
+            No entries yet. Add one below.
+          </p>
+        )}
+
+        <div className="mt-6">
+          <p className="mb-3 text-sm font-medium text-foreground">Add entry</p>
+          <EntryForm
+            sessionId={sessionId}
+            onSuccess={() => {
+              void mutateEntries();
+              void mutate(
+                (k) => typeof k === "string" && k.startsWith("/api/leaderboard"),
+                undefined,
+                { revalidate: true }
+              );
+            }}
+          />
+        </div>
       </section>
     </div>
   );
