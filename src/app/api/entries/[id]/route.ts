@@ -157,3 +157,28 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const authSession = await getServerSession(authOptions);
+  if (!authSession) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { id } = await params;
+    const { rows } = await sql`DELETE FROM entries WHERE id = ${id} RETURNING id`;
+    if (!rows.length) {
+      return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+    return new NextResponse(null, { status: 204 });
+  } catch (err) {
+    console.error("DELETE /api/entries/[id]:", err);
+    return NextResponse.json(
+      { error: "Failed to delete entry" },
+      { status: 500 }
+    );
+  }
+}
