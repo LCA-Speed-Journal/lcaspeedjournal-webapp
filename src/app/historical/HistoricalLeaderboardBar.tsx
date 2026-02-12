@@ -73,19 +73,19 @@ export default function HistoricalLeaderboardBar({
   isMobile = false,
 }: Props) {
   if (groupByGender && (male.length > 0 || female.length > 0)) {
-    const boysData = male.map((r) => ({
+    const boysData = male.map((r, i) => ({
       name: formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile),
       fullName: `${r.first_name} ${r.last_name}`.trim(),
       value: Number(r.display_value),
-      rank: r.rank,
+      rank: i + 1,
       source_metric_key: r.source_metric_key,
       gender: "M",
     }));
-    const girlsData = female.map((r) => ({
+    const girlsData = female.map((r, i) => ({
       name: formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile),
       fullName: `${r.first_name} ${r.last_name}`.trim(),
       value: Number(r.display_value),
-      rank: r.rank,
+      rank: i + 1,
       source_metric_key: r.source_metric_key,
       gender: "F",
     }));
