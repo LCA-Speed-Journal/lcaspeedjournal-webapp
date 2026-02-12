@@ -349,14 +349,16 @@ export default function HistoricalClient() {
                   <div>
                     <p className="mb-2 text-xs font-medium text-foreground-muted">Boys</p>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {male.map((r) => (
+                      {male.map((r, i) => {
+                        const displayRank = i + 1;
+                        return (
                         <div
                           key={r.athlete_id}
-                          className={`relative flex flex-col rounded-lg border p-3 ${rankClass(r.rank)}`}
+                          className={`relative flex flex-col rounded-lg border p-3 ${rankClass(displayRank)}`}
                           style={{ contentVisibility: "auto", containIntrinsicSize: "0 80px" }}
                         >
                           <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
-                            #{r.rank}
+                            #{displayRank}
                           </span>
                           <span
                             className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight"
@@ -376,7 +378,8 @@ export default function HistoricalClient() {
                             </span>
                           </span>
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
                   </div>
                 )}
@@ -384,14 +387,16 @@ export default function HistoricalClient() {
                   <div>
                     <p className="mb-2 text-xs font-medium text-foreground-muted">Girls</p>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {female.map((r) => (
+                      {female.map((r, i) => {
+                        const displayRank = i + 1;
+                        return (
                         <div
                           key={r.athlete_id}
-                          className={`relative flex flex-col rounded-lg border p-3 ${rankClass(r.rank)}`}
+                          className={`relative flex flex-col rounded-lg border p-3 ${rankClass(displayRank)}`}
                           style={{ contentVisibility: "auto", containIntrinsicSize: "0 80px" }}
                         >
                           <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
-                            #{r.rank}
+                            #{displayRank}
                           </span>
                           <span
                             className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight"
@@ -411,7 +416,8 @@ export default function HistoricalClient() {
                             </span>
                           </span>
                         </div>
-                      ))}
+                      );
+                      })}
                     </div>
                   </div>
                 )}
