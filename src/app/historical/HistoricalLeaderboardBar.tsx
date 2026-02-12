@@ -12,6 +12,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { LeaderboardRow } from "@/types";
+import { formatLeaderboardName } from "@/lib/display-names";
 
 const MALE_COLOR = "var(--accent)";
 const FEMALE_COLOR = "#22d3ee";
@@ -26,16 +27,12 @@ type Props = {
   showTeamAvg?: boolean;
   maleAvg?: number | null;
   femaleAvg?: number | null;
+  isMobile?: boolean;
 };
 
 function formatValue(n: number): string {
   if (Number.isInteger(n)) return String(n);
   return n.toFixed(2);
-}
-
-function shortLabel(row: LeaderboardRow): string {
-  const name = `${row.first_name} ${row.last_name}`.trim();
-  return name.length > 12 ? `${name.slice(0, 10)}…` : name;
 }
 
 /** Y-axis tick label: round to one decimal place */
@@ -73,19 +70,20 @@ export default function HistoricalLeaderboardBar({
   showTeamAvg = false,
   maleAvg = null,
   femaleAvg = null,
+  isMobile = false,
 }: Props) {
   if (groupByGender && (male.length > 0 || female.length > 0)) {
     const boysData = male.map((r) => ({
-      name: shortLabel(r),
-      fullName: `${r.first_name} ${r.last_name}`,
+      name: formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile),
+      fullName: `${r.first_name} ${r.last_name}`.trim(),
       value: Number(r.display_value),
       rank: r.rank,
       source_metric_key: r.source_metric_key,
       gender: "M",
     }));
     const girlsData = female.map((r) => ({
-      name: shortLabel(r),
-      fullName: `${r.first_name} ${r.last_name}`,
+      name: formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile),
+      fullName: `${r.first_name} ${r.last_name}`.trim(),
       value: Number(r.display_value),
       rank: r.rank,
       source_metric_key: r.source_metric_key,
@@ -199,8 +197,8 @@ export default function HistoricalLeaderboardBar({
   }
 
   const data = rows.map((r) => ({
-    name: shortLabel(r),
-    fullName: `${r.first_name} ${r.last_name}`,
+    name: formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile),
+    fullName: `${r.first_name} ${r.last_name}`.trim(),
     value: Number(r.display_value),
     rank: r.rank,
     source_metric_key: r.source_metric_key,

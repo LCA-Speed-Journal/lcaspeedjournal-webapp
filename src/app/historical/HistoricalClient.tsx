@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import useSWR from "swr";
 import Link from "next/link";
 import { PageBackground } from "@/app/components/PageBackground";
+import { formatLeaderboardName } from "@/lib/display-names";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 import type { LeaderboardRow } from "@/types";
 import type { ProgressionPoint } from "@/types";
 
@@ -70,6 +72,7 @@ type ProgressionResponse = {
 };
 
 export default function HistoricalClient() {
+  const isMobile = useIsMobile();
   const [from, setFrom] = useState(() => defaultFrom());
   const [to, setTo] = useState(() => defaultTo());
   const [phase, setPhase] = useState("");
@@ -322,6 +325,7 @@ export default function HistoricalClient() {
                 showTeamAvg={showLeaderboardTeamAvg}
                 maleAvg={leaderboardMaleAvg}
                 femaleAvg={leaderboardFemaleAvg}
+                isMobile={isMobile}
               />
             ) : (
               <>
@@ -354,8 +358,16 @@ export default function HistoricalClient() {
                           <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
                             #{r.rank}
                           </span>
-                          <span className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight">
-                            {r.first_name} {r.last_name}
+                          <span
+                            className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight"
+                            title={
+                              formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile) !==
+                              `${r.first_name} ${r.last_name}`.trim()
+                                ? `${r.first_name} ${r.last_name}`.trim()
+                                : undefined
+                            }
+                          >
+                            {formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile)}
                           </span>
                           <span className="mt-2 font-mono text-lg font-semibold tabular-nums">
                             {formatValue(r.display_value)}{" "}
@@ -381,8 +393,16 @@ export default function HistoricalClient() {
                           <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
                             #{r.rank}
                           </span>
-                          <span className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight">
-                            {r.first_name} {r.last_name}
+                          <span
+                            className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight"
+                            title={
+                              formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile) !==
+                              `${r.first_name} ${r.last_name}`.trim()
+                                ? `${r.first_name} ${r.last_name}`.trim()
+                                : undefined
+                            }
+                          >
+                            {formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile)}
                           </span>
                           <span className="mt-2 font-mono text-lg font-semibold tabular-nums">
                             {formatValue(r.display_value)}{" "}
@@ -407,8 +427,16 @@ export default function HistoricalClient() {
                     <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
                       #{r.rank}
                     </span>
-                    <span className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight">
-                      {r.first_name} {r.last_name}
+                    <span
+                      className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight"
+                      title={
+                        formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile) !==
+                        `${r.first_name} ${r.last_name}`.trim()
+                          ? `${r.first_name} ${r.last_name}`.trim()
+                          : undefined
+                      }
+                    >
+                      {formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile)}
                     </span>
                     <span className="mt-2 font-mono text-lg font-semibold tabular-nums">
                       {formatValue(r.display_value)}{" "}
