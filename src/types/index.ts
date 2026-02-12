@@ -28,6 +28,8 @@ export type LeaderboardRow = {
   trend?: LeaderboardTrend;
   /** PB = all-time best for this metric (+ component); SB = season best (calendar year), only when not PB */
   best_type?: "pb" | "sb";
+  /** athlete | staff | alumni; used for name truncation */
+  athlete_type?: "athlete" | "staff" | "alumni";
 };
 
 /** Animation trigger derived from diff(prev, current) leaderboard rows. One per card per refetch. */
