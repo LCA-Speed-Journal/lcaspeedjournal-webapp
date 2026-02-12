@@ -21,6 +21,8 @@ import { motion, useReducedMotion } from "framer-motion";
 import { PageBackground } from "@/app/components/PageBackground";
 import type { LeaderboardRow, LeaderboardAnimationTrigger } from "@/types";
 import type { SessionMetric, SessionMetricComponent } from "@/app/api/leaderboard/session-metrics/route";
+import { formatLeaderboardName } from "@/lib/display-names";
+import { useIsMobile } from "@/hooks/useMediaQuery";
 import { computeLeaderboardTriggers } from "./leaderboardDiff";
 
 type SessionItem = { id: string; session_date: string; phase?: string; phase_week?: number };
@@ -466,6 +468,7 @@ function LeaderboardCard({
   units: string;
   animationTrigger?: LeaderboardAnimationTrigger | null;
 }) {
+  const isMobile = useIsMobile();
   const reducedMotion = useReducedMotion();
   const variants = getCardVariants(reducedMotion ?? false);
   const hasComparison = row.trend != null && row.percent_change != null;
@@ -476,6 +479,13 @@ function LeaderboardCard({
     ? `vs ${formatSessionDateForTooltip(row.previous_session_date)}`
     : undefined;
   const variantKey = animationTrigger ?? "idle";
+  const fullName = `${row.first_name} ${row.last_name}`.trim();
+  const displayName = formatLeaderboardName(
+    row.first_name,
+    row.last_name,
+    row.athlete_type,
+    isMobile
+  );
 
   return (
     <motion.div
@@ -491,8 +501,9 @@ function LeaderboardCard({
       </span>
       <span
         className={`min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight ${row.rank === 1 ? "text-gold-text" : ""}`}
+        title={displayName !== fullName ? fullName : undefined}
       >
-        {row.first_name} {row.last_name}
+        {displayName}
       </span>
       <span
         className={`mt-2 font-mono text-lg font-semibold tabular-nums ${row.rank === 1 ? "text-gold-text" : ""}`}
