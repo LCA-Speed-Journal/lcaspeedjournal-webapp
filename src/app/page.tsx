@@ -55,16 +55,10 @@ export default function Home() {
                   Athletes
                 </Link>
                 <Link
-                  href="/data-entry"
+                  href="/login?callbackUrl=/data-entry"
                   className="rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
                 >
                   Data entry
-                </Link>
-                <Link
-                  href="/login"
-                  className="rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
-                >
-                  Coach login
                 </Link>
               </div>
             </div>

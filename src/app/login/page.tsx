@@ -1,8 +1,8 @@
 "use client";
 
-import { signIn } from "next-auth/react";
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { getSession, signIn } from "next-auth/react";
+import { Suspense, useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { PageBackground } from "@/app/components/PageBackground";
 
@@ -11,7 +11,16 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+
+  useEffect(() => {
+    getSession().then((session) => {
+      if (session) {
+        router.replace(callbackUrl);
+      }
+    });
+  }, [callbackUrl, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
