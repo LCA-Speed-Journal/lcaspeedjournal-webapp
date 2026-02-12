@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { PageBackground } from "@/app/components/PageBackground";
 import { DataEntryLayout } from "../../DataEntryLayout";
 import { EditSessionClient } from "./EditSessionClient";
+import { PickSessionControl } from "./PickSessionControl";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +44,7 @@ function EditSessionSidebar({ sessionId }: { sessionId: string }) {
       <p className="text-xs text-foreground-muted">
         Editing session {sessionId.slice(0, 8)}…
       </p>
+      <PickSessionControl currentSessionId={sessionId} />
     </div>
   );
 }
