@@ -70,6 +70,15 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
   const { data, error, isLoading } = useSWR<{ data?: SessionData }>(sessionKey, fetcher);
   const { data: entriesRes, mutate: mutateEntries } = useSWR<{ data?: EntryRow[] }>(entriesKey, fetcher);
   const [initialized, setInitialized] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<EntryRow | null>(null);
+  const [editMode, setEditMode] = useState<"raw" | "override">("raw");
+  const [editRawInput, setEditRawInput] = useState("");
+  const [editDisplayValue, setEditDisplayValue] = useState("");
+  const [editUnits, setEditUnits] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [sessionDate, setSessionDate] = useState("");
   const [phase, setPhase] = useState<string>(PHASES[0]);
@@ -134,6 +143,74 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
       if (parsed && parsed.length > 0) out[m.key] = parsed;
     }
     return Object.keys(out).length > 0 ? out : undefined;
+  }
+
+  function refreshEntries() {
+    void mutateEntries();
+    void mutate(
+      (k) => typeof k === "string" && k.startsWith("/api/leaderboard"),
+      undefined,
+      { revalidate: true }
+    );
+  }
+
+  function openEdit(row: EntryRow) {
+    setEditingEntry(row);
+    setEditRawInput(row.raw_input ?? "");
+    setEditDisplayValue(String(row.display_value));
+    setEditUnits(row.units ?? "");
+    setEditMode("raw");
+    setEditError("");
+  }
+
+  async function handleEditSave() {
+    if (!editingEntry) return;
+    setEditError("");
+    setEditLoading(true);
+    try {
+      const body =
+        editMode === "raw"
+          ? { raw_input: editRawInput.trim() }
+          : {
+              display_value: Number(editDisplayValue),
+              units: editUnits,
+            };
+      const res = await fetch(`/api/entries/${editingEntry.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setEditError(json.error ?? "Failed to update entry");
+        return;
+      }
+      setEditingEntry(null);
+      refreshEntries();
+    } catch {
+      setEditError("Network error");
+    } finally {
+      setEditLoading(false);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setEditError("");
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/entries/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setEditError(json.error ?? "Failed to delete entry");
+        return;
+      }
+      setDeleteConfirmId(null);
+      refreshEntries();
+    } catch {
+      setEditError("Network error");
+    } finally {
+      setDeleteLoading(false);
+    }
   }
 
   async function handleSessionSubmit(e: React.FormEvent) {
@@ -334,6 +411,7 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                   <th className="px-3 py-2 font-medium">Metric</th>
                   <th className="px-3 py-2 font-medium">Value</th>
                   <th className="px-3 py-2 font-medium">Units</th>
+                  <th className="px-3 py-2 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -345,6 +423,46 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                     <td className="px-3 py-2">{row.metric_key}</td>
                     <td className="px-3 py-2 font-mono">{row.display_value}</td>
                     <td className="px-3 py-2 text-foreground-muted">{row.units}</td>
+                    <td className="px-3 py-2 text-right">
+                      {deleteConfirmId === row.id ? (
+                        <span className="flex items-center justify-end gap-2">
+                          <span className="text-xs text-foreground-muted">Remove this entry?</span>
+                          <button
+                            type="button"
+                            disabled={deleteLoading}
+                            onClick={() => handleDelete(row.id)}
+                            className="rounded bg-danger/90 px-2 py-1 text-xs text-white hover:bg-danger disabled:opacity-50"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deleteLoading}
+                            onClick={() => setDeleteConfirmId(null)}
+                            className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-surface"
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      ) : (
+                        <span className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEdit(row)}
+                            className="text-xs text-accent hover:text-accent-hover"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmId(row.id)}
+                            className="text-xs text-danger hover:opacity-80"
+                          >
+                            Delete
+                          </button>
+                        </span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -354,6 +472,110 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
           <p className="text-sm text-foreground-muted">
             No entries yet. Add one below.
           </p>
+        )}
+
+        {editingEntry && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-entry-title"
+          >
+            <div className="w-full max-w-md rounded-xl border border-border bg-surface p-4 shadow-xl">
+              <h3 id="edit-entry-title" className="mb-3 text-lg font-bold text-foreground">
+                Edit entry — {editingEntry.first_name} {editingEntry.last_name}, {editingEntry.metric_key}
+              </h3>
+              <div className="mb-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditMode("raw")}
+                  className={`rounded px-3 py-1.5 text-sm font-medium ${
+                    editMode === "raw"
+                      ? "bg-accent text-background"
+                      : "border border-border text-foreground hover:bg-surface-elevated"
+                  }`}
+                >
+                  Raw
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditMode("override")}
+                  className={`rounded px-3 py-1.5 text-sm font-medium ${
+                    editMode === "override"
+                      ? "bg-accent text-background"
+                      : "border border-border text-foreground hover:bg-surface-elevated"
+                  }`}
+                >
+                  Override
+                </button>
+              </div>
+              {editMode === "raw" ? (
+                <div className="mb-4">
+                  <label htmlFor="edit_raw_input" className="mb-1 block text-sm font-medium text-foreground">
+                    Raw input (re-parsed on save)
+                  </label>
+                  <input
+                    id="edit_raw_input"
+                    type="text"
+                    value={editRawInput}
+                    onChange={(e) => setEditRawInput(e.target.value)}
+                    className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground focus:border-accent"
+                  />
+                </div>
+              ) : (
+                <div className="mb-4 space-y-3">
+                  <div>
+                    <label htmlFor="edit_display_value" className="mb-1 block text-sm font-medium text-foreground">
+                      Display value
+                    </label>
+                    <input
+                      id="edit_display_value"
+                      type="number"
+                      step="any"
+                      value={editDisplayValue}
+                      onChange={(e) => setEditDisplayValue(e.target.value)}
+                      className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground focus:border-accent"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="edit_units" className="mb-1 block text-sm font-medium text-foreground">
+                      Units
+                    </label>
+                    <input
+                      id="edit_units"
+                      type="text"
+                      value={editUnits}
+                      onChange={(e) => setEditUnits(e.target.value)}
+                      className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground focus:border-accent"
+                    />
+                  </div>
+                </div>
+              )}
+              {editError && (
+                <p className="mb-3 text-sm text-danger" role="alert">
+                  {editError}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={editLoading}
+                  onClick={handleEditSave}
+                  className="rounded-lg bg-accent px-4 py-2 font-medium text-background hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {editLoading ? "Saving…" : "Save"}
+                </button>
+                <button
+                  type="button"
+                  disabled={editLoading}
+                  onClick={() => setEditingEntry(null)}
+                  className="rounded-lg border border-border px-4 py-2 font-medium text-foreground hover:bg-surface-elevated disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         <div className="mt-6">
