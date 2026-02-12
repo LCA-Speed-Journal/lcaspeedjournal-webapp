@@ -363,12 +363,13 @@ function ComponentLeaderboard({
                 <div>
                   <p className="mb-2 text-xs font-medium text-foreground-muted">Boys</p>
                   <motion.div layout={!reducedMotion} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {male.map((r) => (
+                    {male.map((r, i) => (
                       <LeaderboardCard
                         key={r.athlete_id}
                         row={r}
                         units={r.units ?? defaultUnits}
                         animationTrigger={triggerMap.get(r.athlete_id) ?? null}
+                        displayRank={i + 1}
                       />
                     ))}
                   </motion.div>
@@ -378,12 +379,13 @@ function ComponentLeaderboard({
                 <div>
                   <p className="mb-2 text-xs font-medium text-foreground-muted">Girls</p>
                   <motion.div layout={!reducedMotion} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {female.map((r) => (
+                    {female.map((r, i) => (
                       <LeaderboardCard
                         key={r.athlete_id}
                         row={r}
                         units={r.units ?? defaultUnits}
                         animationTrigger={triggerMap.get(r.athlete_id) ?? null}
+                        displayRank={i + 1}
                       />
                     ))}
                   </motion.div>
@@ -463,11 +465,14 @@ function LeaderboardCard({
   row,
   units,
   animationTrigger = null,
+  displayRank,
 }: {
   row: LeaderboardRow;
   units: string;
   animationTrigger?: LeaderboardAnimationTrigger | null;
+  displayRank?: number;
 }) {
+  const rank = displayRank ?? row.rank;
   const isMobile = useIsMobile();
   const reducedMotion = useReducedMotion();
   const variants = getCardVariants(reducedMotion ?? false);
@@ -490,23 +495,23 @@ function LeaderboardCard({
   return (
     <motion.div
       layout
-      className={`relative flex flex-col rounded-lg border p-3 ${rankClass(row.rank)}`}
+      className={`relative flex flex-col rounded-lg border p-3 ${rankClass(rank)}`}
       style={{ contentVisibility: "auto", containIntrinsicSize: "0 80px" }}
       initial={variantKey}
       animate={variantKey}
       variants={variants}
     >
       <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
-        #{row.rank}
+        #{rank}
       </span>
       <span
-        className={`min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight ${row.rank === 1 ? "text-gold-text" : ""}`}
+        className={`min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight ${rank === 1 ? "text-gold-text" : ""}`}
         title={displayName !== fullName ? fullName : undefined}
       >
         {displayName}
       </span>
       <span
-        className={`mt-2 font-mono text-lg font-semibold tabular-nums ${row.rank === 1 ? "text-gold-text" : ""}`}
+        className={`mt-2 font-mono text-lg font-semibold tabular-nums ${rank === 1 ? "text-gold-text" : ""}`}
       >
         {formatValue(row.display_value)} <span className="text-sm font-normal text-foreground-muted">{units}</span>
       </span>
