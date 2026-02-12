@@ -90,6 +90,7 @@ export async function GET(request: NextRequest) {
       first_name: string;
       last_name: string;
       gender: string;
+      athlete_type: string;
       display_value: number;
       units: string;
     };
@@ -105,7 +106,8 @@ export async function GET(request: NextRequest) {
             e.units,
             a.first_name,
             a.last_name,
-            a.gender
+            a.gender,
+            a.athlete_type
           FROM entries e
           INNER JOIN athletes a ON a.id = e.athlete_id
           WHERE e.session_id = ${session_id} AND e.metric_key = ${metric}
@@ -119,6 +121,7 @@ export async function GET(request: NextRequest) {
           first_name,
           last_name,
           gender,
+          athlete_type,
           display_value,
           units
         FROM best
@@ -134,7 +137,8 @@ export async function GET(request: NextRequest) {
             e.units,
             a.first_name,
             a.last_name,
-            a.gender
+            a.gender,
+            a.athlete_type
           FROM entries e
           INNER JOIN athletes a ON a.id = e.athlete_id
           WHERE e.session_id = ${session_id} AND e.metric_key = ${metric}
@@ -148,6 +152,7 @@ export async function GET(request: NextRequest) {
           first_name,
           last_name,
           gender,
+          athlete_type,
           display_value,
           units
         FROM best
@@ -299,6 +304,7 @@ export async function GET(request: NextRequest) {
         first_name: r.first_name,
         last_name: r.last_name,
         gender: r.gender,
+        athlete_type: (r.athlete_type as "athlete" | "staff" | "alumni") ?? "athlete",
         display_value: current,
         units: r.units,
       };
