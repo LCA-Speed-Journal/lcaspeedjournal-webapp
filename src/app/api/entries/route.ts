@@ -10,6 +10,37 @@ import { parseEntry, getMetricsRegistry } from "@/lib/parser";
 
 const INSERT_TIMEOUT_MS = 15000;
 
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get("session_id");
+    if (!sessionId || sessionId.trim() === "") {
+      return NextResponse.json(
+        { error: "session_id query parameter is required" },
+        { status: 400 }
+      );
+    }
+
+    const { rows } = await sql`
+      SELECT e.id, e.session_id, e.athlete_id, e.metric_key, e.interval_index, e.component,
+             e.value, e.display_value, e.units, e.raw_input, e.created_at,
+             a.first_name, a.last_name
+      FROM entries e
+      JOIN athletes a ON a.id = e.athlete_id
+      WHERE e.session_id = ${sessionId}
+      ORDER BY a.last_name, a.first_name, e.metric_key, e.interval_index NULLS LAST, e.component NULLS LAST
+    `;
+
+    return NextResponse.json({ data: rows });
+  } catch (err) {
+    console.error("GET /api/entries:", err);
+    return NextResponse.json(
+      { error: "Failed to fetch entries" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
