@@ -149,15 +149,17 @@ async function RecentSessionsList() {
   return (
     <ul className="space-y-2">
       {sessions.map((s) => (
-        <li
-          key={s.id}
-          className="flex items-center justify-between rounded border border-border bg-surface px-3 py-2 text-sm text-foreground"
-        >
-          <span>
-            {formatDate(s.session_date as string | Date)} — {s.phase}
-            {Number(s.phase_week) === 0 ? "" : ` week ${s.phase_week}`}
-          </span>
-          <span className="font-mono text-foreground-muted">{s.id.slice(0, 8)}…</span>
+        <li key={s.id}>
+          <Link
+            href={`/data-entry/session/${s.id}`}
+            className="flex items-center justify-between rounded border border-border bg-surface px-3 py-2 text-sm text-foreground hover:border-accent/50 hover:bg-surface-elevated transition-colors"
+          >
+            <span>
+              {formatDate(s.session_date as string | Date)} — {s.phase}
+              {Number(s.phase_week) === 0 ? "" : ` week ${s.phase_week}`}
+            </span>
+            <span className="font-mono text-foreground-muted">Edit</span>
+          </Link>
         </li>
       ))}
     </ul>
