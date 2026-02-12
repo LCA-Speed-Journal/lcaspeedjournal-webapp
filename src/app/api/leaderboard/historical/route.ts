@@ -15,6 +15,7 @@ type Row = {
   first_name: string;
   last_name: string;
   gender: string;
+  athlete_type: string;
   display_value: number;
   units: string;
   source_metric_key?: string;
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
 
       const stringParts: string[] = [
         `WITH filtered AS (
-          SELECT e.athlete_id, e.display_value, e.metric_key, e.units, a.first_name, a.last_name, a.gender
+          SELECT e.athlete_id, e.display_value, e.metric_key, e.units, a.first_name, a.last_name, a.gender, a.athlete_type
           FROM entries e
           INNER JOIN sessions s ON s.id = e.session_id
           INNER JOIN athletes a ON a.id = e.athlete_id
@@ -65,11 +66,11 @@ export async function GET(request: NextRequest) {
       }
       stringParts.push(
         `) ), best AS (
-          SELECT DISTINCT ON (athlete_id) athlete_id, display_value, metric_key AS source_metric_key, units, first_name, last_name, gender
+          SELECT DISTINCT ON (athlete_id) athlete_id, display_value, metric_key AS source_metric_key, units, first_name, last_name, gender, athlete_type
           FROM filtered
           ORDER BY athlete_id, display_value DESC
         )
-        SELECT (ROW_NUMBER() OVER (ORDER BY display_value DESC))::int AS rank, athlete_id, first_name, last_name, gender, display_value, units, source_metric_key
+        SELECT (ROW_NUMBER() OVER (ORDER BY display_value DESC))::int AS rank, athlete_id, first_name, last_name, gender, athlete_type, display_value, units, source_metric_key
         FROM best ORDER BY rank`
       );
       const template = Object.assign([...stringParts], {
@@ -91,6 +92,7 @@ export async function GET(request: NextRequest) {
         first_name: r.first_name,
         last_name: r.last_name,
         gender: r.gender,
+        athlete_type: (r.athlete_type as "athlete" | "staff" | "alumni") ?? "athlete",
         display_value: Number(r.display_value),
         units: r.units,
         source_metric_key: r.source_metric_key,
@@ -128,7 +130,7 @@ export async function GET(request: NextRequest) {
     if (sortAsc) {
       const ascResult = await sql`
       WITH filtered AS (
-        SELECT e.athlete_id, e.display_value, e.units, a.first_name, a.last_name, a.gender
+        SELECT e.athlete_id, e.display_value, e.units, a.first_name, a.last_name, a.gender, a.athlete_type
         FROM entries e
         INNER JOIN sessions s ON s.id = e.session_id
         INNER JOIN athletes a ON a.id = e.athlete_id
@@ -137,18 +139,18 @@ export async function GET(request: NextRequest) {
           AND e.metric_key = ${metric}
       ),
       best AS (
-        SELECT DISTINCT ON (athlete_id) athlete_id, display_value, units, first_name, last_name, gender
+        SELECT DISTINCT ON (athlete_id) athlete_id, display_value, units, first_name, last_name, gender, athlete_type
         FROM filtered
         ORDER BY athlete_id, display_value ASC
       )
-      SELECT (ROW_NUMBER() OVER (ORDER BY display_value ASC))::int AS rank, athlete_id, first_name, last_name, gender, display_value, units
+      SELECT (ROW_NUMBER() OVER (ORDER BY display_value ASC))::int AS rank, athlete_id, first_name, last_name, gender, athlete_type, display_value, units
       FROM best ORDER BY rank
     `;
       result = ascResult;
     } else {
       const descResult = await sql`
       WITH filtered AS (
-        SELECT e.athlete_id, e.display_value, e.units, a.first_name, a.last_name, a.gender
+        SELECT e.athlete_id, e.display_value, e.units, a.first_name, a.last_name, a.gender, a.athlete_type
         FROM entries e
         INNER JOIN sessions s ON s.id = e.session_id
         INNER JOIN athletes a ON a.id = e.athlete_id
@@ -157,11 +159,11 @@ export async function GET(request: NextRequest) {
           AND e.metric_key = ${metric}
       ),
       best AS (
-        SELECT DISTINCT ON (athlete_id) athlete_id, display_value, units, first_name, last_name, gender
+        SELECT DISTINCT ON (athlete_id) athlete_id, display_value, units, first_name, last_name, gender, athlete_type
         FROM filtered
         ORDER BY athlete_id, display_value DESC
       )
-      SELECT (ROW_NUMBER() OVER (ORDER BY display_value DESC))::int AS rank, athlete_id, first_name, last_name, gender, display_value, units
+      SELECT (ROW_NUMBER() OVER (ORDER BY display_value DESC))::int AS rank, athlete_id, first_name, last_name, gender, athlete_type, display_value, units
       FROM best ORDER BY rank
     `;
       result = descResult;
@@ -174,6 +176,7 @@ export async function GET(request: NextRequest) {
       first_name: r.first_name,
       last_name: r.last_name,
       gender: r.gender,
+      athlete_type: (r.athlete_type as "athlete" | "staff" | "alumni") ?? "athlete",
       display_value: Number(r.display_value),
       units: r.units,
     }));
