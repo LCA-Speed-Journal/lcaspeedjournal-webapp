@@ -2,8 +2,10 @@ import type { LeaderboardRow } from "@/types";
 
 export type LeaderboardSection = { title: string; rows: LeaderboardRow[] };
 
+/** When split alumni is on: alumni and staff go to Alumni section; only athlete_type === "athlete" stays in Athletes. */
 function isAlumni(r: LeaderboardRow): boolean {
-  return (r.athlete_type ?? "athlete") === "alumni";
+  const t = r.athlete_type ?? "athlete";
+  return t === "alumni" || t === "staff";
 }
 
 export function getLeaderboardSections(options: {

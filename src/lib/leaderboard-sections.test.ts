@@ -28,11 +28,11 @@ describe("getLeaderboardSections", () => {
     expect(result[0].rows).toEqual(rows);
   });
 
-  it("returns Athletes and Alumni sections when only splitByAlumni is on", () => {
+  it("returns Athletes and Alumni sections when only splitByAlumni is on (staff in Alumni)", () => {
     const a1 = row("1", "athlete");
-    const a2 = row("2", "staff");
+    const staff = row("2", "staff");
     const al = row("3", "alumni");
-    const rows = [a1, a2, al];
+    const rows = [a1, staff, al];
     const result = getLeaderboardSections({
       rows,
       groupByGender: false,
@@ -40,9 +40,9 @@ describe("getLeaderboardSections", () => {
     });
     expect(result).toHaveLength(2);
     expect(result[0].title).toBe("Athletes");
-    expect(result[0].rows).toEqual([a1, a2]);
+    expect(result[0].rows).toEqual([a1]);
     expect(result[1].title).toBe("Alumni");
-    expect(result[1].rows).toEqual([al]);
+    expect(result[1].rows).toEqual([staff, al]);
   });
 
   it("treats missing athlete_type as athlete", () => {
