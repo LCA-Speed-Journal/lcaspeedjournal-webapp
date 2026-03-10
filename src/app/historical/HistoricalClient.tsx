@@ -6,6 +6,7 @@ import useSWR from "swr";
 import Link from "next/link";
 import { PageBackground } from "@/app/components/PageBackground";
 import { formatLeaderboardName } from "@/lib/display-names";
+import { getLeaderboardSections } from "@/lib/leaderboard-sections";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import type { LeaderboardRow } from "@/types";
 import type { ProgressionPoint } from "@/types";
@@ -78,6 +79,7 @@ export default function HistoricalClient() {
   const [phase, setPhase] = useState("");
   const [metric, setMetric] = useState("");
   const [groupByGender, setGroupByGender] = useState(false);
+  const [splitByAlumni, setSplitByAlumni] = useState(false);
   const [leaderboardView, setLeaderboardView] = useState<"bar" | "cards">("bar");
   const [showLeaderboardTeamAvg, setShowLeaderboardTeamAvg] = useState(false);
   const [athleteIds, setAthleteIds] = useState<string[]>([]);
@@ -129,6 +131,13 @@ export default function HistoricalClient() {
   const female = historicalData?.data?.female ?? [];
   const units = historicalData?.data?.units ?? "";
   const showGrouped = groupByGender && (male.length > 0 || female.length > 0);
+  const sections = getLeaderboardSections({
+    rows,
+    male,
+    female,
+    groupByGender,
+    splitByAlumni,
+  });
 
   const leaderboardMaleAvg =
     male.length > 0 ? male.reduce((s, r) => s + r.display_value, 0) / male.length : null;
@@ -254,6 +263,15 @@ export default function HistoricalClient() {
             />
             <span className="text-sm text-foreground-muted">Group by gender</span>
           </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={splitByAlumni}
+              onChange={(e) => startTransition(() => setSplitByAlumni(e.target.checked))}
+              className="h-4 w-4 rounded border-border bg-surface text-accent focus:ring-accent"
+            />
+            <span className="text-sm text-foreground-muted">Split alumni</span>
+          </label>
           <div className="flex items-center gap-2">
             <span className="text-sm text-foreground-muted">View:</span>
             <div className="flex rounded-lg border border-border bg-surface-elevated p-0.5">
@@ -321,6 +339,7 @@ export default function HistoricalClient() {
                 female={female}
                 units={units}
                 groupByGender={groupByGender}
+                splitByAlumni={splitByAlumni}
                 metricDisplayName={historicalData?.data?.metric_display_name ?? metric}
                 showTeamAvg={showLeaderboardTeamAvg}
                 maleAvg={leaderboardMaleAvg}
@@ -343,86 +362,7 @@ export default function HistoricalClient() {
                     )}
                   </div>
                 )}
-              {showGrouped ? (
-              <>
-                {male.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-xs font-medium text-foreground-muted">Boys</p>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {male.map((r, i) => {
-                        const displayRank = i + 1;
-                        return (
-                        <div
-                          key={r.athlete_id}
-                          className={`relative flex flex-col rounded-lg border p-3 ${rankClass(displayRank)}`}
-                          style={{ contentVisibility: "auto", containIntrinsicSize: "0 80px" }}
-                        >
-                          <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
-                            #{displayRank}
-                          </span>
-                          <span
-                            className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight"
-                            title={
-                              formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile) !==
-                              `${r.first_name} ${r.last_name}`.trim()
-                                ? `${r.first_name} ${r.last_name}`.trim()
-                                : undefined
-                            }
-                          >
-                            {formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile)}
-                          </span>
-                          <span className="mt-2 font-mono text-lg font-semibold tabular-nums">
-                            {formatValue(r.display_value)}{" "}
-                            <span className="text-sm font-normal text-foreground-muted">
-                              {units}
-                            </span>
-                          </span>
-                        </div>
-                      );
-                      })}
-                    </div>
-                  </div>
-                )}
-                {female.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-xs font-medium text-foreground-muted">Girls</p>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {female.map((r, i) => {
-                        const displayRank = i + 1;
-                        return (
-                        <div
-                          key={r.athlete_id}
-                          className={`relative flex flex-col rounded-lg border p-3 ${rankClass(displayRank)}`}
-                          style={{ contentVisibility: "auto", containIntrinsicSize: "0 80px" }}
-                        >
-                          <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
-                            #{displayRank}
-                          </span>
-                          <span
-                            className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight"
-                            title={
-                              formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile) !==
-                              `${r.first_name} ${r.last_name}`.trim()
-                                ? `${r.first_name} ${r.last_name}`.trim()
-                                : undefined
-                            }
-                          >
-                            {formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile)}
-                          </span>
-                          <span className="mt-2 font-mono text-lg font-semibold tabular-nums">
-                            {formatValue(r.display_value)}{" "}
-                            <span className="text-sm font-normal text-foreground-muted">
-                              {units}
-                            </span>
-                          </span>
-                        </div>
-                      );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
+              {sections.length === 1 && sections[0].title === "" ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {rows.map((r) => (
                   <div
@@ -453,6 +393,47 @@ export default function HistoricalClient() {
                   </div>
                 ))}
               </div>
+            ) : (
+              <>
+                {sections.map((section) => (
+                  <div key={section.title}>
+                    <p className="mb-2 text-xs font-medium text-foreground-muted">{section.title}</p>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      {section.rows.map((r, i) => {
+                        const displayRank = i + 1;
+                        return (
+                          <div
+                            key={r.athlete_id}
+                            className={`relative flex flex-col rounded-lg border p-3 ${rankClass(displayRank)}`}
+                            style={{ contentVisibility: "auto", containIntrinsicSize: "0 80px" }}
+                          >
+                            <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
+                              #{displayRank}
+                            </span>
+                            <span
+                              className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight"
+                              title={
+                                formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile) !==
+                                `${r.first_name} ${r.last_name}`.trim()
+                                  ? `${r.first_name} ${r.last_name}`.trim()
+                                  : undefined
+                              }
+                            >
+                              {formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile)}
+                            </span>
+                            <span className="mt-2 font-mono text-lg font-semibold tabular-nums">
+                              {formatValue(r.display_value)}{" "}
+                              <span className="text-sm font-normal text-foreground-muted">
+                                {units}
+                              </span>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </>
             )}
             </>
             )}
