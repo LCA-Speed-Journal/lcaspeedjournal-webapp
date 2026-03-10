@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import metricsData from "@/lib/metrics.json";
+import { segmentInputToCumulativeInput } from "@/lib/parser";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -27,7 +28,8 @@ function metricOptions() {
 
 function inputHint(
   metric: ReturnType<typeof metricOptions>[0] | null,
-  sessionSplits?: Record<string, number[]> | null
+  sessionSplits?: Record<string, number[]> | null,
+  splitEntryMode?: "cumulative" | "segment"
 ): string {
   if (!metric) return "Select a metric";
   if (metric.inputStructure === "single_interval") {
@@ -39,6 +41,11 @@ function inputHint(
     const splitsStr = Array.isArray(splits) && splits.length > 0
       ? splits.map((m) => `${m}m`).join(", ")
       : null;
+    if (splitEntryMode === "segment") {
+      const ex = n === 2 ? "0.95|0.90" : n === 3 ? "0.95|0.90|0.80" : "0.95|0.90|0.80|0.75";
+      const base = `e.g. ${ex} (segment times, ${n} values, ${metric.inputUnits})`;
+      return splitsStr ? `Splits: ${splitsStr} — ${base}` : base;
+    }
     const ex = n === 2 ? "0.95|1.85" : n === 3 ? "0.95|1.85|2.65" : "0.95|1.85|2.65|3.40";
     const base = `e.g. ${ex} (${n} pipe- or comma-separated values, ${metric.inputUnits})`;
     return splitsStr ? `Splits: ${splitsStr} — ${base}` : base;
@@ -82,6 +89,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const [metricKey, setMetricKey] = useState("");
   const [rawInput, setRawInput] = useState("");
   const [splitValues, setSplitValues] = useState<string[]>([]);
+  const [splitEntryMode, setSplitEntryMode] = useState<"cumulative" | "segment">("cumulative");
   const [isMobile, setIsMobile] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -180,9 +188,23 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setError("");
     setSuccess("");
     setLoading(true);
-    const rawToSend = showMobileSplits
-      ? splitValues.map((v) => v.trim()).join("|")
-      : rawInput.trim();
+    let rawToSend: string;
+    if (showMobileSplits) {
+      if (splitEntryMode === "segment") {
+        const str = splitValues.map((v) => v.trim()).join("|");
+        const converted = segmentInputToCumulativeInput(str);
+        if (converted === null) {
+          setError("Enter numbers for each segment");
+          setLoading(false);
+          return;
+        }
+        rawToSend = converted;
+      } else {
+        rawToSend = splitValues.map((v) => v.trim()).join("|");
+      }
+    } else {
+      rawToSend = rawInput.trim();
+    }
     try {
       const res = await fetch("/api/entries", {
         method: "POST",
@@ -252,6 +274,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
                 setMetricKey("");
                 setRawInput("");
                 setSplitValues([]);
+                setSplitEntryMode("cumulative");
               }
             }}
             className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
@@ -399,6 +422,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             setMetricKey(e.target.value);
             setRawInput("");
             setSplitValues([]);
+            setSplitEntryMode("cumulative");
           }}
           className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
           required
@@ -416,6 +440,32 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         <label htmlFor="entry_raw" className="mb-1 block text-sm font-medium text-foreground">
           Value
         </label>
+        {showMobileSplits && (
+          <div className="mb-2 flex gap-1 rounded border border-border bg-surface-elevated p-1">
+            <button
+              type="button"
+              onClick={() => setSplitEntryMode("cumulative")}
+              className={`flex-1 rounded px-2 py-1.5 text-sm transition-colors ${
+                splitEntryMode === "cumulative"
+                  ? "bg-accent text-background"
+                  : "text-foreground hover:bg-surface"
+              }`}
+            >
+              Cumulative
+            </button>
+            <button
+              type="button"
+              onClick={() => setSplitEntryMode("segment")}
+              className={`flex-1 rounded px-2 py-1.5 text-sm transition-colors ${
+                splitEntryMode === "segment"
+                  ? "bg-accent text-background"
+                  : "text-foreground hover:bg-surface"
+              }`}
+            >
+              Segment
+            </button>
+          </div>
+        )}
         {showMobileSplits ? (
           <div className="space-y-2">
             {splitValues.map((val, i) => (
@@ -450,13 +500,13 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             autoComplete="off"
             value={rawInput}
             onChange={(e) => setRawInput(e.target.value)}
-            placeholder={inputHint(selectedMetric, selectedSession?.day_splits)}
+            placeholder={inputHint(selectedMetric, selectedSession?.day_splits, splitEntryMode)}
             className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
             required
           />
         )}
         <p className="mt-1 text-xs text-foreground-muted">
-          {inputHint(selectedMetric, selectedSession?.day_splits)}
+          {inputHint(selectedMetric, selectedSession?.day_splits, splitEntryMode)}
         </p>
       </div>
 
