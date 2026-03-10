@@ -170,6 +170,8 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const splitCount = Array.isArray(cumulativeSplits) && cumulativeSplits.length > 0
     ? cumulativeSplits.length
     : 0;
+  const showSplitEntryToggle =
+    selectedMetric?.inputStructure === "cumulative" && splitCount > 0;
   const showMobileSplits =
     isMobile &&
     selectedMetric?.inputStructure === "cumulative" &&
@@ -190,8 +192,8 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setLoading(true);
     let rawToSend: string;
     if (showMobileSplits) {
+      const str = splitValues.map((v) => v.trim()).join("|");
       if (splitEntryMode === "segment") {
-        const str = splitValues.map((v) => v.trim()).join("|");
         const converted = segmentInputToCumulativeInput(str);
         if (converted === null) {
           setError("Enter numbers for each segment");
@@ -200,8 +202,16 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         }
         rawToSend = converted;
       } else {
-        rawToSend = splitValues.map((v) => v.trim()).join("|");
+        rawToSend = str;
       }
+    } else if (showSplitEntryToggle && splitEntryMode === "segment") {
+      const converted = segmentInputToCumulativeInput(rawInput.trim());
+      if (converted === null) {
+        setError("Enter numbers for each segment");
+        setLoading(false);
+        return;
+      }
+      rawToSend = converted;
     } else {
       rawToSend = rawInput.trim();
     }
@@ -440,7 +450,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         <label htmlFor="entry_raw" className="mb-1 block text-sm font-medium text-foreground">
           Value
         </label>
-        {showMobileSplits && (
+        {showSplitEntryToggle && (
           <div className="mb-2 flex gap-1 rounded border border-border bg-surface-elevated p-1">
             <button
               type="button"
