@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import type { LeaderboardRow } from "@/types";
 import { formatLeaderboardName } from "@/lib/display-names";
+import { getLeaderboardSections } from "@/lib/leaderboard-sections";
 
 const MALE_COLOR = "var(--accent)";
 const FEMALE_COLOR = "#22d3ee";
@@ -23,6 +24,7 @@ type Props = {
   female?: LeaderboardRow[];
   units: string;
   groupByGender: boolean;
+  splitByAlumni?: boolean;
   metricDisplayName: string;
   showTeamAvg?: boolean;
   maleAvg?: number | null;
@@ -60,138 +62,105 @@ function yDomainFromData(
   return [dataMin - padding, dataMax + padding];
 }
 
+function sectionBarColor(title: string): string {
+  if (title.includes("Girls")) return FEMALE_COLOR;
+  return MALE_COLOR;
+}
+
 export default function HistoricalLeaderboardBar({
   rows,
   male = [],
   female = [],
   units,
   groupByGender,
+  splitByAlumni = false,
   metricDisplayName,
   showTeamAvg = false,
   maleAvg = null,
   femaleAvg = null,
   isMobile = false,
 }: Props) {
-  if (groupByGender && (male.length > 0 || female.length > 0)) {
-    const boysData = male.map((r, i) => ({
-      name: formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile),
-      fullName: `${r.first_name} ${r.last_name}`.trim(),
-      value: Number(r.display_value),
-      rank: i + 1,
-      source_metric_key: r.source_metric_key,
-      gender: "M",
-    }));
-    const girlsData = female.map((r, i) => ({
-      name: formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile),
-      fullName: `${r.first_name} ${r.last_name}`.trim(),
-      value: Number(r.display_value),
-      rank: i + 1,
-      source_metric_key: r.source_metric_key,
-      gender: "F",
-    }));
+  const sections = getLeaderboardSections({
+    rows,
+    male,
+    female,
+    groupByGender,
+    splitByAlumni,
+  });
 
+  const isSingleChart = sections.length === 1 && sections[0].title === "";
+
+  if (!isSingleChart && sections.length > 0) {
     return (
       <div className="space-y-6">
-        {boysData.length > 0 && (
-          <div>
-            <p className="mb-2 text-xs font-medium text-foreground-muted">Boys</p>
-            <div className="h-80 w-full min-h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={boysData} margin={{ top: 8, right: 8, left: 8, bottom: 24 }}>
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 10, fill: "var(--foreground-muted)" }}
-                    interval={0}
-                  />
-                  <YAxis
-                    domain={yDomainFromData(
-                      boysData,
-                      showTeamAvg && maleAvg != null ? [maleAvg] : []
-                    )}
-                    tick={{ fontSize: 11, fill: "var(--foreground-muted)" }}
-                    tickFormatter={formatYAxisTick}
-                  />
-                  {showTeamAvg && maleAvg != null && (
-                    <ReferenceLine
-                      y={maleAvg}
-                      stroke={MALE_COLOR}
-                      strokeDasharray="5 5"
-                      label={{ value: "Men's Average", position: "right", fill: "var(--foreground-muted)" }}
+        {sections.map((section) => {
+          const chartData = section.rows.map((r, i) => ({
+            name: formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile),
+            fullName: `${r.first_name} ${r.last_name}`.trim(),
+            value: Number(r.display_value),
+            rank: i + 1,
+            source_metric_key: r.source_metric_key,
+          }));
+          const barColor = sectionBarColor(section.title);
+          const refAvg =
+            section.title.includes("Boys") && maleAvg != null
+              ? maleAvg
+              : section.title.includes("Girls") && femaleAvg != null
+                ? femaleAvg
+                : null;
+          if (chartData.length === 0) return null;
+          return (
+            <div key={section.title}>
+              <p className="mb-2 text-xs font-medium text-foreground-muted">{section.title}</p>
+              <div className="h-80 w-full min-h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 8, right: 8, left: 8, bottom: 24 }}>
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fontSize: 10, fill: "var(--foreground-muted)" }}
+                      interval={0}
                     />
-                  )}
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface-elevated)",
-                      border: "1px solid var(--foreground-muted)",
-                      borderRadius: 8,
-                    }}
-                    labelStyle={{ color: "var(--foreground)" }}
-                    formatter={(value: number, _name: string, props: { payload?: { fullName: string; rank: number; source_metric_key?: string } }) => {
-                      const p = props.payload;
-                      const from = p?.source_metric_key ? ` (from ${p.source_metric_key})` : "";
-                      return [`${formatValue(value)} ${units}${from}`, metricDisplayName];
-                    }}
-                    labelFormatter={(_, payload) => {
-                      const p = payload?.[0]?.payload;
-                      return p ? `${p.fullName} — #${p.rank}` : "";
-                    }}
-                  />
-                  <Bar dataKey="value" name={metricDisplayName} fill={MALE_COLOR} radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-        {girlsData.length > 0 && (
-          <div>
-            <p className="mb-2 text-xs font-medium text-foreground-muted">Girls</p>
-            <div className="h-80 w-full min-h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={girlsData} margin={{ top: 8, right: 8, left: 8, bottom: 24 }}>
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fontSize: 10, fill: "var(--foreground-muted)" }}
-                    interval={0}
-                  />
-                  <YAxis
-                    domain={yDomainFromData(
-                      girlsData,
-                      showTeamAvg && femaleAvg != null ? [femaleAvg] : []
-                    )}
-                    tick={{ fontSize: 11, fill: "var(--foreground-muted)" }}
-                    tickFormatter={formatYAxisTick}
-                  />
-                  {showTeamAvg && femaleAvg != null && (
-                    <ReferenceLine
-                      y={femaleAvg}
-                      stroke={FEMALE_COLOR}
-                      strokeDasharray="5 5"
-                      label={{ value: "Women's Average", position: "right", fill: "var(--foreground-muted)" }}
+                    <YAxis
+                      domain={yDomainFromData(chartData, showTeamAvg && refAvg != null ? [refAvg] : [])}
+                      tick={{ fontSize: 11, fill: "var(--foreground-muted)" }}
+                      tickFormatter={formatYAxisTick}
                     />
-                  )}
-                  <Tooltip
-                    contentStyle={{
-                      background: "var(--surface-elevated)",
-                      border: "1px solid var(--foreground-muted)",
-                      borderRadius: 8,
-                    }}
-                    labelStyle={{ color: "var(--foreground)" }}
-                    formatter={(value: number, _name: string, props: { payload?: { fullName: string; rank: number; source_metric_key?: string } }) => {
-                      const p = props.payload;
-                      const from = p?.source_metric_key ? ` (from ${p.source_metric_key})` : "";
-                      return [`${formatValue(value)} ${units}${from}`, metricDisplayName];
-                    }}
-                    labelFormatter={(_, payload) => {
-                      const p = payload?.[0]?.payload;
-                      return p ? `${p.fullName} — #${p.rank}` : "";
-                    }}
-                  />
-                  <Bar dataKey="value" name={metricDisplayName} fill={FEMALE_COLOR} radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+                    {showTeamAvg && refAvg != null && (
+                      <ReferenceLine
+                        y={refAvg}
+                        stroke={barColor}
+                        strokeDasharray="5 5"
+                        label={{
+                          value: section.title.includes("Boys") ? "Men's Average" : "Women's Average",
+                          position: "right",
+                          fill: "var(--foreground-muted)",
+                        }}
+                      />
+                    )}
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--surface-elevated)",
+                        border: "1px solid var(--foreground-muted)",
+                        borderRadius: 8,
+                      }}
+                      labelStyle={{ color: "var(--foreground)" }}
+                      formatter={(value: number, _name: string, props: { payload?: { fullName: string; rank: number; source_metric_key?: string } }) => {
+                        const p = props.payload;
+                        const from = p?.source_metric_key ? ` (from ${p.source_metric_key})` : "";
+                        return [`${formatValue(value)} ${units}${from}`, metricDisplayName];
+                      }}
+                      labelFormatter={(_, payload) => {
+                        const p = payload?.[0]?.payload;
+                        return p ? `${p.fullName} — #${p.rank}` : "";
+                      }}
+                    />
+                    <Bar dataKey="value" name={metricDisplayName} fill={barColor} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })}
       </div>
     );
   }
