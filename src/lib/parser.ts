@@ -36,6 +36,32 @@ function splitValues(raw: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * Convert segment times to cumulative (running sum). Used when user enters
+ * segment times; we convert before sending so backend always receives cumulative.
+ */
+export function segmentToCumulative(segmentValues: number[]): number[] {
+  const out: number[] = [];
+  let sum = 0;
+  for (const v of segmentValues) {
+    sum = Math.round((sum + v) * 100) / 100;
+    out.push(sum);
+  }
+  return out;
+}
+
+/**
+ * Parse pipe/comma-separated segment input and return cumulative string, or null if invalid.
+ */
+export function segmentInputToCumulativeInput(raw: string): string | null {
+  const parts = raw.split(/[|,]/).map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 0) return null;
+  const nums = parts.map((p) => parseFloat(p));
+  if (nums.some((n) => Number.isNaN(n))) return null;
+  const cumulative = segmentToCumulative(nums);
+  return cumulative.join("|");
+}
+
 function getMetric(displayName: string): MetricDef | undefined {
   return metrics[displayName];
 }
