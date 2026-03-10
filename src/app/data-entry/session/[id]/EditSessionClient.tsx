@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import metricsData from "@/lib/metrics.json";
+import { segmentInputToCumulativeInput } from "@/lib/parser";
 import { EntryForm } from "../../EntryForm";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -72,6 +73,7 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
   const [initialized, setInitialized] = useState(false);
   const [editingEntry, setEditingEntry] = useState<EntryRow | null>(null);
   const [editMode, setEditMode] = useState<"raw" | "override">("raw");
+  const [editSplitEntryMode, setEditSplitEntryMode] = useState<"cumulative" | "segment">("cumulative");
   const [editRawInput, setEditRawInput] = useState("");
   const [editDisplayValue, setEditDisplayValue] = useState("");
   const [editUnits, setEditUnits] = useState("");
@@ -154,12 +156,16 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
     );
   }
 
+  const editingEntryIsCumulative =
+    metricOptions.find((m) => m.key === editingEntry?.metric_key)?.input_structure === "cumulative";
+
   function openEdit(row: EntryRow) {
     setEditingEntry(row);
     setEditRawInput(row.raw_input ?? "");
     setEditDisplayValue(String(row.display_value));
     setEditUnits(row.units ?? "");
     setEditMode("raw");
+    setEditSplitEntryMode("cumulative");
     setEditError("");
   }
 
@@ -168,13 +174,25 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
     setEditError("");
     setEditLoading(true);
     try {
-      const body =
-        editMode === "raw"
-          ? { raw_input: editRawInput.trim() }
-          : {
-              display_value: Number(editDisplayValue),
-              units: editUnits,
-            };
+      let body: { raw_input?: string; display_value?: number; units?: string };
+      if (editMode === "raw") {
+        if (editingEntryIsCumulative && editSplitEntryMode === "segment") {
+          const rawToSend = segmentInputToCumulativeInput(editRawInput.trim());
+          if (rawToSend === null) {
+            setEditError("Enter numbers for each segment");
+            setEditLoading(false);
+            return;
+          }
+          body = { raw_input: rawToSend };
+        } else {
+          body = { raw_input: editRawInput.trim() };
+        }
+      } else {
+        body = {
+          display_value: Number(editDisplayValue),
+          units: editUnits,
+        };
+      }
       const res = await fetch(`/api/entries/${editingEntry.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -514,6 +532,32 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                   <label htmlFor="edit_raw_input" className="mb-1 block text-sm font-medium text-foreground">
                     Raw input (re-parsed on save)
                   </label>
+                  {editingEntryIsCumulative && (
+                    <div className="mb-2 flex gap-1 rounded border border-border bg-surface-elevated p-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditSplitEntryMode("cumulative")}
+                        className={`flex-1 rounded px-2 py-1.5 text-sm transition-colors ${
+                          editSplitEntryMode === "cumulative"
+                            ? "bg-accent text-background"
+                            : "text-foreground hover:bg-surface"
+                        }`}
+                      >
+                        Cumulative
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditSplitEntryMode("segment")}
+                        className={`flex-1 rounded px-2 py-1.5 text-sm transition-colors ${
+                          editSplitEntryMode === "segment"
+                            ? "bg-accent text-background"
+                            : "text-foreground hover:bg-surface"
+                        }`}
+                      >
+                        Segment
+                      </button>
+                    </div>
+                  )}
                   <input
                     id="edit_raw_input"
                     type="text"
