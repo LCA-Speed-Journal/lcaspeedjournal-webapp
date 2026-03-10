@@ -63,6 +63,7 @@ function buildLeaderboardUrl(
 export function LeaderboardClient() {
   const [sessionId, setSessionId] = useState("");
   const [groupByGender, setGroupByGender] = useState(false);
+  const [splitByAlumni, setSplitByAlumni] = useState(false);
   const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set());
   /** Per-metric set of selected component keys; default to first (Overall) when expanding */
   const [selectedComponentsByMetric, setSelectedComponentsByMetric] = useState<Record<string, Set<string>>>({});
@@ -161,6 +162,15 @@ export function LeaderboardClient() {
           />
           <span className="text-sm text-foreground-muted">Group by gender</span>
         </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={splitByAlumni}
+            onChange={(e) => startTransition(() => setSplitByAlumni(e.target.checked))}
+            className="h-4 w-4 rounded border-border bg-surface text-accent focus:ring-accent"
+          />
+          <span className="text-sm text-foreground-muted">Split alumni</span>
+        </label>
       </section>
 
       {!sessionId ? (
@@ -230,6 +240,7 @@ export function LeaderboardClient() {
                               metric={metric}
                               component={comp}
                               groupByGender={groupByGender}
+                              splitByAlumni={splitByAlumni}
                             />
                           ))}
                         </div>
@@ -257,11 +268,13 @@ function ComponentLeaderboard({
   metric,
   component,
   groupByGender,
+  splitByAlumni,
 }: {
   sessionId: string;
   metric: SessionMetric;
   component: SessionMetricComponent;
   groupByGender: boolean;
+  splitByAlumni: boolean;
 }) {
   const url = buildLeaderboardUrl(sessionId, metric.metric_key, component, groupByGender);
   const isVisible = usePageVisible();
