@@ -24,6 +24,7 @@ import type { SessionMetric, SessionMetricComponent } from "@/app/api/leaderboar
 import { formatLeaderboardName } from "@/lib/display-names";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { computeLeaderboardTriggers } from "./leaderboardDiff";
+import { getLeaderboardSections } from "@/lib/leaderboard-sections";
 
 type SessionItem = { id: string; session_date: string; phase?: string; phase_week?: number };
 
@@ -343,6 +344,13 @@ function ComponentLeaderboard({
   const female = data?.data?.female ?? [];
   const defaultUnits = data?.data?.units ?? metric.units;
   const showGrouped = groupByGender && (male.length > 0 || female.length > 0);
+  const sections = getLeaderboardSections({
+    rows,
+    male,
+    female,
+    groupByGender,
+    splitByAlumni,
+  });
   const reducedMotion = useReducedMotion();
 
   return (
@@ -370,42 +378,7 @@ function ComponentLeaderboard({
       )}
       {!error && (rows.length > 0 || (isLoading && rows.length > 0)) && (
         <>
-          {showGrouped ? (
-            <div className="space-y-4">
-              {male.length > 0 && (
-                <div>
-                  <p className="mb-2 text-xs font-medium text-foreground-muted">Boys</p>
-                  <motion.div layout={!reducedMotion} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {male.map((r, i) => (
-                      <LeaderboardCard
-                        key={r.athlete_id}
-                        row={r}
-                        units={r.units ?? defaultUnits}
-                        animationTrigger={triggerMap.get(r.athlete_id) ?? null}
-                        displayRank={i + 1}
-                      />
-                    ))}
-                  </motion.div>
-                </div>
-              )}
-              {female.length > 0 && (
-                <div>
-                  <p className="mb-2 text-xs font-medium text-foreground-muted">Girls</p>
-                  <motion.div layout={!reducedMotion} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {female.map((r, i) => (
-                      <LeaderboardCard
-                        key={r.athlete_id}
-                        row={r}
-                        units={r.units ?? defaultUnits}
-                        animationTrigger={triggerMap.get(r.athlete_id) ?? null}
-                        displayRank={i + 1}
-                      />
-                    ))}
-                  </motion.div>
-                </div>
-              )}
-            </div>
-          ) : (
+          {sections.length === 1 && sections[0].title === "" ? (
             <motion.div layout={!reducedMotion} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {rows.map((r) => (
                 <LeaderboardCard
@@ -416,6 +389,25 @@ function ComponentLeaderboard({
                 />
               ))}
             </motion.div>
+          ) : (
+            <div className="space-y-4">
+              {sections.map((section) => (
+                <div key={section.title}>
+                  <p className="mb-2 text-xs font-medium text-foreground-muted">{section.title}</p>
+                  <motion.div layout={!reducedMotion} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {section.rows.map((r, i) => (
+                      <LeaderboardCard
+                        key={r.athlete_id}
+                        row={r}
+                        units={r.units ?? defaultUnits}
+                        animationTrigger={triggerMap.get(r.athlete_id) ?? null}
+                        displayRank={i + 1}
+                      />
+                    ))}
+                  </motion.div>
+                </div>
+              ))}
+            </div>
           )}
         </>
       )}
