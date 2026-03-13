@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
 import { getVelocityMetricKeys, getMaxVelocityKey } from "@/lib/velocity-metrics";
+import { getPrimaryComponent } from "@/lib/metric-utils";
 import type { ProgressionPoint } from "@/types";
 
 const MAX_ATHLETES = 8;
@@ -110,34 +111,67 @@ ORDER BY s.session_date, e.athlete_id`
       metricDisplayName = metricDef.display_name ?? metric;
       const sortAsc = (metricDef.display_units ?? "").toLowerCase() === "s";
       const agg = sortAsc ? "MIN" : "MAX";
+      const primary = getPrimaryComponent(metric, registry);
 
-      const stringParts: string[] = [
-        `SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, e.units, ${agg}(e.display_value) AS display_value
+      if (primary != null) {
+        const stringParts: string[] = [
+          `SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, e.units, ${agg}(e.display_value) AS display_value
 FROM entries e
 INNER JOIN sessions s ON s.id = e.session_id
 INNER JOIN athletes a ON a.id = e.athlete_id
 WHERE s.session_date >= `,
-        `::date AND s.session_date <= `,
-        `::date AND e.metric_key = `,
-        ` AND (e.athlete_id = `,
-      ];
-      for (let i = 1; i < cappedIds.length; i++) {
-        stringParts.push(" OR e.athlete_id = ");
-      }
-      stringParts.push(
-        `)
+          `::date AND s.session_date <= `,
+          `::date AND e.metric_key = `,
+          ` AND e.component = `,
+          ` AND (e.athlete_id = `,
+        ];
+        for (let i = 1; i < cappedIds.length; i++) {
+          stringParts.push(" OR e.athlete_id = ");
+        }
+        stringParts.push(
+          `)
 GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
 ORDER BY s.session_date, e.athlete_id`
-      );
-      const template = Object.assign([...stringParts], { raw: stringParts }) as TemplateStringsArray;
-      const result = await sql(
-        template,
-        from,
-        to,
-        metric,
-        ...cappedIds
-      );
-      rows = (result.rows as ProgressionRow[]) ?? [];
+        );
+        const template = Object.assign([...stringParts], { raw: stringParts }) as TemplateStringsArray;
+        const result = await sql(
+          template,
+          from,
+          to,
+          metric,
+          primary,
+          ...cappedIds
+        );
+        rows = (result.rows as ProgressionRow[]) ?? [];
+      } else {
+        const stringParts: string[] = [
+          `SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, e.units, ${agg}(e.display_value) AS display_value
+FROM entries e
+INNER JOIN sessions s ON s.id = e.session_id
+INNER JOIN athletes a ON a.id = e.athlete_id
+WHERE s.session_date >= `,
+          `::date AND s.session_date <= `,
+          `::date AND e.metric_key = `,
+          ` AND (e.athlete_id = `,
+        ];
+        for (let i = 1; i < cappedIds.length; i++) {
+          stringParts.push(" OR e.athlete_id = ");
+        }
+        stringParts.push(
+          `)
+GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
+ORDER BY s.session_date, e.athlete_id`
+        );
+        const template = Object.assign([...stringParts], { raw: stringParts }) as TemplateStringsArray;
+        const result = await sql(
+          template,
+          from,
+          to,
+          metric,
+          ...cappedIds
+        );
+        rows = (result.rows as ProgressionRow[]) ?? [];
+      }
     }
 
     const pointsByAthlete = new Map<string, ProgressionPoint[]>();
@@ -185,30 +219,61 @@ ORDER BY s.session_date, e.athlete_id`
         const metricDef = registry[metric];
         if (metricDef) {
           const sortAsc = (metricDef.display_units ?? "").toLowerCase() === "s";
-          if (sortAsc) {
-            const result = await sql`
-              SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, e.units, MIN(e.display_value) AS display_value
-              FROM entries e
-              INNER JOIN sessions s ON s.id = e.session_id
-              INNER JOIN athletes a ON a.id = e.athlete_id
-              WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
-                AND e.metric_key = ${metric}
-              GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
-              ORDER BY s.session_date, e.athlete_id
-            `;
-            allRows = (result.rows as ProgressionRow[]) ?? [];
+          const primary = getPrimaryComponent(metric, registry);
+          if (primary != null) {
+            if (sortAsc) {
+              const result = await sql`
+                SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, e.units, MIN(e.display_value) AS display_value
+                FROM entries e
+                INNER JOIN sessions s ON s.id = e.session_id
+                INNER JOIN athletes a ON a.id = e.athlete_id
+                WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
+                  AND e.metric_key = ${metric}
+                  AND e.component = ${primary}
+                GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
+                ORDER BY s.session_date, e.athlete_id
+              `;
+              allRows = (result.rows as ProgressionRow[]) ?? [];
+            } else {
+              const result = await sql`
+                SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, e.units, MAX(e.display_value) AS display_value
+                FROM entries e
+                INNER JOIN sessions s ON s.id = e.session_id
+                INNER JOIN athletes a ON a.id = e.athlete_id
+                WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
+                  AND e.metric_key = ${metric}
+                  AND e.component = ${primary}
+                GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
+                ORDER BY s.session_date, e.athlete_id
+              `;
+              allRows = (result.rows as ProgressionRow[]) ?? [];
+            }
           } else {
-            const result = await sql`
-              SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, e.units, MAX(e.display_value) AS display_value
-              FROM entries e
-              INNER JOIN sessions s ON s.id = e.session_id
-              INNER JOIN athletes a ON a.id = e.athlete_id
-              WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
-                AND e.metric_key = ${metric}
-              GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
-              ORDER BY s.session_date, e.athlete_id
-            `;
-            allRows = (result.rows as ProgressionRow[]) ?? [];
+            if (sortAsc) {
+              const result = await sql`
+                SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, e.units, MIN(e.display_value) AS display_value
+                FROM entries e
+                INNER JOIN sessions s ON s.id = e.session_id
+                INNER JOIN athletes a ON a.id = e.athlete_id
+                WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
+                  AND e.metric_key = ${metric}
+                GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
+                ORDER BY s.session_date, e.athlete_id
+              `;
+              allRows = (result.rows as ProgressionRow[]) ?? [];
+            } else {
+              const result = await sql`
+                SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, e.units, MAX(e.display_value) AS display_value
+                FROM entries e
+                INNER JOIN sessions s ON s.id = e.session_id
+                INNER JOIN athletes a ON a.id = e.athlete_id
+                WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
+                  AND e.metric_key = ${metric}
+                GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
+                ORDER BY s.session_date, e.athlete_id
+              `;
+              allRows = (result.rows as ProgressionRow[]) ?? [];
+            }
           }
         }
       }
