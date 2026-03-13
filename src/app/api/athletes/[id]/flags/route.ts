@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import type { AthleteFlag } from "@/types";
+import { getPrimaryComponent } from "@/lib/metric-utils";
 
 const NO_DATA_DAYS = 14;
 const DECLINING_SESSIONS = 3;
@@ -74,25 +75,54 @@ export async function GET(
     fromDate.setDate(fromDate.getDate() - 90);
 
     const { rows: recentRows } = await sql`
-      SELECT s.session_date::text, e.metric_key, MIN(e.display_value) AS min_val, MAX(e.display_value) AS max_val
+      SELECT s.session_date::text, e.metric_key, e.component, e.display_value
       FROM entries e
       INNER JOIN sessions s ON s.id = e.session_id
       WHERE e.athlete_id = ${athleteId}
         AND s.session_date >= ${fromDate.toISOString().slice(0, 10)}
-      GROUP BY s.session_date, e.metric_key
       ORDER BY s.session_date ASC
     `;
 
-    const byMetric = new Map<string, { session_date: string; value: number }[]>();
+    const byMetricSession = new Map<string, Map<string, number>>();
     const registry = await import("@/lib/parser").then((m) => m.getMetricsRegistry());
-    for (const r of recentRows as { session_date: string; metric_key: string; min_val: string; max_val: string }[]) {
+
+    for (const r of recentRows as {
+      session_date: string;
+      metric_key: string;
+      component: string | null;
+      display_value: number;
+    }[]) {
       const def = registry[r.metric_key];
       const units = (def?.display_units ?? "").toLowerCase();
       const useMin = units === "s";
-      const value = useMin ? Number(r.min_val) : Number(r.max_val);
-      const list = byMetric.get(r.metric_key) ?? [];
-      list.push({ session_date: r.session_date, value });
-      byMetric.set(r.metric_key, list);
+      const primary = getPrimaryComponent(r.metric_key, registry);
+
+      if (primary != null && r.component != null && r.component !== primary) {
+        continue;
+      }
+
+      const metricMap =
+        byMetricSession.get(r.metric_key) ?? new Map<string, number>();
+      const current = metricMap.get(r.session_date);
+      const val = Number(r.display_value);
+      if (current == null) {
+        metricMap.set(r.session_date, val);
+      } else {
+        metricMap.set(
+          r.session_date,
+          useMin ? Math.min(current, val) : Math.max(current, val)
+        );
+      }
+      byMetricSession.set(r.metric_key, metricMap);
+    }
+
+    const byMetric = new Map<string, { session_date: string; value: number }[]>();
+    for (const [metricKey, sessionMap] of byMetricSession) {
+      const points: { session_date: string; value: number }[] = [];
+      for (const [session_date, value] of sessionMap) {
+        points.push({ session_date, value });
+      }
+      byMetric.set(metricKey, points);
     }
 
     for (const [metricKey, points] of byMetric) {
