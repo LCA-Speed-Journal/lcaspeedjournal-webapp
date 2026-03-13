@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
 import { getMaxVelocityKey, getVelocityMetricKeys, hasVelocityMetrics } from "@/lib/velocity-metrics";
+import { getPrimaryComponent } from "@/lib/metric-utils";
 
 export async function GET() {
   try {
@@ -68,16 +69,15 @@ export async function GET() {
 
     try {
       const entriesRows = await sql`
-        SELECT e.athlete_id, e.metric_key, MIN(e.display_value) AS min_val, MAX(e.display_value) AS max_val, MAX(e.units) AS units
+        SELECT e.athlete_id, e.metric_key, e.component, e.display_value, e.units
         FROM entries e
         WHERE e.athlete_id = ANY(${ids as unknown as string})
-        GROUP BY e.athlete_id, e.metric_key
       `;
       const entries = entriesRows.rows as {
         athlete_id: string;
         metric_key: string;
-        min_val: string;
-        max_val: string;
+        component: string | null;
+        display_value: number;
         units: string;
       }[];
 
@@ -88,6 +88,40 @@ export async function GET() {
         (athletesRows.rows as { id: string; first_name: string; last_name: string }[]).map((a) => [a.id, a])
       );
 
+      const byAthleteMetric = new Map<
+        string,
+        { min_val: number; max_val: number; units: string }
+      >();
+
+      function athleteMetricKey(athleteId: string, metricKey: string): string {
+        return `${athleteId}\t${metricKey}`;
+      }
+
+      for (const r of entries) {
+        const def = registry[r.metric_key];
+        const primary = getPrimaryComponent(r.metric_key, registry);
+        if (primary != null && r.component != null && r.component !== primary) {
+          continue;
+        }
+        const k = athleteMetricKey(r.athlete_id, r.metric_key);
+        const existing = byAthleteMetric.get(k);
+        const val = Number(r.display_value);
+        const units = r.units ?? "";
+        if (!existing) {
+          byAthleteMetric.set(k, {
+            min_val: val,
+            max_val: val,
+            units,
+          });
+        } else {
+          byAthleteMetric.set(k, {
+            min_val: Math.min(existing.min_val, val),
+            max_val: Math.max(existing.max_val, val),
+            units: units || existing.units,
+          });
+        }
+      }
+
       const byMetric = new Map<
         string,
         { value: number; athlete_id: string; units: string; lower_is_better: boolean }
@@ -95,37 +129,37 @@ export async function GET() {
       let maxVelocityValue: number | null = null;
       let maxVelocityAthleteId: string | null = null;
 
-      for (const r of entries) {
-        const def = registry[r.metric_key];
+      for (const [key, agg] of byAthleteMetric) {
+        const [athlete_id, metric_key] = key.split("\t");
+        const def = registry[metric_key];
         const units = (def?.display_units ?? r.units ?? "").toLowerCase();
         const lowerIsBetter = units === "s";
-        const value = lowerIsBetter ? Number(r.min_val) : Number(r.max_val);
+        const value = lowerIsBetter ? agg.min_val : agg.max_val;
 
-        if (velocityKeys.includes(r.metric_key)) {
-          const v = Number(r.max_val);
+        if (velocityKeys.includes(metric_key)) {
+          const v = agg.max_val;
           if (maxVelocityValue === null || v > maxVelocityValue) {
             maxVelocityValue = v;
-            maxVelocityAthleteId = r.athlete_id;
+            maxVelocityAthleteId = athlete_id;
           }
         }
 
-        const key = r.metric_key;
-        const existing = byMetric.get(key);
+        const existing = byMetric.get(metric_key);
         if (!existing) {
-          byMetric.set(key, {
+          byMetric.set(metric_key, {
             value,
-            athlete_id: r.athlete_id,
-            units: def?.display_units ?? r.units ?? "",
+            athlete_id,
+            units: def?.display_units ?? agg.units ?? "",
             lower_is_better: lowerIsBetter,
           });
         } else {
           const better =
             lowerIsBetter ? value < existing.value : value > existing.value;
           if (better) {
-            byMetric.set(key, {
+            byMetric.set(metric_key, {
               value,
-              athlete_id: r.athlete_id,
-              units: def?.display_units ?? r.units ?? "",
+              athlete_id,
+              units: def?.display_units ?? agg.units ?? "",
               lower_is_better: lowerIsBetter,
             });
           }
