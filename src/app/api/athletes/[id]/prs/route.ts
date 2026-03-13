@@ -3,11 +3,16 @@
  * Returns best value per metric for this athlete from entries.
  * Time metrics (display_units "s"): MIN. Others: MAX.
  * MaxVelocity: max of all mph-metric entries.
+ *
+ * For cumulative metrics with multiple components (e.g. 20m_Accel),
+ * we restrict aggregation to the primary (full-run) component so the
+ * PR reflects the full repetition, not a short segment.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
 import { getMaxVelocityKey, getVelocityMetricKeys, hasVelocityMetrics } from "@/lib/velocity-metrics";
+import { getPrimaryComponent } from "@/lib/metric-utils";
 
 export async function GET(
   _request: NextRequest,
@@ -16,12 +21,33 @@ export async function GET(
   const { id: athleteId } = await params;
   try {
     const registry = getMetricsRegistry();
-    const { rows } = await sql`
-      SELECT metric_key, MIN(display_value) AS min_val, MAX(display_value) AS max_val, MAX(units) AS units
+
+    const { rows: entryRows } = await sql`
+      SELECT metric_key, component, display_value, units
       FROM entries
       WHERE athlete_id = ${athleteId}
-      GROUP BY metric_key
     `;
+
+    const byMetric = new Map<string, { display_value: number; units: string }[]>();
+
+    for (const r of entryRows as {
+      metric_key: string;
+      component: string | null;
+      display_value: number;
+      units: string;
+    }[]) {
+      const primary = getPrimaryComponent(r.metric_key, registry);
+      const keep =
+        primary == null || r.component === primary || r.component == null;
+      if (!keep) continue;
+
+      const list = byMetric.get(r.metric_key) ?? [];
+      list.push({
+        display_value: Number(r.display_value),
+        units: r.units,
+      });
+      byMetric.set(r.metric_key, list);
+    }
 
     const result: {
       metric_key: string;
@@ -35,28 +61,35 @@ export async function GET(
     const maxVelKey = getMaxVelocityKey();
     let maxVelocityValue: number | null = null;
 
-    for (const r of rows as { metric_key: string; min_val: string; max_val: string; units: string }[]) {
-      const def = registry[r.metric_key];
-      const units = (def?.display_units ?? r.units ?? "").toLowerCase();
+    for (const [metric_key, list] of byMetric) {
+      if (list.length === 0) continue;
+      const def = registry[metric_key];
+      const units = (def?.display_units ?? list[0].units ?? "").toLowerCase();
       const lowerIsBetter = units === "s";
-      const value = lowerIsBetter ? Number(r.min_val) : Number(r.max_val);
-      const displayName = def?.display_name ?? r.metric_key;
+      const values = list.map((x) => x.display_value);
+      const value = lowerIsBetter ? Math.min(...values) : Math.max(...values);
 
-      if (velocityKeys.includes(r.metric_key)) {
-        const v = Number(r.max_val);
-        if (maxVelocityValue === null || v > maxVelocityValue) maxVelocityValue = v;
+      if (velocityKeys.includes(metric_key)) {
+        const v = Math.max(...values);
+        if (maxVelocityValue === null || v > maxVelocityValue) {
+          maxVelocityValue = v;
+        }
       }
 
       result.push({
-        metric_key: r.metric_key,
-        display_name: displayName,
-        units: def?.display_units ?? r.units ?? "",
+        metric_key,
+        display_name: def?.display_name ?? metric_key,
+        units: def?.display_units ?? list[0].units ?? "",
         value,
         lower_is_better: lowerIsBetter,
       });
     }
 
-    if (hasVelocityMetrics() && maxVelocityValue !== null && !result.some((m) => m.metric_key === maxVelKey)) {
+    if (
+      hasVelocityMetrics() &&
+      maxVelocityValue !== null &&
+      !result.some((m) => m.metric_key === maxVelKey)
+    ) {
       result.push({
         metric_key: maxVelKey,
         display_name: "Max Velocity",
