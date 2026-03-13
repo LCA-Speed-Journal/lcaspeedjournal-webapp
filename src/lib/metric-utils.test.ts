@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getPrimaryComponent } from "./metric-utils";
+import { getPrimaryComponent, formatEntryMetricLabel } from "./metric-utils";
 
 describe("getPrimaryComponent", () => {
   it("returns 0-20m for 20m_Accel (cumulative, default_splits [5,5,10])", () => {
@@ -24,5 +24,24 @@ describe("getPrimaryComponent", () => {
 
   it("returns null when default_splits has no numbers", () => {
     expect(getPrimaryComponent("5m_Accel")).toBeNull();
+  });
+});
+
+describe("formatEntryMetricLabel", () => {
+  it("returns metric_key when component is null", () => {
+    expect(formatEntryMetricLabel({ metric_key: "20m_Accel", component: null })).toBe("20m_Accel");
+  });
+
+  it("returns metric_key when component is empty string", () => {
+    expect(formatEntryMetricLabel({ metric_key: "20m_Accel", component: "" })).toBe("20m_Accel");
+  });
+
+  it("returns composite label when component is set", () => {
+    expect(formatEntryMetricLabel({ metric_key: "20m_Accel", component: "0-5m" })).toBe("20m_Accel (0-5m)");
+    expect(formatEntryMetricLabel({ metric_key: "20m_Accel", component: "5-10m" })).toBe("20m_Accel (5-10m)");
+  });
+
+  it("handles unknown metric with component", () => {
+    expect(formatEntryMetricLabel({ metric_key: "Unknown", component: "0-5m" })).toBe("Unknown (0-5m)");
   });
 });

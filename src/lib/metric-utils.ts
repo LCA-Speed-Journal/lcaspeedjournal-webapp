@@ -21,3 +21,16 @@ export function getPrimaryComponent(
   if (total <= 0) return null;
   return `0-${total}m`;
 }
+
+/**
+ * Returns a display label for an entry row: metric_key alone or "metric_key (component)".
+ */
+export function formatEntryMetricLabel(
+  row: { metric_key: string; component: string | null },
+  _registry?: MetricRegistry
+): string {
+  if (row.component != null && row.component.trim() !== "") {
+    return `${row.metric_key} (${row.component})`;
+  }
+  return row.metric_key;
+}
