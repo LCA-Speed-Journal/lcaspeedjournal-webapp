@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import metricsData from "@/lib/metrics.json";
-import { segmentInputToCumulativeInput } from "@/lib/parser";
+import { formatEntryMetricLabel } from "@/lib/metric-utils";
+import { getMetricsRegistry, segmentInputToCumulativeInput } from "@/lib/parser";
 import { EntryForm } from "../../EntryForm";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const metricsRegistry = getMetricsRegistry();
 
 const PHASES = [
   "Preseason",
@@ -438,7 +440,7 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                     <td className="px-3 py-2">
                       {row.first_name} {row.last_name}
                     </td>
-                    <td className="px-3 py-2">{row.metric_key}</td>
+                    <td className="px-3 py-2">{formatEntryMetricLabel({ metric_key: row.metric_key, component: row.component }, metricsRegistry)}</td>
                     <td className="px-3 py-2 font-mono">{row.display_value}</td>
                     <td className="px-3 py-2 text-foreground-muted">{row.units}</td>
                     <td className="px-3 py-2 text-right">
@@ -501,7 +503,7 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
           >
             <div className="w-full max-w-md rounded-xl border border-border bg-surface p-4 shadow-xl">
               <h3 id="edit-entry-title" className="mb-3 text-lg font-bold text-foreground">
-                Edit entry — {editingEntry.first_name} {editingEntry.last_name}, {editingEntry.metric_key}
+                Edit entry — {editingEntry.first_name} {editingEntry.last_name}, {formatEntryMetricLabel({ metric_key: editingEntry.metric_key, component: editingEntry.component }, metricsRegistry)}
               </h3>
               <div className="mb-3 flex gap-2">
                 <button
