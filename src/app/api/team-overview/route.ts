@@ -132,7 +132,7 @@ export async function GET() {
       for (const [key, agg] of byAthleteMetric) {
         const [athlete_id, metric_key] = key.split("\t");
         const def = registry[metric_key];
-        const units = (def?.display_units ?? r.units ?? "").toLowerCase();
+        const units = (def?.display_units ?? agg.units ?? "").toLowerCase();
         const lowerIsBetter = units === "s";
         const value = lowerIsBetter ? agg.min_val : agg.max_val;
 
