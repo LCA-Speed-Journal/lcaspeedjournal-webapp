@@ -277,6 +277,7 @@ function parseCumulative(
     for (let j = i + 2; j < cumulativeDistances.length; j++) {
       const startM = cumulativeDistances[i];
       const endM = cumulativeDistances[j];
+      if (startM === 0) continue;
       const intervalDist = endM - startM;
       if (intervalDist >= 10 && intervalDist % 10 === 0) {
         const splitTime = cumulativeValues[j - 1] - cumulativeValues[i - 1];

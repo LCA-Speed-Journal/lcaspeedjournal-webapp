@@ -46,4 +46,14 @@ describe("parseEntry cumulative canonical keys", () => {
     expect(rows.find((r) => r.metric_key === "10m_Accel")?.component).toBe("0-10m");
     expect(rows.find((r) => r.metric_key === "20m_Accel")?.component).toBe("0-20m");
   });
+
+  it("40m_Sprint has no duplicate rows for same metric_key, component, and value", () => {
+    const rows = parseEntry("40m_Sprint", "4.5|1.2|1.1");
+    const seen = new Set<string>();
+    for (const r of rows) {
+      const k = `${r.metric_key}\0${r.component ?? ""}\0${r.value}`;
+      expect(seen.has(k)).toBe(false);
+      seen.add(k);
+    }
+  });
 });
