@@ -5,6 +5,8 @@
  */
 import type { ConversionFormula } from "./conversions";
 import { convertValue } from "./conversions";
+import type { MetricRegistry } from "./canonical-cumulative";
+import { resolveCanonicalZeroStartRow } from "./canonical-cumulative";
 import metricsData from "./metrics.json";
 
 export type ParsedEntry = {
@@ -197,20 +199,33 @@ function parseCumulative(
   }
 
   const rows: ParsedEntry[] = [];
+  const canonicalReg = metrics as MetricRegistry;
 
-  // Cumulative rows (0–5m, 0–10m, etc.)
+  // Cumulative rows (0–5m, 0–10m, etc.) — canonical metric_key when Nm_<suffix> exists in registry
   for (let i = 0; i < cumulativeValues.length; i++) {
     const val = cumulativeValues[i];
     const endM = cumulativeDistances[i + 1];
     const distM = endM - 0;
-    const displayVal = applyConversion(val, metric.conversion_formula, distM);
+    const canonical = resolveCanonicalZeroStartRow(metric.display_name, endM, canonicalReg);
+    const rowMetricKey = canonical?.metric_key ?? metric.display_name;
+    const rowComponent =
+      canonical != null
+        ? canonical.component
+        : formatIntervalLabel(0, endM);
+    const rowIntervalIndex = canonical ? null : i;
+    const convSource = canonical ? getMetric(rowMetricKey)! : metric;
+    const displayVal = applyConversion(
+      val,
+      convSource.conversion_formula,
+      distM
+    );
     rows.push({
-      metric_key: metric.display_name,
-      interval_index: i,
-      component: formatIntervalLabel(0, endM),
+      metric_key: rowMetricKey,
+      interval_index: rowIntervalIndex,
+      component: rowComponent,
       value: val,
       display_value: displayVal,
-      units: metric.display_units,
+      units: convSource.display_units,
     });
   }
 

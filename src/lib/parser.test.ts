@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { segmentToCumulative, segmentInputToCumulativeInput } from "./parser";
+import {
+  segmentToCumulative,
+  segmentInputToCumulativeInput,
+  parseEntry,
+} from "./parser";
 
 describe("segmentToCumulative", () => {
   it("returns running sum of segment values", () => {
@@ -27,5 +31,19 @@ describe("segmentInputToCumulativeInput", () => {
 
   it("trims parts", () => {
     expect(segmentInputToCumulativeInput(" 0.95 | 0.90 | 0.80 ")).toBe("0.95|1.85|2.65");
+  });
+});
+
+describe("parseEntry cumulative canonical keys", () => {
+  it("20m_Accel with three cumulative times emits 5m_Accel, 10m_Accel, 20m_Accel rows", () => {
+    const rows = parseEntry("20m_Accel", "1.0|2.0|3.0");
+    const keys = rows.map((r) => r.metric_key);
+    expect(keys).toContain("5m_Accel");
+    expect(keys).toContain("10m_Accel");
+    expect(keys).toContain("20m_Accel");
+    expect(rows.filter((r) => r.metric_key === "5m_Accel")).toHaveLength(1);
+    expect(rows.find((r) => r.metric_key === "5m_Accel")?.component).toBeNull();
+    expect(rows.find((r) => r.metric_key === "10m_Accel")?.component).toBe("0-10m");
+    expect(rows.find((r) => r.metric_key === "20m_Accel")?.component).toBe("0-20m");
   });
 });
