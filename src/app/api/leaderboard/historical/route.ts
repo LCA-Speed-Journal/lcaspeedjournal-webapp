@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
 import { getVelocityMetricKeys, getMaxVelocityKey } from "@/lib/velocity-metrics";
+import { getHistoricalComponentFilter } from "@/lib/historical-metric-filter";
 import type { LeaderboardRow } from "@/types";
 
 type Row = {
@@ -125,6 +126,7 @@ export async function GET(request: NextRequest) {
     }
 
     const sortAsc = (metricDef.display_units ?? "").toLowerCase() === "s";
+    const filter = getHistoricalComponentFilter(metric);
 
     let result: Awaited<ReturnType<typeof sql>>;
     if (sortAsc) {
@@ -137,6 +139,11 @@ export async function GET(request: NextRequest) {
         WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
           AND (${phase === ""} OR s.phase = ${phase})
           AND e.metric_key = ${metric}
+          AND (
+            ${filter.primary}::text IS NULL
+            OR e.component = ${filter.primary}
+            OR (${filter.allowNullComponent} AND e.component IS NULL)
+          )
       ),
       best AS (
         SELECT DISTINCT ON (athlete_id) athlete_id, display_value, units, first_name, last_name, gender, athlete_type
@@ -157,6 +164,11 @@ export async function GET(request: NextRequest) {
         WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
           AND (${phase === ""} OR s.phase = ${phase})
           AND e.metric_key = ${metric}
+          AND (
+            ${filter.primary}::text IS NULL
+            OR e.component = ${filter.primary}
+            OR (${filter.allowNullComponent} AND e.component IS NULL)
+          )
       ),
       best AS (
         SELECT DISTINCT ON (athlete_id) athlete_id, display_value, units, first_name, last_name, gender, athlete_type
