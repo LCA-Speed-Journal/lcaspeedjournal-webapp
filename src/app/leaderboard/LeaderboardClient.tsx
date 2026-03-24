@@ -25,6 +25,12 @@ import { formatLeaderboardName } from "@/lib/display-names";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { computeLeaderboardTriggers } from "./leaderboardDiff";
 import { getLeaderboardSections } from "@/lib/leaderboard-sections";
+import {
+  applyTopNToSections,
+  buildGenderColumnsFromSections,
+  clampTopN,
+  getGridClass,
+} from "./displayModes";
 
 type SessionItem = { id: string; session_date: string; phase?: string; phase_week?: number };
 
@@ -65,6 +71,10 @@ export function LeaderboardClient() {
   const [sessionId, setSessionId] = useState("");
   const [groupByGender, setGroupByGender] = useState(false);
   const [splitByAlumni, setSplitByAlumni] = useState(false);
+  const [topNEnabled, setTopNEnabled] = useState(false);
+  const [topN, setTopN] = useState(10);
+  const [wideMode, setWideMode] = useState(false);
+  const [splitGenderColumns, setSplitGenderColumns] = useState(false);
   const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set());
   /** Per-metric set of selected component keys; default to first (Overall) when expanding */
   const [selectedComponentsByMetric, setSelectedComponentsByMetric] = useState<Record<string, Set<string>>>({});
@@ -120,7 +130,7 @@ export function LeaderboardClient() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-background px-6 py-8 md:px-8 md:py-10">
       <PageBackground />
-      <div className="relative z-10 mx-auto max-w-4xl">
+      <div className={`relative z-10 ${wideMode || splitGenderColumns ? "max-w-none" : "mx-auto max-w-4xl"}`}>
         <div className="rounded-2xl border-2 border-border/80 bg-surface/90 p-6 shadow-2xl shadow-black/30 backdrop-blur-sm ring-1 ring-white/5 md:p-8" style={{ boxShadow: "0 0 15px 2px rgba(255,255,255,0.04), 0 25px 50px -12px rgba(0,0,0,0.3)" }}>
           <header className="mb-6 flex items-center justify-between">
             <div>
@@ -158,7 +168,13 @@ export function LeaderboardClient() {
           <input
             type="checkbox"
             checked={groupByGender}
-            onChange={(e) => startTransition(() => setGroupByGender(e.target.checked))}
+            onChange={(e) =>
+              startTransition(() => {
+                const checked = e.target.checked;
+                setGroupByGender(checked);
+                if (!checked) setSplitGenderColumns(false);
+              })
+            }
             className="h-4 w-4 rounded border-border bg-surface text-accent focus:ring-accent"
           />
           <span className="text-sm text-foreground-muted">Group by gender</span>
@@ -171,6 +187,47 @@ export function LeaderboardClient() {
             className="h-4 w-4 rounded border-border bg-surface text-accent focus:ring-accent"
           />
           <span className="text-sm text-foreground-muted">Split alumni</span>
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={topNEnabled}
+            onChange={(e) => startTransition(() => setTopNEnabled(e.target.checked))}
+            className="h-4 w-4 rounded border-border bg-surface text-accent focus:ring-accent"
+          />
+          <span className="text-sm text-foreground-muted">Top N</span>
+        </label>
+        {topNEnabled && (
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-foreground-muted">N</span>
+            <input
+              type="number"
+              min={1}
+              max={50}
+              value={topN}
+              onChange={(e) => startTransition(() => setTopN(clampTopN(Number(e.target.value))))}
+              className="w-20 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-accent"
+            />
+          </label>
+        )}
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={wideMode}
+            onChange={(e) => startTransition(() => setWideMode(e.target.checked))}
+            className="h-4 w-4 rounded border-border bg-surface text-accent focus:ring-accent"
+          />
+          <span className="text-sm text-foreground-muted">Wide mode</span>
+        </label>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={splitGenderColumns}
+            disabled={!groupByGender}
+            onChange={(e) => startTransition(() => setSplitGenderColumns(e.target.checked))}
+            className="h-4 w-4 rounded border-border bg-surface text-accent focus:ring-accent disabled:cursor-not-allowed disabled:opacity-60"
+          />
+          <span className="text-sm text-foreground-muted">Split gender columns</span>
         </label>
       </section>
 
@@ -242,6 +299,10 @@ export function LeaderboardClient() {
                               component={comp}
                               groupByGender={groupByGender}
                               splitByAlumni={splitByAlumni}
+                              topNEnabled={topNEnabled}
+                              topN={topN}
+                              wideMode={wideMode}
+                              splitGenderColumns={splitGenderColumns}
                             />
                           ))}
                         </div>
@@ -270,12 +331,20 @@ function ComponentLeaderboard({
   component,
   groupByGender,
   splitByAlumni,
+  topNEnabled,
+  topN,
+  wideMode,
+  splitGenderColumns,
 }: {
   sessionId: string;
   metric: SessionMetric;
   component: SessionMetricComponent;
   groupByGender: boolean;
   splitByAlumni: boolean;
+  topNEnabled: boolean;
+  topN: number;
+  wideMode: boolean;
+  splitGenderColumns: boolean;
 }) {
   const url = buildLeaderboardUrl(sessionId, metric.metric_key, component, groupByGender);
   const isVisible = usePageVisible();
@@ -344,13 +413,18 @@ function ComponentLeaderboard({
   const female = data?.data?.female ?? [];
   const defaultUnits = data?.data?.units ?? metric.units;
   const showGrouped = groupByGender && (male.length > 0 || female.length > 0);
-  const sections = getLeaderboardSections({
+  const baseSections = getLeaderboardSections({
     rows,
     male,
     female,
     groupByGender,
     splitByAlumni,
   });
+  const sections = applyTopNToSections(baseSections, topN, topNEnabled);
+  const gridClass = getGridClass({ wideMode });
+  const splitColumnsActive = splitGenderColumns && showGrouped;
+  const compactNames = splitColumnsActive && wideMode;
+  const splitColumnSections = buildGenderColumnsFromSections(sections);
   const reducedMotion = useReducedMotion();
 
   return (
@@ -378,14 +452,74 @@ function ComponentLeaderboard({
       )}
       {!error && (rows.length > 0 || (isLoading && rows.length > 0)) && (
         <>
-          {sections.length === 1 && sections[0].title === "" ? (
-            <motion.div layout={!reducedMotion} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {rows.map((r) => (
+          {splitColumnsActive ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <p className="mb-2 text-xs font-medium text-foreground-muted">Boys</p>
+                {splitColumnSections.boys.length > 0 ? (
+                  <div className="space-y-4">
+                    {splitColumnSections.boys.map((section) => (
+                      <div key={`boys-${section.title || "all"}`}>
+                        {section.title ? (
+                          <p className="mb-2 text-xs font-medium text-foreground-muted">{section.title}</p>
+                        ) : null}
+                        <motion.div layout={!reducedMotion} className={gridClass}>
+                          {section.rows.map((r, i) => (
+                            <LeaderboardCard
+                              key={r.athlete_id}
+                              row={r}
+                              units={r.units ?? defaultUnits}
+                              animationTrigger={triggerMap.get(r.athlete_id) ?? null}
+                              displayRank={i + 1}
+                              forceCompactName={compactNames}
+                            />
+                          ))}
+                        </motion.div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-foreground-muted">No boys entries.</p>
+                )}
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-medium text-foreground-muted">Girls</p>
+                {splitColumnSections.girls.length > 0 ? (
+                  <div className="space-y-4">
+                    {splitColumnSections.girls.map((section) => (
+                      <div key={`girls-${section.title || "all"}`}>
+                        {section.title ? (
+                          <p className="mb-2 text-xs font-medium text-foreground-muted">{section.title}</p>
+                        ) : null}
+                        <motion.div layout={!reducedMotion} className={gridClass}>
+                          {section.rows.map((r, i) => (
+                            <LeaderboardCard
+                              key={r.athlete_id}
+                              row={r}
+                              units={r.units ?? defaultUnits}
+                              animationTrigger={triggerMap.get(r.athlete_id) ?? null}
+                              displayRank={i + 1}
+                              forceCompactName={compactNames}
+                            />
+                          ))}
+                        </motion.div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-foreground-muted">No girls entries.</p>
+                )}
+              </div>
+            </div>
+          ) : sections.length === 1 && sections[0].title === "" ? (
+            <motion.div layout={!reducedMotion} className={gridClass}>
+              {sections[0].rows.map((r) => (
                 <LeaderboardCard
                   key={r.athlete_id}
                   row={r}
                   units={r.units ?? defaultUnits}
                   animationTrigger={triggerMap.get(r.athlete_id) ?? null}
+                  forceCompactName={compactNames}
                 />
               ))}
             </motion.div>
@@ -394,7 +528,7 @@ function ComponentLeaderboard({
               {sections.map((section) => (
                 <div key={section.title}>
                   <p className="mb-2 text-xs font-medium text-foreground-muted">{section.title}</p>
-                  <motion.div layout={!reducedMotion} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <motion.div layout={!reducedMotion} className={gridClass}>
                     {section.rows.map((r, i) => (
                       <LeaderboardCard
                         key={r.athlete_id}
@@ -402,6 +536,7 @@ function ComponentLeaderboard({
                         units={r.units ?? defaultUnits}
                         animationTrigger={triggerMap.get(r.athlete_id) ?? null}
                         displayRank={i + 1}
+                        forceCompactName={compactNames}
                       />
                     ))}
                   </motion.div>
@@ -471,11 +606,13 @@ function LeaderboardCard({
   units,
   animationTrigger = null,
   displayRank,
+  forceCompactName = false,
 }: {
   row: LeaderboardRow;
   units: string;
   animationTrigger?: LeaderboardAnimationTrigger | null;
   displayRank?: number;
+  forceCompactName?: boolean;
 }) {
   const rank = displayRank ?? row.rank;
   const isMobile = useIsMobile();
@@ -494,7 +631,7 @@ function LeaderboardCard({
     row.first_name,
     row.last_name,
     row.athlete_type,
-    isMobile
+    isMobile || forceCompactName
   );
 
   return (
