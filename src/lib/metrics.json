@@ -833,9 +833,9 @@
     "display_name": "ShotPut",
     "category": "Meet",
     "subcategory": "Throws",
-    "input_units": "m",
+    "input_units": "ft",
     "display_units": "ft",
-    "conversion_formula": "distance_ft_from_m",
+    "conversion_formula": "",
     "input_structure": "single_interval",
     "default_splits": []
   },
@@ -843,9 +843,29 @@
     "display_name": "Discus",
     "category": "Meet",
     "subcategory": "Throws",
-    "input_units": "m",
+    "input_units": "ft",
     "display_units": "ft",
-    "conversion_formula": "distance_ft_from_m",
+    "conversion_formula": "",
+    "input_structure": "single_interval",
+    "default_splits": []
+  },
+  "Shotput_PWR": {
+    "display_name": "Shotput_PWR",
+    "category": "Meet",
+    "subcategory": "Throws",
+    "input_units": "ft",
+    "display_units": "ft",
+    "conversion_formula": "",
+    "input_structure": "single_interval",
+    "default_splits": []
+  },
+  "Discus_PWR": {
+    "display_name": "Discus_PWR",
+    "category": "Meet",
+    "subcategory": "Throws",
+    "input_units": "ft",
+    "display_units": "ft",
+    "conversion_formula": "",
     "input_structure": "single_interval",
     "default_splits": []
   }

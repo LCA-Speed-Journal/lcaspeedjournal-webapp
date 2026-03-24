@@ -57,3 +57,32 @@ describe("parseEntry cumulative canonical keys", () => {
     }
   });
 });
+
+describe("parseEntry throw metrics in feet", () => {
+  it("keeps ShotPut input in feet without meter conversion", () => {
+    const [row] = parseEntry("ShotPut", "45");
+    expect(row.value).toBe(45);
+    expect(row.display_value).toBe(45);
+    expect(row.units).toBe("ft");
+  });
+
+  it("keeps Discus input in feet without meter conversion", () => {
+    const [row] = parseEntry("Discus", "120");
+    expect(row.value).toBe(120);
+    expect(row.display_value).toBe(120);
+    expect(row.units).toBe("ft");
+  });
+
+  it("supports Shotput_PWR and Discus_PWR using feet for input and display", () => {
+    const [shotputPwrRow] = parseEntry("Shotput_PWR", "39.5");
+    const [discusPwrRow] = parseEntry("Discus_PWR", "111.25");
+
+    expect(shotputPwrRow.value).toBe(39.5);
+    expect(shotputPwrRow.display_value).toBe(39.5);
+    expect(shotputPwrRow.units).toBe("ft");
+
+    expect(discusPwrRow.value).toBe(111.25);
+    expect(discusPwrRow.display_value).toBe(111.25);
+    expect(discusPwrRow.units).toBe("ft");
+  });
+});
