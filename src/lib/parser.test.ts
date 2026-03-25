@@ -86,3 +86,25 @@ describe("parseEntry throw metrics in feet", () => {
     expect(discusPwrRow.units).toBe("ft");
   });
 });
+
+describe("parseEntry agility metrics (single-interval seconds)", () => {
+  it("parses 5-0-5_Agility as a single-interval seconds metric", () => {
+    const rows = parseEntry("5-0-5_Agility", "2.91");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].metric_key).toBe("5-0-5_Agility");
+    expect(rows[0].component).toBeNull();
+    expect(rows[0].value).toBe(2.91);
+    expect(rows[0].display_value).toBe(2.91);
+    expect(rows[0].units).toBe("s");
+  });
+
+  it("parses 5-0-10_Agility as a single-interval seconds metric", () => {
+    const rows = parseEntry("5-0-10_Agility", "4.12");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].metric_key).toBe("5-0-10_Agility");
+    expect(rows[0].component).toBeNull();
+    expect(rows[0].value).toBe(4.12);
+    expect(rows[0].display_value).toBe(4.12);
+    expect(rows[0].units).toBe("s");
+  });
+});

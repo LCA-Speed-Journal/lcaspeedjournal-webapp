@@ -829,6 +829,26 @@
     "input_structure": "single_interval",
     "default_splits": []
   },
+  "5-0-5_Agility": {
+    "display_name": "5-0-5_Agility",
+    "category": "Speed",
+    "subcategory": "Agility",
+    "input_units": "s",
+    "display_units": "s",
+    "conversion_formula": "",
+    "input_structure": "single_interval",
+    "default_splits": []
+  },
+  "5-0-10_Agility": {
+    "display_name": "5-0-10_Agility",
+    "category": "Speed",
+    "subcategory": "Agility",
+    "input_units": "s",
+    "display_units": "s",
+    "conversion_formula": "",
+    "input_structure": "single_interval",
+    "default_splits": []
+  },
   "ShotPut": {
     "display_name": "ShotPut",
     "category": "Meet",
