@@ -10,6 +10,7 @@ import type {
   ReportingAthleteSummary,
   ReportingMetricAgg,
   ReportingSummaryData,
+  ReportingTopPerformer,
 } from "@/types/reporting";
 
 const SLOW_MS = 2000;
@@ -22,7 +23,7 @@ function n(v: unknown): number {
 function toMetricAgg(
   row: {
     metric_key: string;
-    n: number | string;
+    n: number;
     min: unknown;
     max: unknown;
     avg: unknown;
@@ -41,6 +42,40 @@ function toMetricAgg(
   };
 }
 
+function percentileRankScores(
+  values: Array<{ athlete_id: string; best_value: number }>,
+  ascending: boolean
+): Map<string, number> {
+  const sorted = [...values].sort((a, b) =>
+    ascending ? a.best_value - b.best_value : b.best_value - a.best_value
+  );
+  const nRows = sorted.length;
+  const out = new Map<string, number>();
+  if (nRows === 0) return out;
+  if (nRows === 1) {
+    out.set(sorted[0].athlete_id, 1);
+    return out;
+  }
+
+  let idx = 0;
+  while (idx < nRows) {
+    const value = sorted[idx].best_value;
+    const rank = idx + 1;
+    let j = idx;
+    while (j < nRows && sorted[j].best_value === value) {
+      j += 1;
+    }
+    const percentRank = (rank - 1) / (nRows - 1);
+    const score = 1 - percentRank;
+    for (let k = idx; k < j; k++) {
+      out.set(sorted[k].athlete_id, score);
+    }
+    idx = j;
+  }
+
+  return out;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const parsed = parseReportingDateRange({
@@ -55,6 +90,20 @@ export async function GET(request: NextRequest) {
   const t0 = performance.now();
   try {
     const registry = getMetricsRegistry();
+    const accelCumulativeKeys = new Set(
+      Object.entries(registry)
+        .filter(
+          ([, v]) =>
+            (v.subcategory ?? "").toLowerCase() === "acceleration" &&
+            v.input_structure === "cumulative"
+        )
+        .map(([k]) => k)
+    );
+    const ascendingMetricKeys = new Set(
+      Object.entries(registry)
+        .filter(([, v]) => (v.display_units ?? "").toLowerCase() === "s")
+        .map(([k]) => k)
+    );
 
     const [countsRes, teamMetricsRes, athletesRes, athleteMetricsRes] = await Promise.all([
       sql`
@@ -72,7 +121,8 @@ export async function GET(request: NextRequest) {
       sql`
         SELECT
           e.metric_key,
-          COUNT(*)::int AS n,
+          COUNT(*)::int AS total_n,
+          SUM(CASE WHEN e.interval_index IS NULL THEN 1 ELSE 0 END)::int AS null_interval_n,
           MIN(e.display_value) AS min,
           MAX(e.display_value) AS max,
           AVG(e.display_value) AS avg,
@@ -81,7 +131,7 @@ export async function GET(request: NextRequest) {
         INNER JOIN sessions s ON s.id = e.session_id
         WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
         GROUP BY e.metric_key
-        ORDER BY n DESC, e.metric_key ASC
+        ORDER BY total_n DESC, e.metric_key ASC
       `,
       sql`
         SELECT
@@ -89,6 +139,7 @@ export async function GET(request: NextRequest) {
           a.first_name,
           a.last_name,
           a.gender,
+          a.graduating_class,
           a.athlete_type,
           COUNT(*)::int AS entry_count,
           COUNT(DISTINCT e.session_id)::int AS session_count
@@ -103,7 +154,8 @@ export async function GET(request: NextRequest) {
         SELECT
           e.athlete_id,
           e.metric_key,
-          COUNT(*)::int AS n,
+          COUNT(*)::int AS total_n,
+          SUM(CASE WHEN e.interval_index IS NULL THEN 1 ELSE 0 END)::int AS null_interval_n,
           MIN(e.display_value) AS min,
           MAX(e.display_value) AS max,
           AVG(e.display_value) AS avg,
@@ -130,29 +182,57 @@ export async function GET(request: NextRequest) {
 
     const teamMetrics: ReportingMetricAgg[] = (teamMetricsRes.rows as Array<{
       metric_key: string;
-      n: number;
+      total_n: number;
+      null_interval_n: number;
       min: unknown;
       max: unknown;
       avg: unknown;
       median: unknown;
-    }>).map((row) =>
-      toMetricAgg(row, registry[row.metric_key]?.display_name ?? row.metric_key)
-    );
+    }>).map((row) => {
+      const nValue = accelCumulativeKeys.has(row.metric_key)
+        ? n(row.null_interval_n)
+        : n(row.total_n);
+      return toMetricAgg(
+        {
+          metric_key: row.metric_key,
+          n: nValue,
+          min: row.min,
+          max: row.max,
+          avg: row.avg,
+          median: row.median,
+        },
+        registry[row.metric_key]?.display_name ?? row.metric_key
+      );
+    });
 
     const metricsByAthlete = new Map<string, ReportingMetricAgg[]>();
     for (const row of athleteMetricsRes.rows as Array<{
       athlete_id: string;
       metric_key: string;
-      n: number;
+      total_n: number;
+      null_interval_n: number;
       min: unknown;
       max: unknown;
       avg: unknown;
       median: unknown;
     }>) {
       const label = registry[row.metric_key]?.display_name ?? row.metric_key;
-      const agg = toMetricAgg(row, label);
+      const nValue = accelCumulativeKeys.has(row.metric_key)
+        ? n(row.null_interval_n)
+        : n(row.total_n);
+      const agg = toMetricAgg(
+        {
+          metric_key: row.metric_key,
+          n: nValue,
+          min: row.min,
+          max: row.max,
+          avg: row.avg,
+          median: row.median,
+        },
+        label
+      );
       const list = metricsByAthlete.get(row.athlete_id) ?? [];
-      list.push(agg);
+      if (agg.n > 0) list.push(agg);
       metricsByAthlete.set(row.athlete_id, list);
     }
     for (const list of metricsByAthlete.values()) {
@@ -165,6 +245,7 @@ export async function GET(request: NextRequest) {
         first_name: string;
         last_name: string;
         gender: string;
+        graduating_class: number | null;
         athlete_type: string;
         entry_count: number;
         session_count: number;
@@ -174,11 +255,72 @@ export async function GET(request: NextRequest) {
       first_name: r.first_name,
       last_name: r.last_name,
       gender: r.gender,
+      graduating_class: r.graduating_class ?? null,
       athlete_type: r.athlete_type,
       entry_count: n(r.entry_count),
       session_count: n(r.session_count),
       metrics: metricsByAthlete.get(r.athlete_id) ?? [],
     }));
+
+    const athleteById = new Map(
+      athletes.map((a) => [a.athlete_id, a] as const)
+    );
+    const metricToAthletes = new Map<string, Array<{ athlete_id: string; best_value: number }>>();
+    for (const row of athleteMetricsRes.rows as Array<{
+      athlete_id: string;
+      metric_key: string;
+      min: unknown;
+      max: unknown;
+      total_n: number;
+      null_interval_n: number;
+    }>) {
+      const effectiveN = accelCumulativeKeys.has(row.metric_key)
+        ? n(row.null_interval_n)
+        : n(row.total_n);
+      if (effectiveN <= 0) continue;
+      const bestValue = ascendingMetricKeys.has(row.metric_key) ? n(row.min) : n(row.max);
+      if (!Number.isFinite(bestValue)) continue;
+      const list = metricToAthletes.get(row.metric_key) ?? [];
+      list.push({ athlete_id: row.athlete_id, best_value: bestValue });
+      metricToAthletes.set(row.metric_key, list);
+    }
+
+    const scoreByAthlete = new Map<string, { total: number; count: number }>();
+    for (const [metricKey, metricRows] of metricToAthletes.entries()) {
+      const asc = ascendingMetricKeys.has(metricKey);
+      const scores = percentileRankScores(metricRows, asc);
+      for (const [athleteId, score] of scores.entries()) {
+        const cur = scoreByAthlete.get(athleteId) ?? { total: 0, count: 0 };
+        cur.total += score;
+        cur.count += 1;
+        scoreByAthlete.set(athleteId, cur);
+      }
+    }
+
+    const topPerformers: ReportingTopPerformer[] = Array.from(scoreByAthlete.entries())
+      .map(([athleteId, score]) => {
+        const athlete = athleteById.get(athleteId);
+        if (!athlete || score.count === 0) return null;
+        return {
+          rank: 0,
+          athlete_id: athlete.athlete_id,
+          first_name: athlete.first_name,
+          last_name: athlete.last_name,
+          athlete_type: athlete.athlete_type,
+          metric_count: score.count,
+          avg_percentile_rank: score.total / score.count,
+        };
+      })
+      .filter((x): x is ReportingTopPerformer => x !== null)
+      .sort(
+        (a, b) =>
+          b.avg_percentile_rank - a.avg_percentile_rank ||
+          b.metric_count - a.metric_count ||
+          a.last_name.localeCompare(b.last_name) ||
+          a.first_name.localeCompare(b.first_name)
+      )
+      .slice(0, 10)
+      .map((row, idx) => ({ ...row, rank: idx + 1 }));
 
     const data: ReportingSummaryData = {
       from,
@@ -190,6 +332,7 @@ export async function GET(request: NextRequest) {
         metrics: teamMetrics,
       },
       athletes,
+      top_performers: topPerformers,
     };
 
     return NextResponse.json({ data });

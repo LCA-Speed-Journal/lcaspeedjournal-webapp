@@ -15,10 +15,12 @@ const CSV_HEADER = [
   "session_date",
   "session_id",
   "phase",
+  "session_notes",
   "athlete_id",
   "first_name",
   "last_name",
   "gender",
+  "graduating_class",
   "athlete_type",
   "metric_key",
   "metric_label",
@@ -36,10 +38,12 @@ type ExportRow = {
   session_date: string;
   session_id: string;
   phase: string;
+  session_notes: string | null;
   athlete_id: string;
   first_name: string;
   last_name: string;
   gender: string;
+  graduating_class: number | null;
   athlete_type: string;
   metric_key: string;
   interval_index: number | null;
@@ -91,10 +95,12 @@ export async function GET(request: NextRequest) {
         s.session_date::text AS session_date,
         s.id AS session_id,
         s.phase,
+        s.session_notes,
         a.id AS athlete_id,
         a.first_name,
         a.last_name,
         a.gender,
+        a.graduating_class,
         a.athlete_type,
         e.metric_key,
         e.interval_index,
@@ -134,10 +140,12 @@ export async function GET(request: NextRequest) {
           escapeCsvCell(r.session_date),
           escapeCsvCell(r.session_id),
           escapeCsvCell(r.phase),
+          escapeCsvCell(r.session_notes ?? ""),
           escapeCsvCell(r.athlete_id),
           escapeCsvCell(r.first_name),
           escapeCsvCell(r.last_name),
           escapeCsvCell(r.gender),
+          escapeCsvCell(r.graduating_class ?? ""),
           escapeCsvCell(r.athlete_type),
           escapeCsvCell(r.metric_key),
           escapeCsvCell(metricLabel),

@@ -14,10 +14,21 @@ export type ReportingAthleteSummary = {
   first_name: string;
   last_name: string;
   gender: string;
+  graduating_class: number | null;
   athlete_type: string;
   entry_count: number;
   session_count: number;
   metrics: ReportingMetricAgg[];
+};
+
+export type ReportingTopPerformer = {
+  rank: number;
+  athlete_id: string;
+  first_name: string;
+  last_name: string;
+  athlete_type: string;
+  metric_count: number;
+  avg_percentile_rank: number; // 0..1, higher is better
 };
 
 export type ReportingSummaryData = {
@@ -30,4 +41,5 @@ export type ReportingSummaryData = {
     metrics: ReportingMetricAgg[];
   };
   athletes: ReportingAthleteSummary[];
+  top_performers: ReportingTopPerformer[];
 };

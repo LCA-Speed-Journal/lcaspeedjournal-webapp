@@ -68,6 +68,7 @@ export default function ReportingClient() {
   }, [data?.data?.athletes, sortKey, sortDir]);
 
   const selected = sortedAthletes.find((x) => x.athlete_id === selectedId);
+  const topPerformers = data?.data?.top_performers ?? [];
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -203,6 +204,52 @@ export default function ReportingClient() {
                       {team.entry_count}
                     </p>
                   </div>
+                </div>
+
+                <div className="rounded-xl border border-border bg-surface-elevated/40 p-4">
+                  <h3 className="mb-3 text-sm font-semibold text-foreground">
+                    Top performing athletes
+                  </h3>
+                  {topPerformers.length === 0 ? (
+                    <p className="text-sm text-foreground-muted">
+                      Not enough data yet to rank top performers in this date range.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="min-w-[520px] w-full border-collapse text-left text-sm">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="py-2 pr-3 font-medium text-foreground-muted">Rank</th>
+                            <th className="py-2 pr-3 font-medium text-foreground-muted">Athlete</th>
+                            <th className="py-2 pr-3 font-medium text-foreground-muted">
+                              Avg percentile
+                            </th>
+                            <th className="py-2 font-medium text-foreground-muted">Metrics</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {topPerformers.map((p) => (
+                            <tr key={p.athlete_id} className="border-b border-border/50">
+                              <td className="py-2 pr-3 tabular-nums">{p.rank}</td>
+                              <td className="py-2 pr-3 text-foreground">
+                                {formatLeaderboardName(
+                                  p.first_name,
+                                  p.last_name,
+                                  (p.athlete_type as "athlete" | "staff" | "alumni") ??
+                                    "athlete",
+                                  isMobile
+                                )}
+                              </td>
+                              <td className="py-2 pr-3 tabular-nums">
+                                {(p.avg_percentile_rank * 100).toFixed(1)}%
+                              </td>
+                              <td className="py-2 tabular-nums">{p.metric_count}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
 
                 <div className="overflow-x-auto rounded-xl border border-border">
