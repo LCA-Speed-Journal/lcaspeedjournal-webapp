@@ -18,4 +18,19 @@ describe("getHistoricalComponentFilter", () => {
       allowNullComponent: false,
     });
   });
+
+  it("does not apply cumulative primary filter to flying split metrics", () => {
+    expect(getHistoricalComponentFilter("20-40m_Split")).toEqual({
+      primary: null,
+      allowNullComponent: false,
+    });
+    expect(getHistoricalComponentFilter("30-50m_Split")).toEqual({
+      primary: null,
+      allowNullComponent: false,
+    });
+    expect(getHistoricalComponentFilter("40-60m_Split")).toEqual({
+      primary: null,
+      allowNullComponent: false,
+    });
+  });
 });

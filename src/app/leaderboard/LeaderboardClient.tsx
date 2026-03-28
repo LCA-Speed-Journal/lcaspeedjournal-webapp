@@ -95,18 +95,18 @@ export function LeaderboardClient() {
   );
   const metrics = sessionMetricsData?.data?.metrics ?? [];
 
-  const toggleMetric = (metricKey: string, metric?: SessionMetric) => {
+  const toggleMetric = (metricId: string, metric?: SessionMetric) => {
     startTransition(() => {
       setExpandedMetrics((prev) => {
         const next = new Set(prev);
-        if (next.has(metricKey)) {
-          next.delete(metricKey);
+        if (next.has(metricId)) {
+          next.delete(metricId);
         } else {
-          next.add(metricKey);
-          if (metric && metric.components.length > 0 && !selectedComponentsByMetric[metricKey]?.size) {
+          next.add(metricId);
+          if (metric && metric.components.length > 0 && !selectedComponentsByMetric[metricId]?.size) {
             setSelectedComponentsByMetric((s) => ({
               ...s,
-              [metricKey]: new Set([componentKey(metric.components[0])]),
+              [metricId]: new Set([componentKey(metric.components[0])]),
             }));
           }
         }
@@ -115,14 +115,14 @@ export function LeaderboardClient() {
     });
   };
 
-  const toggleComponent = (metricKey: string, compKey: string, checked: boolean) => {
+  const toggleComponent = (metricId: string, compKey: string, checked: boolean) => {
     startTransition(() => {
       setSelectedComponentsByMetric((s) => {
-        const prev = s[metricKey] ?? new Set<string>();
+        const prev = s[metricId] ?? new Set<string>();
         const next = new Set(prev);
         if (checked) next.add(compKey);
         else next.delete(compKey);
-        return { ...s, [metricKey]: next };
+        return { ...s, [metricId]: next };
       });
     });
   };
@@ -246,13 +246,13 @@ export function LeaderboardClient() {
           )}
           <ul className="space-y-2">
             {metrics.map((metric) => {
-              const selectedSet = selectedComponentsByMetric[metric.metric_key] ?? new Set<string>();
+              const selectedSet = selectedComponentsByMetric[metric.metric_id] ?? new Set<string>();
               const selectedComponents = metric.components.filter((c) => selectedSet.has(componentKey(c)));
               return (
-                <li key={metric.metric_key} className="rounded-lg border border-border bg-surface overflow-hidden">
+                <li key={metric.metric_id} className="rounded-lg border border-border bg-surface overflow-hidden">
                   <button
                     type="button"
-                    onClick={() => toggleMetric(metric.metric_key, metric)}
+                    onClick={() => toggleMetric(metric.metric_id, metric)}
                     className="flex w-full items-center justify-between px-4 py-3 text-left font-medium text-foreground hover:bg-surface-elevated transition-colors"
                   >
                     <span>
@@ -262,10 +262,10 @@ export function LeaderboardClient() {
                       </span>
                     </span>
                     <span className="text-foreground-muted">
-                      {expandedMetrics.has(metric.metric_key) ? "▼" : "▶"}
+                      {expandedMetrics.has(metric.metric_id) ? "▼" : "▶"}
                     </span>
                   </button>
-                  {expandedMetrics.has(metric.metric_key) && (
+                  {expandedMetrics.has(metric.metric_id) && (
                     <div className="border-t border-border bg-surface-elevated px-4 py-3">
                       <p className="mb-2 text-sm font-medium text-foreground-muted">
                         Show leaderboard
@@ -280,7 +280,7 @@ export function LeaderboardClient() {
                                 <input
                                   type="checkbox"
                                   checked={checked}
-                                  onChange={(e) => toggleComponent(metric.metric_key, key, e.target.checked)}
+                                  onChange={(e) => toggleComponent(metric.metric_id, key, e.target.checked)}
                                   className="h-4 w-4 rounded border-border bg-surface text-accent focus:ring-accent"
                                 />
                                 {comp.label}

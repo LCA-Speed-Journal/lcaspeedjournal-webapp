@@ -14,6 +14,10 @@ type SessionFormProps = {
   metricOptions: MetricOption[];
 };
 
+function isSplitMetric(option: MetricOption): boolean {
+  return option.input_structure === "single_interval" && option.key.endsWith("_Split");
+}
+
 function parseSplitsInput(input: string): number[] | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
@@ -59,13 +63,15 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
     );
   }
 
-  const cumulativeMetrics = metricOptions.filter(
-    (m) => m.input_structure === "cumulative" && selectedMetrics.includes(m.key)
+  const splitConfigMetrics = metricOptions.filter(
+    (m) =>
+      selectedMetrics.includes(m.key) &&
+      (m.input_structure === "cumulative" || isSplitMetric(m))
   );
 
   function buildDaySplits(): Record<string, number[]> | undefined {
     const out: Record<string, number[]> = {};
-    for (const m of cumulativeMetrics) {
+    for (const m of splitConfigMetrics) {
       const input = customSplits[m.key]?.trim();
       if (!input) continue;
       const parsed = parseSplitsInput(input);
@@ -191,16 +197,20 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
         </div>
       </div>
 
-      {cumulativeMetrics.length > 0 && (
+      {splitConfigMetrics.length > 0 && (
         <div>
           <span className="mb-2 block text-sm font-medium text-foreground">
             Custom splits (optional) — comma-separated meters, e.g. 5,5 or 10,10
           </span>
           <p className="mb-2 text-xs text-foreground-muted">
-            Override defaults for cumulative metrics. Leave blank to use metric default.
+            Override defaults for cumulative and split-based metrics. Leave blank to use metric default.
+          </p>
+          <p className="mb-2 text-xs text-foreground-muted">
+            For Flying 20m workflows, use <code className="font-mono">10,10</code> for two
+            10m segments, or <code className="font-mono">20</code> for a single 20m interval.
           </p>
           <div className="space-y-2">
-            {cumulativeMetrics.map((m) => {
+            {splitConfigMetrics.map((m) => {
               const defaultStr = (m.default_splits as number[]).join(", ");
               return (
                 <div key={m.key} className="flex items-center gap-3">

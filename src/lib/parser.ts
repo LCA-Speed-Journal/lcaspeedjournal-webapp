@@ -117,7 +117,9 @@ export function parseEntry(
   const inputStructure = metric.input_structure;
 
   if (inputStructure === "single_interval") {
-    return parseSingleInterval(metric, rawInput.trim());
+    const splitOverride =
+      sessionOverrides?.day_splits?.[metricKey]?.filter((s) => typeof s === "number") ?? [];
+    return parseSingleInterval(metric, rawInput.trim(), splitOverride);
   }
   if (inputStructure === "cumulative") {
     const splits =
@@ -141,8 +143,101 @@ export function parseEntry(
   throw new Error(`Unknown input_structure: ${inputStructure}`);
 }
 
-function parseSingleInterval(metric: MetricDef, rawInput: string): ParsedEntry[] {
-  const inputValue = parseFloat(rawInput);
+function parseSingleInterval(
+  metric: MetricDef,
+  rawInput: string,
+  splitOverride: number[] = []
+): ParsedEntry[] {
+  const values = splitValues(rawInput);
+
+  if (
+    metric.display_name.endsWith("_Split") &&
+    splitOverride.length > 1 &&
+    values.length === splitOverride.length
+  ) {
+    const intervalInfo = extractIntervalFromName(metric.display_name);
+    if (!intervalInfo) {
+      throw new Error(`Cannot parse split interval from metric "${metric.display_name}"`);
+    }
+    const [startM, endM] = intervalInfo;
+    const totalDistance = endM - startM;
+    const configuredDistance = splitOverride.reduce((sum, n) => sum + n, 0);
+    if (configuredDistance !== totalDistance) {
+      throw new Error(
+        `Configured splits (${configuredDistance}m) do not match interval (${totalDistance}m) for ${metric.display_name}`
+      );
+    }
+
+    const segmentTimes = values.map((v) => {
+      const parsed = parseFloat(v);
+      if (Number.isNaN(parsed)) {
+        throw new Error(`Cannot parse split segment value "${v}"`);
+      }
+      return parsed;
+    });
+    const totalTime = segmentTimes.reduce((sum, t) => sum + t, 0);
+    const rows: ParsedEntry[] = [];
+
+    // Overall row keeps the split metric's canonical display unit (mph).
+    rows.push({
+      metric_key: metric.display_name,
+      interval_index: null,
+      component: null,
+      value: totalTime,
+      display_value: applyConversion(totalTime, metric.conversion_formula, totalDistance),
+      units: metric.display_units,
+    });
+
+    // Keep a total-time seconds row under the same parent metric for split-time views.
+    rows.push({
+      metric_key: metric.display_name,
+      interval_index: null,
+      component: formatIntervalLabel(startM, endM),
+      value: totalTime,
+      display_value: totalTime,
+      units: "s",
+    });
+
+    let cursor = startM;
+    for (let i = 0; i < splitOverride.length; i++) {
+      const next = cursor + splitOverride[i];
+      const component = formatIntervalLabel(cursor, next);
+      const segmentTime = segmentTimes[i];
+      const distance = next - cursor;
+
+      // Component rows under the parent split metric provide expandable seconds views.
+      rows.push({
+        metric_key: metric.display_name,
+        interval_index: i,
+        component,
+        value: segmentTime,
+        display_value: segmentTime,
+        units: "s",
+      });
+
+      const segmentMetric = getMetric(`${component}_Split`);
+      if (segmentMetric && segmentMetric.conversion_formula === "velocity_mph") {
+        rows.push({
+          metric_key: segmentMetric.display_name,
+          interval_index: null,
+          component,
+          value: segmentTime,
+          display_value: applyConversion(segmentTime, "velocity_mph", distance),
+          units: segmentMetric.display_units,
+        });
+      }
+
+      cursor = next;
+    }
+
+    return rows;
+  }
+
+  if (values.length > 1) {
+    throw new Error(`Cannot parse single_interval input "${rawInput}" as number`);
+  }
+
+  const inputValue = parseFloat(values[0] ?? rawInput);
   if (Number.isNaN(inputValue)) {
     throw new Error(`Cannot parse single_interval input "${rawInput}" as number`);
   }

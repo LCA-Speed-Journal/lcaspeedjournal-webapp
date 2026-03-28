@@ -16,6 +16,10 @@ type MetricDef = {
 
 const metrics = metricsData as Record<string, MetricDef>;
 
+function isSplitMetricKey(metricKey: string): boolean {
+  return metricKey.endsWith("_Split");
+}
+
 function metricOptions() {
   return Object.entries(metrics).map(([key, m]) => ({
     key,
@@ -32,7 +36,19 @@ function inputHint(
   splitEntryMode?: "cumulative" | "segment"
 ): string {
   if (!metric) return "Select a metric";
+  const isSplitMetric = isSplitMetricKey(metric.key);
+  const splitConfig = sessionSplits?.[metric.key];
+  const splitCount = Array.isArray(splitConfig) && splitConfig.length > 0 ? splitConfig.length : 0;
+
   if (metric.inputStructure === "single_interval") {
+    if (isSplitMetric && splitCount > 0) {
+      const splitsStr = splitConfig!.map((m) => `${m}m`).join(", ");
+      if (splitEntryMode === "segment" && splitCount > 1) {
+        const ex = splitCount === 2 ? "0.95|0.90" : "0.95|0.90|0.80";
+        return `Splits: ${splitsStr} — e.g. ${ex} (segment times, ${metric.inputUnits})`;
+      }
+      return `Splits: ${splitsStr} — e.g. 1.85 (${metric.inputUnits})`;
+    }
     return `e.g. 1.45 (${metric.inputUnits})`;
   }
   if (metric.inputStructure === "cumulative") {
@@ -42,11 +58,25 @@ function inputHint(
       ? splits.map((m) => `${m}m`).join(", ")
       : null;
     if (splitEntryMode === "segment") {
-      const ex = n === 2 ? "0.95|0.90" : n === 3 ? "0.95|0.90|0.80" : "0.95|0.90|0.80|0.75";
+      const ex =
+        n === 1
+          ? "1.85"
+          : n === 2
+            ? "0.95|0.90"
+            : n === 3
+              ? "0.95|0.90|0.80"
+              : "0.95|0.90|0.80|0.75";
       const base = `e.g. ${ex} (segment times, ${n} values, ${metric.inputUnits})`;
       return splitsStr ? `Splits: ${splitsStr} — ${base}` : base;
     }
-    const ex = n === 2 ? "0.95|1.85" : n === 3 ? "0.95|1.85|2.65" : "0.95|1.85|2.65|3.40";
+    const ex =
+      n === 1
+        ? "1.85"
+        : n === 2
+          ? "0.95|1.85"
+          : n === 3
+            ? "0.95|1.85|2.65"
+            : "0.95|1.85|2.65|3.40";
     const base = `e.g. ${ex} (${n} pipe- or comma-separated values, ${metric.inputUnits})`;
     return splitsStr ? `Splits: ${splitsStr} — ${base}` : base;
   }
@@ -170,8 +200,11 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const splitCount = Array.isArray(cumulativeSplits) && cumulativeSplits.length > 0
     ? cumulativeSplits.length
     : 0;
+  const selectedMetricIsSplit = selectedMetric != null && isSplitMetricKey(selectedMetric.key);
   const showSplitEntryToggle =
-    selectedMetric?.inputStructure === "cumulative" && splitCount > 0;
+    selectedMetric != null &&
+    splitCount > 0 &&
+    (selectedMetric.inputStructure === "cumulative" || selectedMetricIsSplit);
   const showMobileSplits =
     isMobile &&
     selectedMetric?.inputStructure === "cumulative" &&
@@ -205,7 +238,10 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         rawToSend = str;
       }
     } else if (showSplitEntryToggle && splitEntryMode === "segment") {
-      const converted = segmentInputToCumulativeInput(rawInput.trim());
+      const converted =
+        selectedMetricIsSplit
+          ? rawInput.trim()
+          : segmentInputToCumulativeInput(rawInput.trim());
       if (converted === null) {
         setError("Enter numbers for each segment");
         setLoading(false);

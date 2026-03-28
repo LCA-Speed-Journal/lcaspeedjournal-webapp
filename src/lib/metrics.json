@@ -99,6 +99,36 @@
     "input_structure": "single_interval",
     "default_splits": []
   },
+  "20-40m_Split": {
+    "display_name": "20-40m_Split",
+    "category": "Speed",
+    "subcategory": "MaxV",
+    "input_units": "s",
+    "display_units": "mph",
+    "conversion_formula": "velocity_mph",
+    "input_structure": "single_interval",
+    "default_splits": []
+  },
+  "30-50m_Split": {
+    "display_name": "30-50m_Split",
+    "category": "Speed",
+    "subcategory": "MaxV",
+    "input_units": "s",
+    "display_units": "mph",
+    "conversion_formula": "velocity_mph",
+    "input_structure": "single_interval",
+    "default_splits": []
+  },
+  "40-60m_Split": {
+    "display_name": "40-60m_Split",
+    "category": "Speed",
+    "subcategory": "MaxV",
+    "input_units": "s",
+    "display_units": "mph",
+    "conversion_formula": "velocity_mph",
+    "input_structure": "single_interval",
+    "default_splits": []
+  },
   "40m_Sprint": {
     "display_name": "40m_Sprint",
     "category": "Speed",

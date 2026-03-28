@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     const component_param = searchParams.get("component");
     const interval_index = interval_index_param != null && interval_index_param !== "" ? parseInt(interval_index_param, 10) : null;
     const component = component_param != null && component_param !== "" ? component_param : null;
+    const overallOnly = interval_index == null && component == null;
 
     if (!session_id || !metric) {
       return NextResponse.json(
@@ -80,8 +81,32 @@ export async function GET(request: NextRequest) {
     }
     const seasonStart = `${year}-01-01`;
     const seasonEnd = `${year}-12-31`;
+    // Determine effective units from filtered entries when possible; this lets
+    // component-specific views (e.g., split-seconds under an mph metric key) sort correctly.
+    let effectiveUnits = metricDef.display_units ?? "";
+    const unitsProbe = await sql`
+      SELECT e.units
+      FROM entries e
+      WHERE e.session_id = ${session_id} AND e.metric_key = ${metric}
+        AND (
+          (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+          OR (
+            ${overallOnly}::boolean = false
+            AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+            AND (${component}::text IS NULL OR e.component = ${component})
+          )
+        )
+      LIMIT 1
+    `;
+    if (unitsProbe.rows.length > 0) {
+      const probed = (unitsProbe.rows[0] as { units?: string }).units;
+      if (typeof probed === "string" && probed.trim() !== "") {
+        effectiveUnits = probed;
+      }
+    }
+
     // Time (e.g. "s") = lower is better = ascending; else descending
-    const sortAsc = (metricDef.display_units ?? "").toLowerCase() === "s";
+    const sortAsc = effectiveUnits.toLowerCase() === "s";
     const neutralBand = sortAsc ? TIME_NEUTRAL_BAND : DISTANCE_NEUTRAL_BAND;
 
     type Row = {
@@ -111,8 +136,14 @@ export async function GET(request: NextRequest) {
           FROM entries e
           INNER JOIN athletes a ON a.id = e.athlete_id
           WHERE e.session_id = ${session_id} AND e.metric_key = ${metric}
-            AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
-            AND (${component}::text IS NULL OR e.component = ${component})
+            AND (
+              (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+              OR (
+                ${overallOnly}::boolean = false
+                AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                AND (${component}::text IS NULL OR e.component = ${component})
+              )
+            )
           ORDER BY e.athlete_id, e.display_value ASC
         )
         SELECT
@@ -142,8 +173,14 @@ export async function GET(request: NextRequest) {
           FROM entries e
           INNER JOIN athletes a ON a.id = e.athlete_id
           WHERE e.session_id = ${session_id} AND e.metric_key = ${metric}
-            AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
-            AND (${component}::text IS NULL OR e.component = ${component})
+            AND (
+              (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+              OR (
+                ${overallOnly}::boolean = false
+                AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                AND (${component}::text IS NULL OR e.component = ${component})
+              )
+            )
           ORDER BY e.athlete_id, e.display_value DESC
         )
         SELECT
@@ -176,8 +213,14 @@ export async function GET(request: NextRequest) {
               CROSS JOIN current_session cs
               WHERE s.session_date < cs.session_date
                 AND e.metric_key = ${metric}
-                AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
-                AND (${component}::text IS NULL OR e.component = ${component})
+                AND (
+                  (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                  OR (
+                    ${overallOnly}::boolean = false
+                    AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                    AND (${component}::text IS NULL OR e.component = ${component})
+                  )
+                )
                 AND e.athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
               GROUP BY e.athlete_id
             ),
@@ -190,8 +233,14 @@ export async function GET(request: NextRequest) {
               JOIN sessions s ON s.id = e.session_id
               JOIN last_prior_session l ON l.athlete_id = e.athlete_id AND l.prev_session_date = s.session_date
               WHERE e.metric_key = ${metric}
-                AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
-                AND (${component}::text IS NULL OR e.component = ${component})
+                AND (
+                  (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                  OR (
+                    ${overallOnly}::boolean = false
+                    AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                    AND (${component}::text IS NULL OR e.component = ${component})
+                  )
+                )
               ORDER BY e.athlete_id, e.display_value ASC
             )
             SELECT athlete_id, previous_display_value, previous_session_date FROM prev_best
@@ -205,8 +254,14 @@ export async function GET(request: NextRequest) {
               CROSS JOIN current_session cs
               WHERE s.session_date < cs.session_date
                 AND e.metric_key = ${metric}
-                AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
-                AND (${component}::text IS NULL OR e.component = ${component})
+                AND (
+                  (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                  OR (
+                    ${overallOnly}::boolean = false
+                    AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                    AND (${component}::text IS NULL OR e.component = ${component})
+                  )
+                )
                 AND e.athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
               GROUP BY e.athlete_id
             ),
@@ -219,8 +274,14 @@ export async function GET(request: NextRequest) {
               JOIN sessions s ON s.id = e.session_id
               JOIN last_prior_session l ON l.athlete_id = e.athlete_id AND l.prev_session_date = s.session_date
               WHERE e.metric_key = ${metric}
-                AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
-                AND (${component}::text IS NULL OR e.component = ${component})
+                AND (
+                  (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                  OR (
+                    ${overallOnly}::boolean = false
+                    AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                    AND (${component}::text IS NULL OR e.component = ${component})
+                  )
+                )
               ORDER BY e.athlete_id, e.display_value DESC
             )
             SELECT athlete_id, previous_display_value, previous_session_date FROM prev_best
@@ -245,8 +306,14 @@ export async function GET(request: NextRequest) {
             SELECT e.athlete_id, MIN(e.display_value)::float AS best_value
             FROM entries e
             WHERE e.metric_key = ${metric}
-              AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
-              AND (${component}::text IS NULL OR e.component = ${component})
+              AND (
+                (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                OR (
+                  ${overallOnly}::boolean = false
+                  AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                  AND (${component}::text IS NULL OR e.component = ${component})
+                )
+              )
               AND e.athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
             GROUP BY e.athlete_id
           `
@@ -254,8 +321,14 @@ export async function GET(request: NextRequest) {
             SELECT e.athlete_id, MAX(e.display_value)::float AS best_value
             FROM entries e
             WHERE e.metric_key = ${metric}
-              AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
-              AND (${component}::text IS NULL OR e.component = ${component})
+              AND (
+                (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                OR (
+                  ${overallOnly}::boolean = false
+                  AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                  AND (${component}::text IS NULL OR e.component = ${component})
+                )
+              )
               AND e.athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
             GROUP BY e.athlete_id
           `;
@@ -273,8 +346,14 @@ export async function GET(request: NextRequest) {
             FROM entries e
             JOIN sessions s ON s.id = e.session_id
             WHERE e.metric_key = ${metric}
-              AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
-              AND (${component}::text IS NULL OR e.component = ${component})
+              AND (
+                (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                OR (
+                  ${overallOnly}::boolean = false
+                  AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                  AND (${component}::text IS NULL OR e.component = ${component})
+                )
+              )
               AND e.athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
               AND s.session_date >= ${seasonStart}::date AND s.session_date <= ${seasonEnd}::date
             GROUP BY e.athlete_id
@@ -284,8 +363,14 @@ export async function GET(request: NextRequest) {
             FROM entries e
             JOIN sessions s ON s.id = e.session_id
             WHERE e.metric_key = ${metric}
-              AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
-              AND (${component}::text IS NULL OR e.component = ${component})
+              AND (
+                (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                OR (
+                  ${overallOnly}::boolean = false
+                  AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+                  AND (${component}::text IS NULL OR e.component = ${component})
+                )
+              )
               AND e.athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
               AND s.session_date >= ${seasonStart}::date AND s.session_date <= ${seasonEnd}::date
             GROUP BY e.athlete_id
@@ -330,7 +415,7 @@ export async function GET(request: NextRequest) {
       data: {
         rows: leaderboardRows,
         metric_display_name: metricDef.display_name ?? metric,
-        units: metricDef.display_units ?? "",
+        units: effectiveUnits,
         sort_asc: sortAsc,
       },
     };

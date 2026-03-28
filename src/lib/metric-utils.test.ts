@@ -25,6 +25,12 @@ describe("getPrimaryComponent", () => {
   it("returns null when default_splits has no numbers", () => {
     expect(getPrimaryComponent("5m_Accel")).toBeNull();
   });
+
+  it("returns null for new flying 20m split metrics (single_interval)", () => {
+    expect(getPrimaryComponent("20-40m_Split")).toBeNull();
+    expect(getPrimaryComponent("30-50m_Split")).toBeNull();
+    expect(getPrimaryComponent("40-60m_Split")).toBeNull();
+  });
 });
 
 describe("formatEntryMetricLabel", () => {
