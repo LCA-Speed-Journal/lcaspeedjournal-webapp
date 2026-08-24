@@ -27,21 +27,30 @@ export async function ensureCohortConfig(): Promise<{ capacity: number; title: s
   };
 }
 
+type CohortSignupRow = {
+  id: unknown;
+  display_name: string | null;
+  grade: string | null;
+  email: string | null;
+  created_at: unknown;
+};
+
+function serializeCreatedAt(value: unknown): string {
+  return value instanceof Date ? value.toISOString() : String(value);
+}
+
 export async function listCohortSignups(): Promise<CohortSignup[]> {
   const { rows } = await sql`
     SELECT id, display_name, grade, email, created_at
     FROM cohort_signups
     ORDER BY created_at ASC
   `;
-  return (rows as CohortSignup[]).map((r) => ({
+  return (rows as CohortSignupRow[]).map((r) => ({
     id: String(r.id),
     display_name: r.display_name ?? null,
     grade: r.grade ?? null,
     email: r.email ?? null,
-    created_at:
-      r.created_at instanceof Date
-        ? r.created_at.toISOString()
-        : String(r.created_at),
+    created_at: serializeCreatedAt(r.created_at),
   }));
 }
 
