@@ -57,6 +57,8 @@ If you have an existing database (created before Staff/Alumni support), also run
 
 **Optional (progression performance):** If progression queries feel slow on large data, run `scripts/migrate-progression-index.sql` against your Postgres DB to add `idx_entries_athlete_metric`.
 
+**Back to School Night cohort widget:** Run `scripts/migrate-cohort-signups.sql` to add `cohort_config` and `cohort_signups`. Without this, `/cohort` and `/api/cohort` will 500.
+
 ## 4b. Seed 2024 & 2025 historical data (optional)
 
 To populate the leaderboard with real 2024/2025 data from LCA-Speed-Journal:
