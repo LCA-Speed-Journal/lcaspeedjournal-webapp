@@ -106,3 +106,182 @@ body {
   color: var(--foreground);
 }
 
+/* TV kiosk: 32-step sine pulse; linear timing so keyframes carry the ease */
+@keyframes cohort-pulse-glow {
+  0%,
+  100% {
+    text-shadow:
+      0 0 8px color-mix(in srgb, var(--cohort-glow) 36%, transparent),
+      0 0 18px color-mix(in srgb, var(--cohort-glow) 18%, transparent);
+  }
+  3.125% {
+    text-shadow:
+      0 0 8.1px color-mix(in srgb, var(--cohort-glow) 36%, transparent),
+      0 0 18.2px color-mix(in srgb, var(--cohort-glow) 18%, transparent);
+  }
+  6.25% {
+    text-shadow:
+      0 0 8.3px color-mix(in srgb, var(--cohort-glow) 37%, transparent),
+      0 0 18.7px color-mix(in srgb, var(--cohort-glow) 19%, transparent);
+  }
+  9.375% {
+    text-shadow:
+      0 0 8.7px color-mix(in srgb, var(--cohort-glow) 38%, transparent),
+      0 0 19.5px color-mix(in srgb, var(--cohort-glow) 19%, transparent);
+  }
+  12.5% {
+    text-shadow:
+      0 0 9.2px color-mix(in srgb, var(--cohort-glow) 39%, transparent),
+      0 0 20.6px color-mix(in srgb, var(--cohort-glow) 20%, transparent);
+  }
+  15.625% {
+    text-shadow:
+      0 0 9.8px color-mix(in srgb, var(--cohort-glow) 40%, transparent),
+      0 0 22px color-mix(in srgb, var(--cohort-glow) 21%, transparent);
+  }
+  18.75% {
+    text-shadow:
+      0 0 10.5px color-mix(in srgb, var(--cohort-glow) 42%, transparent),
+      0 0 23.6px color-mix(in srgb, var(--cohort-glow) 22%, transparent);
+  }
+  21.875% {
+    text-shadow:
+      0 0 11.2px color-mix(in srgb, var(--cohort-glow) 43%, transparent),
+      0 0 25.2px color-mix(in srgb, var(--cohort-glow) 24%, transparent);
+  }
+  25% {
+    text-shadow:
+      0 0 12px color-mix(in srgb, var(--cohort-glow) 45%, transparent),
+      0 0 27px color-mix(in srgb, var(--cohort-glow) 25%, transparent);
+  }
+  28.125% {
+    text-shadow:
+      0 0 12.8px color-mix(in srgb, var(--cohort-glow) 47%, transparent),
+      0 0 28.8px color-mix(in srgb, var(--cohort-glow) 26%, transparent);
+  }
+  31.25% {
+    text-shadow:
+      0 0 13.5px color-mix(in srgb, var(--cohort-glow) 48%, transparent),
+      0 0 30.4px color-mix(in srgb, var(--cohort-glow) 28%, transparent);
+  }
+  34.375% {
+    text-shadow:
+      0 0 14.2px color-mix(in srgb, var(--cohort-glow) 50%, transparent),
+      0 0 32px color-mix(in srgb, var(--cohort-glow) 29%, transparent);
+  }
+  37.5% {
+    text-shadow:
+      0 0 14.8px color-mix(in srgb, var(--cohort-glow) 51%, transparent),
+      0 0 33.4px color-mix(in srgb, var(--cohort-glow) 30%, transparent);
+  }
+  40.625% {
+    text-shadow:
+      0 0 15.3px color-mix(in srgb, var(--cohort-glow) 52%, transparent),
+      0 0 34.5px color-mix(in srgb, var(--cohort-glow) 31%, transparent);
+  }
+  43.75% {
+    text-shadow:
+      0 0 15.7px color-mix(in srgb, var(--cohort-glow) 53%, transparent),
+      0 0 35.3px color-mix(in srgb, var(--cohort-glow) 31%, transparent);
+  }
+  46.875% {
+    text-shadow:
+      0 0 15.9px color-mix(in srgb, var(--cohort-glow) 54%, transparent),
+      0 0 35.8px color-mix(in srgb, var(--cohort-glow) 32%, transparent);
+  }
+  50% {
+    text-shadow:
+      0 0 16px color-mix(in srgb, var(--cohort-glow) 54%, transparent),
+      0 0 36px color-mix(in srgb, var(--cohort-glow) 32%, transparent);
+  }
+  53.125% {
+    text-shadow:
+      0 0 15.9px color-mix(in srgb, var(--cohort-glow) 54%, transparent),
+      0 0 35.8px color-mix(in srgb, var(--cohort-glow) 32%, transparent);
+  }
+  56.25% {
+    text-shadow:
+      0 0 15.7px color-mix(in srgb, var(--cohort-glow) 53%, transparent),
+      0 0 35.3px color-mix(in srgb, var(--cohort-glow) 31%, transparent);
+  }
+  59.375% {
+    text-shadow:
+      0 0 15.3px color-mix(in srgb, var(--cohort-glow) 52%, transparent),
+      0 0 34.5px color-mix(in srgb, var(--cohort-glow) 31%, transparent);
+  }
+  62.5% {
+    text-shadow:
+      0 0 14.8px color-mix(in srgb, var(--cohort-glow) 51%, transparent),
+      0 0 33.4px color-mix(in srgb, var(--cohort-glow) 30%, transparent);
+  }
+  65.625% {
+    text-shadow:
+      0 0 14.2px color-mix(in srgb, var(--cohort-glow) 50%, transparent),
+      0 0 32px color-mix(in srgb, var(--cohort-glow) 29%, transparent);
+  }
+  68.75% {
+    text-shadow:
+      0 0 13.5px color-mix(in srgb, var(--cohort-glow) 48%, transparent),
+      0 0 30.4px color-mix(in srgb, var(--cohort-glow) 28%, transparent);
+  }
+  71.875% {
+    text-shadow:
+      0 0 12.8px color-mix(in srgb, var(--cohort-glow) 47%, transparent),
+      0 0 28.8px color-mix(in srgb, var(--cohort-glow) 26%, transparent);
+  }
+  75% {
+    text-shadow:
+      0 0 12px color-mix(in srgb, var(--cohort-glow) 45%, transparent),
+      0 0 27px color-mix(in srgb, var(--cohort-glow) 25%, transparent);
+  }
+  78.125% {
+    text-shadow:
+      0 0 11.2px color-mix(in srgb, var(--cohort-glow) 43%, transparent),
+      0 0 25.2px color-mix(in srgb, var(--cohort-glow) 24%, transparent);
+  }
+  81.25% {
+    text-shadow:
+      0 0 10.5px color-mix(in srgb, var(--cohort-glow) 42%, transparent),
+      0 0 23.6px color-mix(in srgb, var(--cohort-glow) 22%, transparent);
+  }
+  84.375% {
+    text-shadow:
+      0 0 9.8px color-mix(in srgb, var(--cohort-glow) 40%, transparent),
+      0 0 22px color-mix(in srgb, var(--cohort-glow) 21%, transparent);
+  }
+  87.5% {
+    text-shadow:
+      0 0 9.2px color-mix(in srgb, var(--cohort-glow) 39%, transparent),
+      0 0 20.6px color-mix(in srgb, var(--cohort-glow) 20%, transparent);
+  }
+  90.625% {
+    text-shadow:
+      0 0 8.7px color-mix(in srgb, var(--cohort-glow) 38%, transparent),
+      0 0 19.5px color-mix(in srgb, var(--cohort-glow) 19%, transparent);
+  }
+  93.75% {
+    text-shadow:
+      0 0 8.3px color-mix(in srgb, var(--cohort-glow) 37%, transparent),
+      0 0 18.7px color-mix(in srgb, var(--cohort-glow) 19%, transparent);
+  }
+  96.875% {
+    text-shadow:
+      0 0 8.1px color-mix(in srgb, var(--cohort-glow) 36%, transparent),
+      0 0 18.2px color-mix(in srgb, var(--cohort-glow) 18%, transparent);
+  }
+}
+
+.cohort-headline-glow {
+  --cohort-glow: color-mix(in srgb, currentColor 82%, #8a8a8a);
+  animation: cohort-pulse-glow 2.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cohort-headline-glow {
+    animation: none;
+    text-shadow:
+      0 0 10px color-mix(in srgb, var(--cohort-glow) 40%, transparent),
+      0 0 22px color-mix(in srgb, var(--cohort-glow) 20%, transparent);
+  }
+}
+

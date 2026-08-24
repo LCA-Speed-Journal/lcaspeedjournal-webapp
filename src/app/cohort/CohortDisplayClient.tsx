@@ -46,7 +46,29 @@ export function CohortDisplayClient() {
 
   const { title, capacity, claimed, remaining } = payload;
   const fillPct = capacity > 0 ? Math.min(100, (claimed / capacity) * 100) : 0;
+  const empty = claimed <= 0;
   const full = remaining <= 0;
+  const headlineTone = remainingTone(empty ? 99 : remaining);
+
+  let headline: string;
+  let subtext: string;
+  let headlineClass: string;
+  let headlineStyle: { fontSize: string } | undefined;
+
+  if (empty) {
+    headline = "Cohort Open";
+    subtext = "Signups Limited";
+    headlineClass = `mt-12 text-center text-6xl font-bold tracking-tight md:text-8xl ${headlineTone} cohort-headline-glow`;
+  } else if (full) {
+    headline = "Cohort full";
+    subtext = "Waitlist open at the table";
+    headlineClass = `mt-12 text-center text-6xl font-bold tracking-tight md:text-8xl ${headlineTone} cohort-headline-glow`;
+  } else {
+    headline = String(remaining);
+    subtext = remaining === 1 ? "spot remaining" : "spots remaining";
+    headlineClass = `mt-12 text-center font-bold leading-none tracking-tight ${headlineTone} cohort-headline-glow`;
+    headlineStyle = { fontSize: "clamp(6rem, 22vw, 14rem)" };
+  }
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-8 py-12">
@@ -59,37 +81,18 @@ export function CohortDisplayClient() {
       <h1 className="mt-3 text-center text-2xl font-semibold text-foreground md:text-4xl">
         {title}
       </h1>
-      {full ? (
-        <>
-          <p className={`mt-12 text-center text-6xl font-bold tracking-tight md:text-8xl ${remainingTone(0)}`}>
-            Cohort full
-          </p>
-          <p className="mt-4 text-center text-xl text-foreground-muted md:text-3xl">
-            Waitlist open at the table
-          </p>
-        </>
-      ) : (
-        <>
-          <p
-            className={`mt-12 text-center font-bold leading-none tracking-tight ${remainingTone(remaining)}`}
-            style={{ fontSize: "clamp(6rem, 22vw, 14rem)" }}
-          >
-            {remaining}
-          </p>
-          <p className="mt-4 text-center text-xl text-foreground-muted md:text-3xl">
-            {remaining === 1 ? "spot remaining" : "spots remaining"}
-          </p>
-        </>
-      )}
+      <p className={headlineClass} style={headlineStyle}>
+        {headline}
+      </p>
+      <p className="mt-4 text-center text-xl text-foreground-muted md:text-3xl">
+        {subtext}
+      </p>
       <div className="mt-16 h-4 w-full max-w-3xl overflow-hidden rounded-full bg-surface-elevated">
         <div
           className={`h-full rounded-full transition-[width] duration-500 ${barTone(remaining)}`}
           style={{ width: `${fillPct}%` }}
         />
       </div>
-      <p className="mt-3 text-sm text-foreground-muted">
-        {claimed} of {capacity} claimed
-      </p>
     </div>
   );
 }
