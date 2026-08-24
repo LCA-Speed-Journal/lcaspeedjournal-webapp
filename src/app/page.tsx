@@ -66,6 +66,12 @@ export default function Home() {
                 >
                   Data entry
                 </Link>
+                <Link
+                  href="/cohort/intake"
+                  className="rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
+                >
+                  Cohort intake
+                </Link>
               </div>
             </div>
           </div>
