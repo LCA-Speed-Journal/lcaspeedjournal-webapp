@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { deriveCohort, DEFAULT_CAPACITY, DEFAULT_TITLE } from "./cohort";
+import {
+  deriveCohort,
+  DEFAULT_CAPACITY,
+  DEFAULT_TITLE,
+  toPublicCohortPayload,
+  parseCapacity,
+  parseSignupBody,
+} from "./cohort";
 import type { CohortSignup } from "./cohort";
 
 function signup(
@@ -110,5 +117,73 @@ describe("deriveCohort", () => {
     const result = deriveCohort([], 0);
     expect(result.capacity).toBe(1);
     expect(result.remaining).toBe(1);
+  });
+});
+
+describe("toPublicCohortPayload", () => {
+  it("returns only title, capacity, claimed, remaining", () => {
+    const derived = deriveCohort(
+      [signup({ id: "a", display_name: "Secret", email: "x@y.z", created_at: "2026-08-24T18:00:00.000Z" })],
+      12
+    );
+    const publicPayload = toPublicCohortPayload(derived);
+    expect(publicPayload).toEqual({
+      title: DEFAULT_TITLE,
+      capacity: 12,
+      claimed: 1,
+      remaining: 11,
+    });
+    expect(publicPayload).not.toHaveProperty("waitlist");
+    expect(publicPayload).not.toHaveProperty("inCohort");
+    expect(publicPayload).not.toHaveProperty("signups");
+    expect(JSON.stringify(publicPayload)).not.toContain("Secret");
+    expect(JSON.stringify(publicPayload)).not.toContain("x@y.z");
+  });
+});
+
+describe("parseCapacity", () => {
+  it("accepts integers >= 1", () => {
+    expect(parseCapacity(12)).toBe(12);
+    expect(parseCapacity("15")).toBe(15);
+  });
+
+  it("rejects non-integers and values below 1", () => {
+    expect(parseCapacity(0)).toBeNull();
+    expect(parseCapacity(1.5)).toBeNull();
+    expect(parseCapacity("nope")).toBeNull();
+    expect(parseCapacity(null)).toBeNull();
+  });
+});
+
+describe("parseSignupBody", () => {
+  it("accepts unnamed tap as a null name", () => {
+    expect(parseSignupBody({ unnamed: true })).toEqual({
+      ok: true,
+      display_name: null,
+      grade: null,
+      email: null,
+    });
+  });
+
+  it("requires a non-blank name when not unnamed", () => {
+    expect(parseSignupBody({}).ok).toBe(false);
+    expect(parseSignupBody({ display_name: "  " }).ok).toBe(false);
+    expect(parseSignupBody({ display_name: "Jordan" })).toEqual({
+      ok: true,
+      display_name: "Jordan",
+      grade: null,
+      email: null,
+    });
+  });
+
+  it("trims optional grade and email", () => {
+    expect(
+      parseSignupBody({ display_name: "Jordan", grade: " 10 ", email: " a@b.c " })
+    ).toEqual({
+      ok: true,
+      display_name: "Jordan",
+      grade: "10",
+      email: "a@b.c",
+    });
   });
 });

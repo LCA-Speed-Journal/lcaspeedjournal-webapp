@@ -51,3 +51,61 @@ export function deriveCohort(
     signups: withFlags,
   };
 }
+
+export type PublicCohortPayload = {
+  title: string;
+  capacity: number;
+  claimed: number;
+  remaining: number;
+};
+
+export function toPublicCohortPayload(derived: DerivedCohort): PublicCohortPayload {
+  return {
+    title: derived.title,
+    capacity: derived.capacity,
+    claimed: derived.claimed,
+    remaining: derived.remaining,
+  };
+}
+
+export function parseCapacity(value: unknown): number | null {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isInteger(n) || n < 1) return null;
+  return n;
+}
+
+export type ParsedSignup =
+  | { ok: true; display_name: string | null; grade: string | null; email: string | null }
+  | { ok: false; error: string };
+
+function optionalTrimmed(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value !== "string") return null;
+  const t = value.trim();
+  return t === "" ? null : t;
+}
+
+export function parseSignupBody(body: unknown): ParsedSignup {
+  if (body == null || typeof body !== "object") {
+    return { ok: false, error: "Invalid body" };
+  }
+  const b = body as Record<string, unknown>;
+  if (b.unnamed === true) {
+    return {
+      ok: true,
+      display_name: null,
+      grade: optionalTrimmed(b.grade),
+      email: optionalTrimmed(b.email),
+    };
+  }
+  const name = optionalTrimmed(b.display_name);
+  if (!name) {
+    return { ok: false, error: "Name is required" };
+  }
+  return {
+    ok: true,
+    display_name: name,
+    grade: optionalTrimmed(b.grade),
+    email: optionalTrimmed(b.email),
+  };
+}
