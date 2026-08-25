@@ -134,6 +134,8 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const [success, setSuccess] = useState("");
   const athleteInputRef = useRef<HTMLInputElement>(null);
   const listboxRef = useRef<HTMLUListElement>(null);
+  const quickCreatingRef = useRef(false);
+  const quickCreateGenRef = useRef(0);
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [quickFirst, setQuickFirst] = useState("");
   const [quickLast, setQuickLast] = useState("");
@@ -198,6 +200,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   }, []);
 
   const closeQuickCreate = useCallback(() => {
+    quickCreateGenRef.current += 1;
     setQuickCreateOpen(false);
     setQuickFirst("");
     setQuickLast("");
@@ -223,9 +226,11 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   async function submitQuickCreate() {
     const first = quickFirst.trim();
     const last = quickLast.trim();
-    if (!first || !last || quickCreating) return;
+    if (!first || !last || quickCreatingRef.current) return;
+    quickCreatingRef.current = true;
     setQuickCreateError("");
     setQuickCreating(true);
+    const gen = quickCreateGenRef.current;
     try {
       const payload = buildAthleteCreatePayload({
         firstName: first,
@@ -245,6 +250,11 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         return;
       }
       const created = json.data as AthleteItem;
+      if (gen !== quickCreateGenRef.current) return;
+      if (!created?.id) {
+        setQuickCreateError("Failed to create athlete");
+        return;
+      }
       selectAthlete(created);
       closeQuickCreate();
       void globalMutate("/api/athletes");
@@ -252,6 +262,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     } catch {
       setQuickCreateError("Network error");
     } finally {
+      quickCreatingRef.current = false;
       setQuickCreating(false);
     }
   }
@@ -450,7 +461,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
               setAthleteQuery(e.target.value);
               setSelectedAthlete(null);
               setDropdownOpen(true);
-              setQuickCreateOpen(false);
+              closeQuickCreate();
             }}
             onFocus={() => setDropdownOpen(true)}
             onBlur={() => setTimeout(closeDropdown, 150)}
@@ -571,7 +582,16 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           )}
         </div>
         {quickCreateOpen ? (
-          <div className="mt-3 space-y-3 rounded-lg border border-border bg-surface-elevated p-3">
+          <div
+            className="mt-3 space-y-3 rounded-lg border border-border bg-surface-elevated p-3"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                void submitQuickCreate();
+              }
+            }}
+          >
             <p className="text-sm font-medium text-foreground">New athlete</p>
             <div className="grid grid-cols-2 gap-2">
               <div>
