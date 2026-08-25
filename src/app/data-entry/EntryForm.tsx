@@ -6,6 +6,7 @@ import metricsData from "@/lib/metrics.json";
 import { segmentInputToCumulativeInput } from "@/lib/parser";
 import {
   addOptionVisible,
+  buildAthleteCreatePayload,
   isAddOptionIndex,
   nextHighlightIndex,
   parseNameFromQuery,
@@ -139,6 +140,8 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const [quickGender, setQuickGender] = useState<"M" | "F">("M");
   const [quickAlumni, setQuickAlumni] = useState(false);
   const [quickGrade, setQuickGrade] = useState<"" | "9" | "10" | "11" | "12">("");
+  const [quickCreating, setQuickCreating] = useState(false);
+  const [quickCreateError, setQuickCreateError] = useState("");
 
   useEffect(() => {
     if (sessionIdProp) setSessionId(sessionIdProp);
@@ -201,6 +204,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setQuickGender("M");
     setQuickAlumni(false);
     setQuickGrade("");
+    setQuickCreateError("");
   }, []);
 
   const openQuickCreate = useCallback(() => {
@@ -210,10 +214,47 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setQuickGender("M");
     setQuickAlumni(false);
     setQuickGrade("");
+    setQuickCreateError("");
     setQuickCreateOpen(true);
     setDropdownOpen(false);
     setHighlightedIndex(0);
   }, [athleteQuery]);
+
+  async function submitQuickCreate() {
+    const first = quickFirst.trim();
+    const last = quickLast.trim();
+    if (!first || !last || quickCreating) return;
+    setQuickCreateError("");
+    setQuickCreating(true);
+    try {
+      const payload = buildAthleteCreatePayload({
+        firstName: first,
+        lastName: last,
+        gender: quickGender,
+        alumniStaff: quickAlumni,
+        grade: quickAlumni || quickGrade === "" ? null : Number(quickGrade),
+      });
+      const res = await fetch("/api/athletes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setQuickCreateError(json.error ?? "Failed to create athlete");
+        return;
+      }
+      const created = json.data as AthleteItem;
+      selectAthlete(created);
+      closeQuickCreate();
+      void globalMutate("/api/athletes");
+      void globalMutate("/api/athletes?active=true");
+    } catch {
+      setQuickCreateError("Network error");
+    } finally {
+      setQuickCreating(false);
+    }
+  }
 
   useEffect(() => {
     if (dropdownOpen) setHighlightedIndex(0);
@@ -333,6 +374,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (quickCreateOpen) {
+      void submitQuickCreate();
       return;
     }
     void submitEntry();
@@ -609,13 +651,21 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
                 </div>
               ) : null}
             </div>
+            {quickCreateError ? (
+              <p className="text-sm text-danger" role="alert">
+                {quickCreateError}
+              </p>
+            ) : null}
             <div className="flex gap-2">
               <button
                 type="button"
-                disabled={!quickFirst.trim() || !quickLast.trim()}
+                disabled={
+                  quickCreating || !quickFirst.trim() || !quickLast.trim()
+                }
+                onClick={() => void submitQuickCreate()}
                 className="min-h-[44px] flex-1 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-background hover:bg-accent-hover disabled:opacity-50"
               >
-                Create
+                {quickCreating ? "Creating…" : "Create"}
               </button>
               <button
                 type="button"
