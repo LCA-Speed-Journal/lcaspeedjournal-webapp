@@ -204,7 +204,7 @@ export function IntakeClient() {
             Coach intake
           </p>
           <h1 className="text-2xl font-bold text-foreground">
-            {payload?.title ?? "Fall Strength & Conditioning"}
+            {payload?.title ?? "Strength & Conditioning: Fall Term"}
           </h1>
           <p className="mt-2 text-4xl font-bold text-accent">
             {payload ? payload.remaining : "—"}{" "}

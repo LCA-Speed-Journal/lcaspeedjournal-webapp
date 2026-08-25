@@ -56,12 +56,12 @@ export function CohortDisplayClient() {
   let headlineStyle: { fontSize: string } | undefined;
 
   if (empty) {
-    headline = "Cohort Open";
+    headline = "Enrollment Open";
     subtext = "Signups Limited";
     headlineClass = `mt-12 text-center text-6xl font-bold tracking-tight md:text-8xl ${headlineTone} cohort-headline-glow`;
   } else if (full) {
-    headline = "Cohort full";
-    subtext = "Waitlist open at the table";
+    headline = "Term is Full!";
+    subtext = "Waitlist Spots Available";
     headlineClass = `mt-12 text-center text-6xl font-bold tracking-tight md:text-8xl ${headlineTone} cohort-headline-glow`;
   } else {
     headline = String(remaining);
@@ -78,7 +78,7 @@ export function CohortDisplayClient() {
       <p className="text-center text-sm font-medium uppercase tracking-[0.3em] text-foreground-muted">
         Back to School Night
       </p>
-      <h1 className="mt-3 text-center text-2xl font-semibold text-foreground md:text-4xl">
+      <h1 className="mt-3 text-center text-3xl font-semibold text-foreground md:text-5xl">
         {title}
       </h1>
       <p className={headlineClass} style={headlineStyle}>

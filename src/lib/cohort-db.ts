@@ -12,7 +12,7 @@ export async function ensureCohortConfig(): Promise<{ capacity: number; title: s
   await sql`
     INSERT INTO cohort_config (id, capacity, title)
     VALUES (${COHORT_CONFIG_ID}, ${DEFAULT_CAPACITY}, ${DEFAULT_TITLE})
-    ON CONFLICT (id) DO NOTHING
+    ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title
   `;
   const { rows } = await sql`
     SELECT capacity, title

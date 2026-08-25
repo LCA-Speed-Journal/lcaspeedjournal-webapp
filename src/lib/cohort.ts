@@ -1,6 +1,6 @@
 export const COHORT_CONFIG_ID = "fall-sc";
 export const DEFAULT_CAPACITY = 12;
-export const DEFAULT_TITLE = "Fall Strength & Conditioning";
+export const DEFAULT_TITLE = "Strength & Conditioning: Fall Term";
 
 export type CohortSignup = {
   id: string;
