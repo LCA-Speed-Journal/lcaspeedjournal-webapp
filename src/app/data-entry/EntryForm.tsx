@@ -332,6 +332,9 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (quickCreateOpen) {
+      return;
+    }
     void submitEntry();
   }
 
@@ -410,6 +413,10 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             onFocus={() => setDropdownOpen(true)}
             onBlur={() => setTimeout(closeDropdown, 150)}
             onKeyDown={(e) => {
+              if (quickCreateOpen && e.key === "Enter") {
+                e.preventDefault();
+                return;
+              }
               if (!dropdownOpen) {
                 if (e.key === "ArrowDown" || e.key === " ") openDropdown();
                 return;
