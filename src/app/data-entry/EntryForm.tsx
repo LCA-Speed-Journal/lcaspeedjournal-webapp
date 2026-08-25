@@ -245,12 +245,12 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         body: JSON.stringify(payload),
       });
       const json = await res.json();
+      if (gen !== quickCreateGenRef.current) return;
       if (!res.ok) {
         setQuickCreateError(json.error ?? "Failed to create athlete");
         return;
       }
       const created = json.data as AthleteItem;
-      if (gen !== quickCreateGenRef.current) return;
       if (!created?.id) {
         setQuickCreateError("Failed to create athlete");
         return;
@@ -260,6 +260,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       void globalMutate("/api/athletes");
       void globalMutate("/api/athletes?active=true");
     } catch {
+      if (gen !== quickCreateGenRef.current) return;
       setQuickCreateError("Network error");
     } finally {
       quickCreatingRef.current = false;
@@ -585,11 +586,12 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           <div
             className="mt-3 space-y-3 rounded-lg border border-border bg-surface-elevated p-3"
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                e.stopPropagation();
-                void submitQuickCreate();
-              }
+              if (e.key !== "Enter") return;
+              const target = e.target as HTMLElement | null;
+              if (target?.closest("button")) return;
+              e.preventDefault();
+              e.stopPropagation();
+              void submitQuickCreate();
             }}
           >
             <p className="text-sm font-medium text-foreground">New athlete</p>
