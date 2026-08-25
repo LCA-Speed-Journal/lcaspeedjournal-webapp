@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { resolveGraduatingClass } from "@/lib/quick-athlete";
 
 export async function GET(request: NextRequest) {
   try {
@@ -101,15 +102,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (type === "athlete" && (graduating_class == null || graduating_class === "")) {
-      return NextResponse.json(
-        { error: "Athletes require graduating_class" },
-        { status: 400 }
-      );
-    }
-
-    const gradClass =
-      type === "athlete" ? Number(graduating_class) : null;
+    const gradClass = resolveGraduatingClass(type, graduating_class);
 
     try {
       const { rows } = await sql`
