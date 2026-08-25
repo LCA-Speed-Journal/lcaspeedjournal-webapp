@@ -4,6 +4,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import metricsData from "@/lib/metrics.json";
 import { segmentInputToCumulativeInput } from "@/lib/parser";
+import {
+  addOptionVisible,
+  isAddOptionIndex,
+  nextHighlightIndex,
+  parseNameFromQuery,
+  pickerOptionCount,
+} from "@/lib/quick-athlete";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -126,6 +133,12 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const [success, setSuccess] = useState("");
   const athleteInputRef = useRef<HTMLInputElement>(null);
   const listboxRef = useRef<HTMLUListElement>(null);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [quickFirst, setQuickFirst] = useState("");
+  const [quickLast, setQuickLast] = useState("");
+  const [quickGender, setQuickGender] = useState<"M" | "F">("M");
+  const [quickAlumni, setQuickAlumni] = useState(false);
+  const [quickGrade, setQuickGrade] = useState<"" | "9" | "10" | "11" | "12">("");
 
   useEffect(() => {
     if (sessionIdProp) setSessionId(sessionIdProp);
@@ -162,6 +175,13 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           `${a.first_name} ${a.last_name}`.toLowerCase().includes(athleteSearch)
       )
     : athletes;
+  const showAddOption = addOptionVisible(athleteQuery);
+  const optionCount = pickerOptionCount(filteredAthletes.length, athleteQuery);
+  const addHighlighted = isAddOptionIndex(
+    highlightedIndex,
+    filteredAthletes.length,
+    athleteQuery
+  );
 
   const openDropdown = useCallback(() => setDropdownOpen(true), []);
   const closeDropdown = useCallback(() => {
@@ -174,16 +194,41 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setDropdownOpen(false);
   }, []);
 
+  const closeQuickCreate = useCallback(() => {
+    setQuickCreateOpen(false);
+    setQuickFirst("");
+    setQuickLast("");
+    setQuickGender("M");
+    setQuickAlumni(false);
+    setQuickGrade("");
+  }, []);
+
+  const openQuickCreate = useCallback(() => {
+    const parsed = parseNameFromQuery(athleteQuery);
+    setQuickFirst(parsed.first);
+    setQuickLast(parsed.last);
+    setQuickGender("M");
+    setQuickAlumni(false);
+    setQuickGrade("");
+    setQuickCreateOpen(true);
+    setDropdownOpen(false);
+    setHighlightedIndex(0);
+  }, [athleteQuery]);
+
   useEffect(() => {
     if (dropdownOpen) setHighlightedIndex(0);
   }, [athleteQuery, athletes, activeOnly, dropdownOpen]);
 
   useEffect(() => {
-    const el = listboxRef.current?.querySelector(
-      `#entry_athlete_option_${filteredAthletes[highlightedIndex]?.id}`
-    );
+    const id = addHighlighted
+      ? "entry_athlete_option_add"
+      : filteredAthletes[highlightedIndex]
+        ? `entry_athlete_option_${filteredAthletes[highlightedIndex].id}`
+        : null;
+    if (!id) return;
+    const el = listboxRef.current?.querySelector(`#${id}`);
     el?.scrollIntoView({ block: "nearest" });
-  }, [highlightedIndex, filteredAthletes]);
+  }, [highlightedIndex, filteredAthletes, addHighlighted]);
 
   const effectiveSessionId = sessionIdProp ?? sessionId;
   const allOptions = metricOptions();
@@ -360,6 +405,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
               setAthleteQuery(e.target.value);
               setSelectedAthlete(null);
               setDropdownOpen(true);
+              setQuickCreateOpen(false);
             }}
             onFocus={() => setDropdownOpen(true)}
             onBlur={() => setTimeout(closeDropdown, 150)}
@@ -375,21 +421,24 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
               }
               if (e.key === "ArrowDown") {
                 e.preventDefault();
-                setHighlightedIndex((i) =>
-                  i < filteredAthletes.length - 1 ? i + 1 : 0
-                );
+                setHighlightedIndex((i) => nextHighlightIndex(i, optionCount, 1));
                 return;
               }
               if (e.key === "ArrowUp") {
                 e.preventDefault();
-                setHighlightedIndex((i) =>
-                  i > 0 ? i - 1 : filteredAthletes.length - 1
-                );
+                setHighlightedIndex((i) => nextHighlightIndex(i, optionCount, -1));
                 return;
               }
-              if (e.key === "Enter" && filteredAthletes[highlightedIndex]) {
-                e.preventDefault();
-                selectAthlete(filteredAthletes[highlightedIndex]);
+              if (e.key === "Enter") {
+                if (addHighlighted) {
+                  e.preventDefault();
+                  openQuickCreate();
+                  return;
+                }
+                if (filteredAthletes[highlightedIndex]) {
+                  e.preventDefault();
+                  selectAthlete(filteredAthletes[highlightedIndex]);
+                }
               }
             }}
             placeholder="Search or select athlete…"
@@ -398,9 +447,11 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             aria-autocomplete="list"
             aria-controls="entry_athlete_listbox"
             aria-activedescendant={
-              dropdownOpen && filteredAthletes[highlightedIndex]
-                ? `entry_athlete_option_${filteredAthletes[highlightedIndex].id}`
-                : undefined
+              dropdownOpen && addHighlighted
+                ? "entry_athlete_option_add"
+                : dropdownOpen && filteredAthletes[highlightedIndex]
+                  ? `entry_athlete_option_${filteredAthletes[highlightedIndex].id}`
+                  : undefined
             }
           />
           {selectedAthlete && (
@@ -425,7 +476,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
               className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded border border-border bg-surface-elevated py-1 shadow-lg"
             >
               {filteredAthletes.length === 0 ? (
-                <li className="px-3 py-2 text-sm text-foreground-muted">
+                <li className="px-3 py-2 text-sm text-foreground-muted" role="presentation">
                   No athletes match
                 </li>
               ) : (
@@ -449,9 +500,126 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
                   </li>
                 ))
               )}
+              {showAddOption ? (
+                <li
+                  id="entry_athlete_option_add"
+                  role="option"
+                  aria-selected={addHighlighted}
+                  className={`cursor-pointer px-3 py-2 text-sm font-medium ${
+                    addHighlighted
+                      ? "bg-accent/20 text-foreground"
+                      : "text-accent hover:bg-surface"
+                  }`}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    openQuickCreate();
+                  }}
+                >
+                  Add {athleteQuery.trim()}…
+                </li>
+              ) : null}
             </ul>
           )}
         </div>
+        {quickCreateOpen ? (
+          <div className="mt-3 space-y-3 rounded-lg border border-border bg-surface-elevated p-3">
+            <p className="text-sm font-medium text-foreground">New athlete</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label htmlFor="quick_first" className="mb-1 block text-xs text-foreground-muted">
+                  First name
+                </label>
+                <input
+                  id="quick_first"
+                  type="text"
+                  value={quickFirst}
+                  onChange={(e) => setQuickFirst(e.target.value)}
+                  className="min-h-[44px] w-full rounded border border-border bg-surface px-3 py-2 text-base text-foreground focus:border-accent"
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label htmlFor="quick_last" className="mb-1 block text-xs text-foreground-muted">
+                  Last name
+                </label>
+                <input
+                  id="quick_last"
+                  type="text"
+                  value={quickLast}
+                  onChange={(e) => setQuickLast(e.target.value)}
+                  className="min-h-[44px] w-full rounded border border-border bg-surface px-3 py-2 text-base text-foreground focus:border-accent"
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label htmlFor="quick_gender" className="mb-1 block text-xs text-foreground-muted">
+                  M / F
+                </label>
+                <select
+                  id="quick_gender"
+                  value={quickGender}
+                  onChange={(e) => setQuickGender(e.target.value as "M" | "F")}
+                  className="min-h-[44px] w-full rounded border border-border bg-surface px-3 py-2 text-base text-foreground focus:border-accent"
+                >
+                  <option value="M">M</option>
+                  <option value="F">F</option>
+                </select>
+              </div>
+              <label className="flex cursor-pointer items-center gap-2 self-end pb-2">
+                <input
+                  type="checkbox"
+                  checked={quickAlumni}
+                  onChange={() => {
+                    setQuickAlumni((v) => {
+                      const next = !v;
+                      if (next) setQuickGrade("");
+                      return next;
+                    });
+                  }}
+                  className="rounded border-border bg-surface text-accent focus:ring-accent"
+                />
+                <span className="text-sm text-foreground">Alumni/staff</span>
+              </label>
+              {!quickAlumni ? (
+                <div className="col-span-2">
+                  <label htmlFor="quick_grade" className="mb-1 block text-xs text-foreground-muted">
+                    Grade (optional)
+                  </label>
+                  <select
+                    id="quick_grade"
+                    value={quickGrade}
+                    onChange={(e) =>
+                      setQuickGrade(e.target.value as "" | "9" | "10" | "11" | "12")
+                    }
+                    className="min-h-[44px] w-full rounded border border-border bg-surface px-3 py-2 text-base text-foreground focus:border-accent"
+                  >
+                    <option value="">Skip</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                  </select>
+                </div>
+              ) : null}
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={!quickFirst.trim() || !quickLast.trim()}
+                className="min-h-[44px] flex-1 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-background hover:bg-accent-hover disabled:opacity-50"
+              >
+                Create
+              </button>
+              <button
+                type="button"
+                onClick={closeQuickCreate}
+                className="min-h-[44px] rounded-lg border border-border px-3 py-2 text-sm text-foreground hover:bg-surface"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div>
