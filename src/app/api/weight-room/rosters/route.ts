@@ -144,26 +144,30 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { rows: scalarRows } = await sql`
-      SELECT hugo_group FROM athletes WHERE id = ${athleteId.trim()} LIMIT 1
-    `;
-    const scalar = (scalarRows[0] as { hugo_group: string | null } | undefined)
-      ?.hugo_group;
-    if (scalar === hugoGroupRaw) {
-      const { rows: remaining } = await sql`
-        SELECT hugo_group
-        FROM athlete_hugo_memberships
-        WHERE athlete_id = ${athleteId.trim()}
-        ORDER BY created_at
-        LIMIT 1
+    try {
+      const { rows: scalarRows } = await sql`
+        SELECT hugo_group FROM athletes WHERE id = ${athleteId.trim()} LIMIT 1
       `;
-      const next =
-        remaining.length > 0
-          ? (remaining[0] as { hugo_group: string }).hugo_group
-          : null;
-      await sql`
-        UPDATE athletes SET hugo_group = ${next} WHERE id = ${athleteId.trim()}
-      `;
+      const scalar = (scalarRows[0] as { hugo_group: string | null } | undefined)
+        ?.hugo_group;
+      if (scalar === hugoGroupRaw) {
+        const { rows: remaining } = await sql`
+          SELECT hugo_group
+          FROM athlete_hugo_memberships
+          WHERE athlete_id = ${athleteId.trim()}
+          ORDER BY created_at
+          LIMIT 1
+        `;
+        const next =
+          remaining.length > 0
+            ? (remaining[0] as { hugo_group: string }).hugo_group
+            : null;
+        await sql`
+          UPDATE athletes SET hugo_group = ${next} WHERE id = ${athleteId.trim()}
+        `;
+      }
+    } catch (err) {
+      console.error("DELETE /api/weight-room/rosters: hugo_group cache:", err);
     }
 
     return NextResponse.json({

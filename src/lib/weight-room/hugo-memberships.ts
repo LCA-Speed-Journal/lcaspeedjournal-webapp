@@ -68,6 +68,15 @@ export async function fetchMembershipsForAthletes(
   return rows as MembershipRow[];
 }
 
+/** Rollout-only: memberships table or hugo_group column not migrated yet. */
+export function isMissingRelationOrColumn(err: unknown): boolean {
+  const msg = String(
+    err instanceof Error ? err.message : err ?? ""
+  ).toLowerCase();
+  if (!msg.includes("does not exist")) return false;
+  return msg.includes("relation") || msg.includes("column");
+}
+
 export async function attachHugoGroupsFromDb<T extends { id: string }>(
   athletes: T[]
 ): Promise<Array<T & { hugo_groups: string[] }>> {
@@ -77,8 +86,11 @@ export async function attachHugoGroupsFromDb<T extends { id: string }>(
     );
     return attachHugoGroups(athletes, memberships);
   } catch (err) {
-    console.error("attachHugoGroupsFromDb:", err);
-    return athletes.map((athlete) => ({ ...athlete, hugo_groups: [] }));
+    if (isMissingRelationOrColumn(err)) {
+      console.error("attachHugoGroupsFromDb:", err);
+      return athletes.map((athlete) => ({ ...athlete, hugo_groups: [] }));
+    }
+    throw err;
   }
 }
 
@@ -94,11 +106,15 @@ export async function insertHugoMembership(
     ON CONFLICT DO NOTHING
     RETURNING athlete_id
   `;
-  await sql`
-    UPDATE athletes
-    SET hugo_group = ${hugoGroup}
-    WHERE id = ${athleteId} AND hugo_group IS NULL
-  `;
+  try {
+    await sql`
+      UPDATE athletes
+      SET hugo_group = ${hugoGroup}
+      WHERE id = ${athleteId} AND hugo_group IS NULL
+    `;
+  } catch (err) {
+    console.error("insertHugoMembership: hugo_group cache:", err);
+  }
   return rows.length > 0;
 }
 

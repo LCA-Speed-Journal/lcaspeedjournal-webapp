@@ -3,6 +3,7 @@ import {
   athleteHasHugoGroup,
   attachHugoGroups,
   groupMembershipsByAthleteId,
+  isMissingRelationOrColumn,
   isOnHugoTeam,
 } from "./hugo-memberships";
 
@@ -52,6 +53,32 @@ describe("isOnHugoTeam", () => {
   it("is false when neither memberships nor scalar are set", () => {
     expect(isOnHugoTeam({ hugo_groups: [], hugo_group: null })).toBe(false);
     expect(isOnHugoTeam({})).toBe(false);
+  });
+});
+
+describe("isMissingRelationOrColumn", () => {
+  it("swallows rollout missing-relation and missing-column errors", () => {
+    expect(
+      isMissingRelationOrColumn(
+        new Error('relation "athlete_hugo_memberships" does not exist')
+      )
+    ).toBe(true);
+    expect(
+      isMissingRelationOrColumn(
+        new Error('column "hugo_group" of relation "athletes" does not exist')
+      )
+    ).toBe(true);
+  });
+
+  it("does not swallow other database errors", () => {
+    expect(
+      isMissingRelationOrColumn(new Error("connection refused"))
+    ).toBe(false);
+    expect(
+      isMissingRelationOrColumn(
+        new Error("duplicate key value violates unique constraint")
+      )
+    ).toBe(false);
   });
 });
 

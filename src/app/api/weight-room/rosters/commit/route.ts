@@ -12,6 +12,17 @@ type CommitRow = {
   create?: boolean;
 };
 
+type CommitRowError = {
+  index: number;
+  error: string;
+  athlete_id?: string;
+};
+
+function rowErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message.trim()) return err.message;
+  return "Failed to commit row";
+}
+
 function parseCommitRows(
   raw: unknown
 ): { ok: true; rows: CommitRow[] } | { ok: false; error: string } {
@@ -83,57 +94,70 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
 
-    const existingIds = [
-      ...new Set(
-        parsed.rows
-          .map((row) => row.athlete_id)
-          .filter((id): id is string => Boolean(id))
-      ),
-    ];
-    if (existingIds.length > 0) {
-      const { rows: found } = await sql`
-        SELECT id FROM athletes
-        WHERE id = ANY(${existingIds as unknown as string}::uuid[])
-      `;
-      if (found.length !== existingIds.length) {
-        return NextResponse.json(
-          { error: "Athlete not found" },
-          { status: 404 }
-        );
-      }
-    }
-
     let added = 0;
     let created = 0;
+    const errors: CommitRowError[] = [];
     const graduatingClass = new Date().getFullYear() + 2;
 
-    for (const row of parsed.rows) {
+    for (let index = 0; index < parsed.rows.length; index++) {
+      const row = parsed.rows[index];
       let athleteId = row.athlete_id;
-      if (!athleteId && row.create) {
-        const { rows: inserted } = await sql`
-          INSERT INTO athletes (
-            first_name, last_name, gender, graduating_class, athlete_type, active
-          )
-          VALUES (
-            ${row.first_name},
-            ${row.last_name},
-            ${"M"},
-            ${graduatingClass},
-            ${"athlete"},
-            true
-          )
-          RETURNING id
-        `;
-        athleteId = (inserted[0] as { id: string }).id;
-        created += 1;
-      }
-      if (!athleteId) continue;
+      let createdThisRow = false;
+      try {
+        if (!athleteId && row.create) {
+          const { rows: inserted } = await sql`
+            INSERT INTO athletes (
+              first_name, last_name, gender, graduating_class, athlete_type, active
+            )
+            VALUES (
+              ${row.first_name},
+              ${row.last_name},
+              ${"M"},
+              ${graduatingClass},
+              ${"athlete"},
+              true
+            )
+            RETURNING id
+          `;
+          athleteId = (inserted[0] as { id: string }).id;
+          createdThisRow = true;
+        }
+        if (!athleteId) {
+          errors.push({ index, error: "each row needs athlete_id or create" });
+          continue;
+        }
+        if (!createdThisRow) {
+          const { rows: athleteRows } = await sql`
+            SELECT id FROM athletes WHERE id = ${athleteId} LIMIT 1
+          `;
+          if (athleteRows.length === 0) {
+            errors.push({
+              index,
+              error: "Athlete not found",
+              athlete_id: athleteId,
+            });
+            continue;
+          }
+        }
 
-      const inserted = await insertHugoMembership(athleteId, rec.hugo_group);
-      if (inserted) added += 1;
+        const inserted = await insertHugoMembership(athleteId, rec.hugo_group);
+        if (inserted) added += 1;
+        if (createdThisRow) created += 1;
+      } catch (err) {
+        console.error(
+          `POST /api/weight-room/rosters/commit row ${index}:`,
+          err
+        );
+        const entry: CommitRowError = {
+          index,
+          error: rowErrorMessage(err),
+        };
+        if (athleteId) entry.athlete_id = athleteId;
+        errors.push(entry);
+      }
     }
 
-    return NextResponse.json({ data: { added, created } });
+    return NextResponse.json({ data: { added, created, errors } });
   } catch (err) {
     console.error("POST /api/weight-room/rosters/commit:", err);
     return NextResponse.json(
