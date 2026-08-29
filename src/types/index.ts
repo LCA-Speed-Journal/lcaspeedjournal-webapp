@@ -7,6 +7,7 @@ export type Athlete = {
   athlete_type: 'athlete' | 'staff' | 'alumni';
   active: boolean;
   created_at: string;
+  hugo_group?: string | null;
 };
 
 /** Session-to-session comparison: up = better, down = worse, neutral = within band */

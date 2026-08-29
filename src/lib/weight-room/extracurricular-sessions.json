@@ -1,0 +1,6471 @@
+[
+  {
+    "week": 1,
+    "week_title": "Intro + RM diagnostic",
+    "day": "Monday",
+    "day_title": "Upper A",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 25s/side · GHD sit-up 1×20 (while waiting)",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 25s/side · GHD sit-up 1×20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5",
+          "5 p/side || 5"
+        ],
+        "notes": "Explosive · Submax · Phase A",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "DB Bench (3RM Test)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "6–8 @ RPE 7",
+          "4–5 @ RPE 8",
+          "3 @ RPE 8",
+          "3RM Attempt"
+        ],
+        "notes": "2–3 warmup sets, then complete a heavy set of 3RM to set working max.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3A",
+        "name": "DB Bench (Back-Offs)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "6 @ RPE 8",
+          "6 @ RPE 8",
+          "6 @ RPE 8",
+          "6 @ RPE 8"
+        ],
+        "notes": "Normal · set at 15–20% less than 3RM set above.",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3B",
+        "name": "TRX Row (Back-Offs)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "12+ @ RPE 8",
+          "12+ @ RPE 8",
+          "12+ @ RPE 8",
+          "12+ @ RPE 8"
+        ],
+        "notes": "Normal · BW · adjust difficulty to match",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "Seated DB Shoulder Press",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "10 @ RPE 7",
+          "10 @ RPE 7",
+          "10 @ RPE 7"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "BW Push-Up",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "AMRAP (3 in the Tank)",
+          "AMRAP (3 in the Tank)"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "DB Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 1,
+    "week_title": "Intro + RM diagnostic",
+    "day": "Tuesday",
+    "day_title": "Lower A",
+    "day_type": "lower",
+    "warmup_notes": "Spring ankle (bent-knee) 45s/leg · hip hike 15/side · lunge ISO acc. 60s/leg · deep-tier lunge plyo 1×10/leg · high side-plank 25s/side",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle (bent-knee) 45s/leg · hip hike 15/side · lunge ISO acc. 60s/leg · deep-tier lunge plyo 1×10/leg · high side-plank 25s/side",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "CMJ (Vertical Jump)",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best (in)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Goblet Squat (5RM Test)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "8 @ RPE 7",
+          "6 @ RPE 8",
+          "5 @ RPE 8",
+          "5RM Attempt"
+        ],
+        "notes": "2–3 warmup sets, then complete a heavy set of 5RM to set working max.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Goblet Squat (Back-Offs)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "8 @ RPE 8",
+          "8 @ RPE 8",
+          "8 @ RPE 8",
+          "8 @ RPE 8"
+        ],
+        "notes": "Normal · set at 15–20% less than 5RM set above.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "DB Step-Up",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "6–8/side @ RPE 7",
+          "6–8/side @ RPE 8",
+          "6–8/side @ RPE 8",
+          "6–8/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "Leg Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "Leg Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "GHD Back Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12+ @ RPE 8",
+          "12+ @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 1,
+    "week_title": "Intro + RM diagnostic",
+    "day": "Wednesday",
+    "day_title": "Dog Capacity Test + 3RM catch-up",
+    "day_type": "conditioning",
+    "warmup_notes": "Spring ankle (straight-knee) 45s/leg · hip hike 15/side · lunge ISO acc. 60s/leg · high-knee march 5yd+1–2s hold/leg · low pogos 1×15",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle (straight-knee) 45s/leg · hip hike 15/side · lunge ISO acc. 60s/leg · high-knee march 5yd+1–2s hold/leg · low pogos 1×15",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Continuous Circuit",
+        "block": "blocka",
+        "set_count": 2,
+        "targets": [
+          "circuit",
+          "circuit"
+        ],
+        "notes": "20s split-squat ISO/side · 6 tempo goblet (3-3-3) · 20s SL balance · 15 low pogos",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Jog",
+        "block": "blocka",
+        "set_count": 1,
+        "targets": [
+          "6 min"
+        ],
+        "notes": "Continuous jog · nasal breath first 3 min · mid-effort coach Q",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "10yd Sprint",
+        "block": "blocka",
+        "set_count": 4,
+        "targets": [
+          "1",
+          "1",
+          "1",
+          "1"
+        ],
+        "notes": "EMOM × 8 · odd minutes (10yd sprint)",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Broad Jump",
+        "block": "blocka",
+        "set_count": 4,
+        "targets": [
+          "1 max",
+          "1 max",
+          "1 max",
+          "1 max"
+        ],
+        "notes": "EMOM × 8 · even minutes (broad jump) · stop if jump distance drops >5%",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Shuttle Run",
+        "block": "blocka",
+        "set_count": 4,
+        "targets": [
+          "20yd",
+          "20yd",
+          "20yd",
+          "20yd"
+        ],
+        "notes": "@ 75s · compare rep 1 vs rep 4 mechanics",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Group Game",
+        "block": "blocka",
+        "set_count": 1,
+        "targets": [
+          "relay"
+        ],
+        "notes": "Group relay · curved sprint / med-ball tag · lose = 1 burpee",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Makeup Lifting (coach assigned, if absent M/T)",
+        "block": "Block B",
+        "set_count": 1,
+        "targets": [
+          "—"
+        ],
+        "notes": "Normal · Main lift only",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 1,
+    "week_title": "Intro + RM diagnostic",
+    "day": "Thursday",
+    "day_title": "Upper B",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · push-up bounces 2×6–8 · high side-plank 25s/side · GHD sit-up 1×20 (while waiting)",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · push-up bounces 2×6–8 · high side-plank 25s/side · GHD sit-up 1×20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5",
+          "5 p/side || 5"
+        ],
+        "notes": "Explosive · Submax · Phase A",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "DB Push-Press (3RM Test)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "6–8 @ RPE 7",
+          "4–5 @ RPE 8",
+          "3 @ RPE 8",
+          "3RM Attempt"
+        ],
+        "notes": "2–3 warmup sets, then complete a heavy set of 3RM to set working max.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3A",
+        "name": "DB Push-Press (Back-Offs)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "6 @ RPE 8",
+          "6 @ RPE 8",
+          "6 @ RPE 8",
+          "6 @ RPE 8"
+        ],
+        "notes": "Normal · set at 15–20% less than 3RM set above.",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3B",
+        "name": "Pull-Up/Pulldown (Back-Offs)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "6–8",
+          "6–8",
+          "6–8",
+          "6–8"
+        ],
+        "notes": "Normal · BW · adjust difficulty to match",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4A",
+        "name": "Bicep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal · Phase A — pick at term start",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "Tricep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal · Phase A — pick at term start",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "DB Lateral",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "Cable Face-Pull",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 1,
+    "week_title": "Intro + RM diagnostic",
+    "day": "Friday",
+    "day_title": "Total",
+    "day_type": "total",
+    "warmup_notes": "Spring ankle (bent-knee) 45s/leg · hip hike 15/side · lunge ISO acc. 60s/leg",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle (bent-knee) 45s/leg · hip hike 15/side · lunge ISO acc. 60s/leg",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1A",
+        "name": "Standing Broad Jump",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Fresh · No sled · log broad + 10 m",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1B",
+        "name": "10m Acceleration",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "90% effort",
+          "95% effort",
+          "100% effort"
+        ],
+        "notes": "Fresh · No sled · log broad + 10 m",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "BB RDL (3RM Test)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "6–8 @ RPE 7",
+          "4–5 @ RPE 8",
+          "3 @ RPE 8",
+          "3RM Attempt"
+        ],
+        "notes": "2–3 warmup sets, then complete a heavy set of 3RM to set working max.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "BB RDL (Back-Offs)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "6 @ RPE 8",
+          "6 @ RPE 8",
+          "6 @ RPE 8",
+          "6 @ RPE 8"
+        ],
+        "notes": "Normal · set at 15–20% less than 3RM set above.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4A",
+        "name": "BB Bench",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "1-Arm DB Row",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "Forward-to-Reverse Lunge",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "8/side @ RPE 8",
+          "8/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 2,
+    "week_title": "Badger Protocol",
+    "day": "Monday",
+    "day_title": "Upper A",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 35s/side · GHD sit-up 1×20 (while waiting)",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 35s/side · GHD sit-up 1×20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5",
+          "5 p/side || 5"
+        ],
+        "notes": "Explosive · Submax · Phase A",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "DB Bench",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8"
+        ],
+        "notes": "Badger Protocol: first and last rep performed with a 3-4s ISO-Hold.",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2B",
+        "name": "TRX Row",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "12+ @ RPE 8",
+          "12+ @ RPE 8",
+          "12+ @ RPE 8",
+          "12+ @ RPE 8"
+        ],
+        "notes": "Normal · TRX BW @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Bench AMRAP",
+        "block": "Main",
+        "set_count": 1,
+        "targets": [
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal · set at 20% less than top-set of DB Bench",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "Seated DB Shoulder Press",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "BW Push-Up",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "AMRAP (3 in the Tank)",
+          "AMRAP (3 in the Tank)",
+          "AMRAP (3 in the Tank)"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "DB Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "15 @ RPE 8",
+          "15 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Split-Squat ISO",
+        "block": "conditioning",
+        "set_count": 3,
+        "targets": [
+          "20s/side",
+          "20s/side",
+          "20s/side"
+        ],
+        "notes": "Per round · posture > pace",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Goblet Squat",
+        "block": "conditioning",
+        "set_count": 3,
+        "targets": [
+          "10",
+          "10",
+          "10"
+        ],
+        "notes": "3-3-3 tempo · RPE 5–6",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Low Pogos",
+        "block": "conditioning",
+        "set_count": 3,
+        "targets": [
+          "20",
+          "20",
+          "20"
+        ],
+        "notes": "Silent contacts",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Jog",
+        "block": "conditioning",
+        "set_count": 3,
+        "targets": [
+          "100m",
+          "100m",
+          "100m"
+        ],
+        "notes": "Smooth · nasal breathing",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 2,
+    "week_title": "Badger Protocol",
+    "day": "Tuesday",
+    "day_title": "Lower A",
+    "day_type": "lower",
+    "warmup_notes": "Spring ankle 55s/leg · hip hike 15/side · lunge ISO acc. 75s/leg · deep-tier lunge plyo 1×10/leg · high side-plank 35s/side",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 55s/leg · hip hike 15/side · lunge ISO acc. 75s/leg · deep-tier lunge plyo 1×10/leg · high side-plank 35s/side",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "CMJ (Vertical Jump)",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Trap-Bar Jump",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "3–5 @ 15–20%",
+          "3–5 @ 15–20%",
+          "3–5 @ 15–20%"
+        ],
+        "notes": "Explosive · After each CMJ round",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Goblet Squat",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "6 @ RPE 8",
+          "6 @ RPE 8",
+          "6 @ RPE 8",
+          "6 @ RPE 8"
+        ],
+        "notes": "Badger Protocol: first and last rep performed with a 3-4s ISO-Hold.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "Squat AMRAP",
+        "block": "Main",
+        "set_count": 1,
+        "targets": [
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal · set at 20% less than top-set of Goblet Squat",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "DB Step-Up",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "6–8/side @ RPE 7",
+          "6–8/side @ RPE 8",
+          "6–8/side @ RPE 8",
+          "6–8/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6A",
+        "name": "Leg Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6B",
+        "name": "Leg Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "7",
+        "name": "GHD Back Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12+ @ RPE 8",
+          "12+ @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 2,
+    "week_title": "Badger Protocol",
+    "day": "Wednesday",
+    "day_title": "Conditioning + Makeup",
+    "day_type": "conditioning",
+    "warmup_notes": "Spring ankle 55s/leg · hip hike 15/side · lunge ISO acc. 75s/leg · high-knee march 5yd+hold/leg · low pogos 1×20",
+    "max_sets": 3,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 55s/leg · hip hike 15/side · lunge ISO acc. 75s/leg · high-knee march 5yd+hold/leg · low pogos 1×20",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Split-Squat ISO",
+        "block": "blocka",
+        "set_count": 3,
+        "targets": [
+          "20s/side",
+          "20s/side",
+          "20s/side"
+        ],
+        "notes": "Per round · posture > pace",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Goblet Squat",
+        "block": "blocka",
+        "set_count": 3,
+        "targets": [
+          "10",
+          "10",
+          "10"
+        ],
+        "notes": "3-3-3 tempo · RPE 5–6",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Low Pogos",
+        "block": "blocka",
+        "set_count": 3,
+        "targets": [
+          "20",
+          "20",
+          "20"
+        ],
+        "notes": "Silent contacts",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Jog",
+        "block": "blocka",
+        "set_count": 3,
+        "targets": [
+          "100m",
+          "100m",
+          "100m"
+        ],
+        "notes": "Smooth · nasal breathing",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Makeup Lifting (coach assigned, if absent M/T)",
+        "block": "Block B",
+        "set_count": 1,
+        "targets": [
+          "as assigned"
+        ],
+        "notes": "Normal · Missed Mon/Tue/Thu/Fri main only",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 2,
+    "week_title": "Badger Protocol",
+    "day": "Thursday",
+    "day_title": "Upper B",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · push-up bounces 2×6–8 · high side-plank 35s/side · GHD sit-up 1×20 (while waiting)",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · push-up bounces 2×6–8 · high side-plank 35s/side · GHD sit-up 1×20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5",
+          "5 p/side || 5"
+        ],
+        "notes": "Explosive · Submax · Phase A",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "DB Push-Press",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8"
+        ],
+        "notes": "Badger Protocol: first and last rep performed with a 3-4s ISO-Hold.",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2B",
+        "name": "Pull-Up/Pulldown",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Chin AMRAP (BW or Pulldown)",
+        "block": "Main",
+        "set_count": 1,
+        "targets": [
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal · set at 20% less than top-set of Pull-Up/Pulldown",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4A",
+        "name": "Bicep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal · Phase A — pick at term start",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "Tricep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal · Phase A — pick at term start",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "DB Lateral",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "Cable Face-Pull",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 2,
+    "week_title": "Badger Protocol",
+    "day": "Friday",
+    "day_title": "Total",
+    "day_type": "total",
+    "warmup_notes": "Spring ankle 55s/leg · hip hike 15/side · lunge ISO acc. 75s/leg",
+    "max_sets": 5,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 55s/leg · hip hike 15/side · lunge ISO acc. 75s/leg",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Standing Broad Jump",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Sled March (5m)",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "5m",
+          "5m",
+          "5m",
+          "5m"
+        ],
+        "notes": "Maintain Forward Lean and Hip Extension",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "5m Acceleration",
+        "block": "Primer",
+        "set_count": 5,
+        "targets": [
+          "5m",
+          "5m",
+          "5m",
+          "5m",
+          "5m"
+        ],
+        "notes": "Explosive · Maintain Forward Lean and Hip Extension · then all accel",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "BB RDL",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8"
+        ],
+        "notes": "Badger Protocol: first and last rep performed with a 3-4s ISO-Hold.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "BB Bench",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "12 @ RPE 9",
+          "12 @ RPE 9",
+          "12 @ RPE 9",
+          "12 @ RPE 9"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "1-Arm DB Row",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "Forward-to-Reverse Lunge",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "8/side @ RPE 8",
+          "8/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 3,
+    "week_title": "Badger Protocol",
+    "day": "Monday",
+    "day_title": "Upper A",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 35s/side · GHD sit-up 1×20 (while waiting)",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 35s/side · GHD sit-up 1×20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5",
+          "5 p/side || 5"
+        ],
+        "notes": "Explosive · Submax · Phase A",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "DB Bench",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8"
+        ],
+        "notes": "Badger Protocol: first and last rep performed with a 3-4s ISO-Hold.",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2B",
+        "name": "TRX Row",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "12+ @ RPE 8",
+          "12+ @ RPE 8",
+          "12+ @ RPE 8",
+          "12+ @ RPE 8"
+        ],
+        "notes": "Normal · TRX BW @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Bench AMRAP",
+        "block": "Main",
+        "set_count": 1,
+        "targets": [
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal · set at 20% less than top-set of DB Bench",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "Seated DB Shoulder Press",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "BW Push-Up",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "AMRAP (2 in the Tank)",
+          "AMRAP (2 in the Tank)",
+          "AMRAP (2 in the Tank)"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "DB Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "15 @ RPE 8",
+          "15 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Split-Squat ISO",
+        "block": "conditioning",
+        "set_count": 3,
+        "targets": [
+          "20s/side",
+          "20s/side",
+          "20s/side"
+        ],
+        "notes": "Per round · posture > pace",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Goblet Squat",
+        "block": "conditioning",
+        "set_count": 3,
+        "targets": [
+          "10",
+          "10",
+          "10"
+        ],
+        "notes": "3-3-3 tempo · RPE 5–6",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Low Pogos",
+        "block": "conditioning",
+        "set_count": 3,
+        "targets": [
+          "20",
+          "20",
+          "20"
+        ],
+        "notes": "Silent contacts",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Jog",
+        "block": "conditioning",
+        "set_count": 3,
+        "targets": [
+          "100m",
+          "100m",
+          "100m"
+        ],
+        "notes": "Smooth · nasal breathing",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 3,
+    "week_title": "Badger Protocol",
+    "day": "Tuesday",
+    "day_title": "Lower A",
+    "day_type": "lower",
+    "warmup_notes": "Spring ankle 65s/leg · hip hike 20/side · lunge ISO acc. 90s/leg · deep-tier lunge plyo 1×20/leg · high side-plank 45s/side",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 65s/leg · hip hike 20/side · lunge ISO acc. 90s/leg · deep-tier lunge plyo 1×20/leg · high side-plank 45s/side",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "CMJ (Vertical Jump)",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Trap-Bar Jump",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "3–5 @ 15–20%",
+          "3–5 @ 15–20%",
+          "3–5 @ 15–20%"
+        ],
+        "notes": "Explosive · After each CMJ round",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Front Squat",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8"
+        ],
+        "notes": "Badger Protocol: first and last rep performed with a 3-4s ISO-Hold.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "Squat AMRAP",
+        "block": "Main",
+        "set_count": 1,
+        "targets": [
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal · set at 20% less than top-set of Front Squat",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "DB Step-Up",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "6–8/side @ RPE 7",
+          "6–8/side @ RPE 8",
+          "6–8/side @ RPE 8",
+          "6–8/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6A",
+        "name": "Leg Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6B",
+        "name": "Leg Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "7",
+        "name": "GHD Back Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12+ @ RPE 8",
+          "12+ @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 3,
+    "week_title": "Badger Protocol",
+    "day": "Wednesday",
+    "day_title": "Conditioning + Makeup",
+    "day_type": "conditioning",
+    "warmup_notes": "Spring ankle 65s/leg · hip hike 20/side · lunge ISO acc. 90s/leg · high-knee march 5yd+hold/leg · low pogos 1×25",
+    "max_sets": 3,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 65s/leg · hip hike 20/side · lunge ISO acc. 90s/leg · high-knee march 5yd+hold/leg · low pogos 1×25",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Split-Squat ISO",
+        "block": "blocka",
+        "set_count": 3,
+        "targets": [
+          "20s/side",
+          "20s/side",
+          "20s/side"
+        ],
+        "notes": "Per round · posture > pace",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Goblet Squat",
+        "block": "blocka",
+        "set_count": 3,
+        "targets": [
+          "10",
+          "10",
+          "10"
+        ],
+        "notes": "3-3-3 tempo · RPE 5–6",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Low Pogos",
+        "block": "blocka",
+        "set_count": 3,
+        "targets": [
+          "20",
+          "20",
+          "20"
+        ],
+        "notes": "Silent contacts",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Jog",
+        "block": "blocka",
+        "set_count": 3,
+        "targets": [
+          "100m",
+          "100m",
+          "100m"
+        ],
+        "notes": "Smooth · nasal breathing",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Makeup Lifting (coach assigned, if absent M/T)",
+        "block": "Block B",
+        "set_count": 1,
+        "targets": [
+          "as assigned"
+        ],
+        "notes": "Normal · Missed Mon/Tue/Thu/Fri main only",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 3,
+    "week_title": "Badger Protocol",
+    "day": "Thursday",
+    "day_title": "Upper B",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · push-up bounces 2×6–8 · high side-plank 35s/side · GHD sit-up 1×20 (while waiting)",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · push-up bounces 2×6–8 · high side-plank 35s/side · GHD sit-up 1×20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5",
+          "5 p/side || 5"
+        ],
+        "notes": "Explosive · Submax · Phase A",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "DB Push-Press",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8"
+        ],
+        "notes": "Badger Protocol: first and last rep performed with a 3-4s ISO-Hold.",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2B",
+        "name": "Pull-Up/Pulldown",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Chin AMRAP",
+        "block": "Main",
+        "set_count": 1,
+        "targets": [
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal · set at 20% less than top-set of Pull-Up/Pulldown",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4A",
+        "name": "Bicep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal · Phase A — pick at term start",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "Tricep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal · Phase A — pick at term start",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "DB Lateral",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "Cable Face-Pull",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 3,
+    "week_title": "Badger Protocol",
+    "day": "Friday",
+    "day_title": "Total",
+    "day_type": "total",
+    "warmup_notes": "Spring ankle 65s/leg · hip hike 20/side · lunge ISO acc. 90s/leg · deep-tier lunge bounce 1×10/leg",
+    "max_sets": 5,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 65s/leg · hip hike 20/side · lunge ISO acc. 90s/leg · deep-tier lunge bounce 1×10/leg",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Standing Broad Jump",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Sled March (5m)",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "5m",
+          "5m",
+          "5m",
+          "5m"
+        ],
+        "notes": "Maintain Forward Lean and Hip Extension",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "5m Acceleration",
+        "block": "Primer",
+        "set_count": 5,
+        "targets": [
+          "5m",
+          "5m",
+          "5m",
+          "10m",
+          "10m"
+        ],
+        "notes": "Explosive · Maintain Forward Lean and Hip Extension · then all accel",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "BB RDL",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8",
+          "5 @ RPE 8"
+        ],
+        "notes": "Badger Protocol: first and last rep performed with a 3-4s ISO-Hold.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "BB Bench",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "12 @ RPE 9",
+          "12 @ RPE 9",
+          "12 @ RPE 9",
+          "12 @ RPE 9"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "1-Arm DB Row",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "Forward-to-Reverse Lunge",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "8/side @ RPE 8",
+          "8/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 4,
+    "week_title": "Cluster-Sets",
+    "day": "Monday",
+    "day_title": "Upper A",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 45s/side · GHD sit-up 2×20 (while waiting)",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 45s/side · GHD sit-up 2×20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5 p/side",
+          "5 p/side || 5 p/side"
+        ],
+        "notes": "Explosive · Submax · Phase B",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw W/ Step ×5/Side<br/>· Rotational Slam ×5/Side",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "BB Bench",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "2B",
+        "name": "Cable Row",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · 1RM",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Standing DB Shoulder Press",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "BW Push-Up",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "AMRAP (2 in the Tank)",
+          "AMRAP (2 in the Tank)",
+          "AMRAP (2 in the Tank)"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "DB Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "15 @ RPE 8",
+          "15 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Intervals",
+        "block": "conditioning",
+        "set_count": 6,
+        "targets": [
+          "2 min",
+          "2 min",
+          "2 min",
+          "2 min",
+          "2 min",
+          "2 min"
+        ],
+        "notes": "1 min @ ~70% · 30s @ ~80% · 30s float @ 60–65%",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "10yd Sprint",
+        "block": "conditioning",
+        "set_count": 3,
+        "targets": [
+          "1",
+          "1",
+          "1"
+        ],
+        "notes": "EMOM × 6 · odd minutes (10yd sprint) · RPE 6–7",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Broad Jump",
+        "block": "conditioning",
+        "set_count": 3,
+        "targets": [
+          "1 max",
+          "1 max",
+          "1 max"
+        ],
+        "notes": "EMOM × 6 · even minutes (broad jump) · RPE 6–7",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 4,
+    "week_title": "Cluster-Sets",
+    "day": "Tuesday",
+    "day_title": "Lower A",
+    "day_type": "lower",
+    "warmup_notes": "Spring ankle 80s/leg · hip hike 20/side · lunge ISO acc. 105s/leg · deep-tier lunge plyo 1×20/leg · high side-plank 55s/side",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 80s/leg · hip hike 20/side · lunge ISO acc. 105s/leg · deep-tier lunge plyo 1×20/leg · high side-plank 55s/side",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Seated Box Jump (Log)",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "DB Drop-Jump (6\" Box)",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "3–5",
+          "3–5",
+          "3–5",
+          "3–5"
+        ],
+        "notes": "Explosive · After each box-jump round",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Front Squat",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "4",
+        "name": "Hip Thrust (Barbell or DB)",
+        "block": "Secondary",
+        "set_count": 5,
+        "targets": [
+          "6–8 @ RPE 7",
+          "6–8 @ RPE 8",
+          "6–8 @ RPE 8",
+          "6–8 @ RPE 8",
+          "6–8 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "Leg Curl",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "Leg Extension",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "GHD Back Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12+ @ RPE 8",
+          "12+ @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 4,
+    "week_title": "Cluster-Sets",
+    "day": "Wednesday",
+    "day_title": "Conditioning + Makeup",
+    "day_type": "conditioning",
+    "warmup_notes": "Spring ankle 80s/leg · hip hike 20/side · lunge ISO acc. 105s/leg · high-knee march 10yd+hold/leg · low pogos 1×30 · prime-times 2×15yd",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 80s/leg · hip hike 20/side · lunge ISO acc. 105s/leg · high-knee march 10yd+hold/leg · low pogos 1×30 · prime-times 2×15yd",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Intervals",
+        "block": "blocka",
+        "set_count": 6,
+        "targets": [
+          "2 min",
+          "2 min",
+          "2 min",
+          "2 min",
+          "2 min",
+          "2 min"
+        ],
+        "notes": "1 min @ ~70% · 30s @ ~80% · 30s float @ 60–65%",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "10yd Sprint",
+        "block": "blocka",
+        "set_count": 3,
+        "targets": [
+          "1",
+          "1",
+          "1"
+        ],
+        "notes": "EMOM × 6 · odd minutes (10yd sprint) · RPE 6–7",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Broad Jump",
+        "block": "blocka",
+        "set_count": 3,
+        "targets": [
+          "1 max",
+          "1 max",
+          "1 max"
+        ],
+        "notes": "EMOM × 6 · even minutes (broad jump) · RPE 6–7",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Makeup Lifting (coach assigned, if absent M/T)",
+        "block": "Block B",
+        "set_count": 1,
+        "targets": [
+          "as assigned"
+        ],
+        "notes": "Normal · Missed Mon/Tue/Thu/Fri main only",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 4,
+    "week_title": "Cluster-Sets",
+    "day": "Thursday",
+    "day_title": "Upper B",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · push-up drop-ins 2×4–6 · high side-plank 45s/side · GHD sit-up 2×20 (while waiting)",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · push-up drop-ins 2×4–6 · high side-plank 45s/side · GHD sit-up 2×20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5 p/side",
+          "5 p/side || 5 p/side"
+        ],
+        "notes": "Explosive · Submax · Phase B",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw W/ Step ×5/Side<br/>· Rotational Slam ×5/Side",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "DB Push-Press",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "2B",
+        "name": "Pull-Up/Pulldown",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · 1RM",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3A",
+        "name": "Bicep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal · new picks at Wk4 (Phase B)",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3B",
+        "name": "Tricep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal · new picks at Wk4 (Phase B)",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4A",
+        "name": "DB Lateral",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "Cable Face-Pull",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 4,
+    "week_title": "Cluster-Sets",
+    "day": "Friday",
+    "day_title": "Total",
+    "day_type": "total",
+    "warmup_notes": "Spring ankle 80s/leg · hip hike 20/side · lunge ISO acc. 105s/leg · lunge bounce 1×20/leg · pogos 1×20",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 80s/leg · hip hike 20/side · lunge ISO acc. 105s/leg · lunge bounce 1×20/leg · pogos 1×20",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Standing Broad Jump",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Sled Sprint",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "notes": "Explosive",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "5–10m Acceleration",
+        "block": "Primer",
+        "set_count": 6,
+        "targets": [
+          "5–10m",
+          "5–10m",
+          "5–10m",
+          "5–10m",
+          "5–10m",
+          "5–10m"
+        ],
+        "notes": "Explosive",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "BB Deadlift",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "5A",
+        "name": "DB Bench",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "12 @ RPE 9",
+          "12 @ RPE 9",
+          "12 @ RPE 9",
+          "12 @ RPE 9"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "1-Arm DB Row",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "Forward-to-Reverse Lunge",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "8/side @ RPE 8",
+          "8/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 5,
+    "week_title": "Cluster-Sets",
+    "day": "Monday",
+    "day_title": "Upper A",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 45s/side · GHD sit-up 2×20 (while waiting)",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 45s/side · GHD sit-up 2×20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5 p/side",
+          "5 p/side || 5 p/side"
+        ],
+        "notes": "Explosive · Submax · Phase B",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw W/ Step ×5/Side<br/>· Rotational Slam ×5/Side",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "BB Bench",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "2B",
+        "name": "1-Arm DB Row",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · 1RM",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Standing DB Shoulder Press",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "BW Push-Up",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "AMRAP (1 in the Tank)",
+          "AMRAP (1 in the Tank)",
+          "AMRAP (1 in the Tank)"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "DB Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "15 @ RPE 8",
+          "15 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Intervals",
+        "block": "conditioning",
+        "set_count": 6,
+        "targets": [
+          "2 min",
+          "2 min",
+          "2 min",
+          "2 min",
+          "2 min",
+          "2 min"
+        ],
+        "notes": "1 min @ ~70% · 30s @ ~80% · 30s float @ 60–65%",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "10yd Sprint",
+        "block": "conditioning",
+        "set_count": 3,
+        "targets": [
+          "1",
+          "1",
+          "1"
+        ],
+        "notes": "EMOM × 6 · odd minutes (10yd sprint) · RPE 6–7",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Broad Jump",
+        "block": "conditioning",
+        "set_count": 3,
+        "targets": [
+          "1 max",
+          "1 max",
+          "1 max"
+        ],
+        "notes": "EMOM × 6 · even minutes (broad jump) · RPE 6–7",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 5,
+    "week_title": "Cluster-Sets",
+    "day": "Tuesday",
+    "day_title": "Lower A",
+    "day_type": "lower",
+    "warmup_notes": "Spring ankle 95s/leg · hip hike 25/side · lunge ISO acc. 120s/leg · deep-tier lunge plyo 1×20/leg · high side-plank 65s/side",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 95s/leg · hip hike 25/side · lunge ISO acc. 120s/leg · deep-tier lunge plyo 1×20/leg · high side-plank 65s/side",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Seated Box Jump (Log)",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "DB Drop-Jump (6\" Box)",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "3–5",
+          "3–5",
+          "3–5",
+          "3–5"
+        ],
+        "notes": "Explosive · After each box-jump round",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Front Squat",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "4",
+        "name": "Hip Thrust (Barbell or DB)",
+        "block": "Secondary",
+        "set_count": 5,
+        "targets": [
+          "6–8 @ RPE 7",
+          "6–8 @ RPE 8",
+          "6–8 @ RPE 8",
+          "6–8 @ RPE 8",
+          "6–8 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "Leg Curl",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "Leg Extension",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "GHD Back Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12+ @ RPE 8",
+          "12+ @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 5,
+    "week_title": "Cluster-Sets",
+    "day": "Wednesday",
+    "day_title": "Conditioning + Makeup",
+    "day_type": "conditioning",
+    "warmup_notes": "Spring ankle 95s/leg · hip hike 25/side · lunge ISO acc. 120s/leg · high-knee march 10yd+hold/leg · low pogos 1×30 · prime-times 2×15yd",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 95s/leg · hip hike 25/side · lunge ISO acc. 120s/leg · high-knee march 10yd+hold/leg · low pogos 1×30 · prime-times 2×15yd",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Intervals",
+        "block": "blocka",
+        "set_count": 6,
+        "targets": [
+          "2 min",
+          "2 min",
+          "2 min",
+          "2 min",
+          "2 min",
+          "2 min"
+        ],
+        "notes": "1 min @ ~70% · 30s @ ~80% · 30s float @ 60–65%",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "10yd Sprint",
+        "block": "blocka",
+        "set_count": 3,
+        "targets": [
+          "1",
+          "1",
+          "1"
+        ],
+        "notes": "EMOM × 6 · odd minutes (10yd sprint) · RPE 6–7",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Broad Jump",
+        "block": "blocka",
+        "set_count": 3,
+        "targets": [
+          "1 max",
+          "1 max",
+          "1 max"
+        ],
+        "notes": "EMOM × 6 · even minutes (broad jump) · RPE 6–7",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Makeup Lifting (coach assigned, if absent M/T)",
+        "block": "Block B",
+        "set_count": 1,
+        "targets": [
+          "as assigned"
+        ],
+        "notes": "Normal · Missed Mon/Tue/Thu/Fri main only",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 5,
+    "week_title": "Cluster-Sets",
+    "day": "Thursday",
+    "day_title": "Upper B",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · push-up drop-ins 2×4–6 · high side-plank 45s/side · GHD sit-up 2×20 (while waiting)",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · push-up drop-ins 2×4–6 · high side-plank 45s/side · GHD sit-up 2×20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5 p/side",
+          "5 p/side || 5 p/side"
+        ],
+        "notes": "Explosive · Submax · Phase B",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw W/ Step ×5/Side<br/>· Rotational Slam ×5/Side",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "DB Push-Press",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "2B",
+        "name": "Pull-Up/Pulldown",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · 1RM",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3A",
+        "name": "Bicep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal · new picks at Wk4 (Phase B)",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3B",
+        "name": "Tricep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal · new picks at Wk4 (Phase B)",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4A",
+        "name": "DB Lateral",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "Cable Face-Pull",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 5,
+    "week_title": "Cluster-Sets",
+    "day": "Friday",
+    "day_title": "Total",
+    "day_type": "total",
+    "warmup_notes": "Spring ankle 95s/leg · hip hike 25/side · lunge ISO acc. 120s/leg · lunge bounce 1×20/leg · pogos 1×20",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 95s/leg · hip hike 25/side · lunge ISO acc. 120s/leg · lunge bounce 1×20/leg · pogos 1×20",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Standing Broad Jump",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Sled Sprint",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "notes": "Explosive",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "5–10m Acceleration",
+        "block": "Primer",
+        "set_count": 6,
+        "targets": [
+          "5–10m",
+          "5–10m",
+          "5–10m",
+          "5–10m",
+          "5–10m",
+          "5–10m"
+        ],
+        "notes": "Explosive",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "BB Deadlift",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "5A",
+        "name": "DB Bench",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "12 @ RPE 9",
+          "12 @ RPE 9",
+          "12 @ RPE 9",
+          "12 @ RPE 9"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "1-Arm DB Row",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "Forward-to-Reverse Lunge",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "8/side @ RPE 8",
+          "8/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 6,
+    "week_title": "Cluster-Sets",
+    "day": "Monday",
+    "day_title": "Upper A",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 55s/side · GHD sit-up 2×20 (while waiting)",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 55s/side · GHD sit-up 2×20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5 p/side",
+          "5 p/side || 5 p/side"
+        ],
+        "notes": "Explosive · Submax · Phase B",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw W/ Step ×5/Side<br/>· Rotational Slam ×5/Side",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "BB Bench",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "2B",
+        "name": "1-Arm DB Row",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · 1RM",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Standing DB Shoulder Press",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "BW Push-Up",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "AMRAP (1 in the Tank)",
+          "AMRAP (1 in the Tank)",
+          "AMRAP (1 in the Tank)"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "DB Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "15 @ RPE 8",
+          "15 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "10yd Sprint",
+        "block": "conditioning",
+        "set_count": 5,
+        "targets": [
+          "1",
+          "1",
+          "1",
+          "1",
+          "1"
+        ],
+        "notes": "EMOM × 10 · odd minutes (10yd sprint)",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Broad Jump",
+        "block": "conditioning",
+        "set_count": 5,
+        "targets": [
+          "1 max",
+          "1 max",
+          "1 max",
+          "1 max",
+          "1 max"
+        ],
+        "notes": "EMOM × 10 · even minutes (broad jump) · stop if jump drops >5%",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "5 Min Finisher Flush",
+        "block": "conditioning",
+        "set_count": 1,
+        "targets": [
+          "5 min"
+        ],
+        "notes": "Light tempo jog or walk",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 6,
+    "week_title": "Cluster-Sets",
+    "day": "Tuesday",
+    "day_title": "Lower A",
+    "day_type": "lower",
+    "warmup_notes": "Spring ankle 105s/leg · hip hike 25/side · lunge ISO acc. 130s/leg · deep-tier lunge plyo 2×15/leg · high side-plank 75s/side",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 105s/leg · hip hike 25/side · lunge ISO acc. 130s/leg · deep-tier lunge plyo 2×15/leg · high side-plank 75s/side",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Seated Box Jump (Log)",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Depth-Drop (24–30\" Box)",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "3–5",
+          "3–5",
+          "3–5",
+          "3–5"
+        ],
+        "notes": "Explosive · After each box-jump round",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Back Squat",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "4",
+        "name": "Hip Thrust (Barbell or DB)",
+        "block": "Secondary",
+        "set_count": 5,
+        "targets": [
+          "6–8 @ RPE 7",
+          "6–8 @ RPE 8",
+          "6–8 @ RPE 8",
+          "6–8 @ RPE 8",
+          "6–8 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "Leg Curl",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "Leg Extension",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "GHD Back Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12+ @ RPE 8",
+          "12+ @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 6,
+    "week_title": "Cluster-Sets",
+    "day": "Wednesday",
+    "day_title": "Conditioning + Makeup",
+    "day_type": "conditioning",
+    "warmup_notes": "Spring ankle 105s/leg · hip hike 25/side · lunge ISO acc. 130s/leg · high-knee march 10yd+hold/leg · low pogos 1×30 · prime-times 2×15yd",
+    "max_sets": 5,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 105s/leg · hip hike 25/side · lunge ISO acc. 130s/leg · high-knee march 10yd+hold/leg · low pogos 1×30 · prime-times 2×15yd",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "10yd Sprint",
+        "block": "blocka",
+        "set_count": 5,
+        "targets": [
+          "1",
+          "1",
+          "1",
+          "1",
+          "1"
+        ],
+        "notes": "EMOM × 10 · odd minutes (10yd sprint)",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Broad Jump",
+        "block": "blocka",
+        "set_count": 5,
+        "targets": [
+          "1 max",
+          "1 max",
+          "1 max",
+          "1 max",
+          "1 max"
+        ],
+        "notes": "EMOM × 10 · even minutes (broad jump) · stop if jump drops >5%",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "5 Min Finisher Flush",
+        "block": "blocka",
+        "set_count": 1,
+        "targets": [
+          "5 min"
+        ],
+        "notes": "Light tempo jog or walk",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Makeup Lifting (coach assigned, if absent M/T)",
+        "block": "Block B",
+        "set_count": 1,
+        "targets": [
+          "as assigned"
+        ],
+        "notes": "Normal · Missed Mon/Tue/Thu/Fri main only",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 6,
+    "week_title": "Cluster-Sets",
+    "day": "Thursday",
+    "day_title": "Upper B",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · push-up drop-ins 2×4–6 · high side-plank 55s/side · GHD sit-up 2×20 (while waiting)",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · push-up drop-ins 2×4–6 · high side-plank 55s/side · GHD sit-up 2×20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5 p/side",
+          "5 p/side || 5 p/side"
+        ],
+        "notes": "Explosive · Submax · Phase B",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw W/ Step ×5/Side<br/>· Rotational Slam ×5/Side",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "DB Push-Press",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%",
+          "5 @ 70–75%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "2B",
+        "name": "Pull-Up/Pulldown",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · 1RM",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3A",
+        "name": "Bicep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal · new picks at Wk4 (Phase B)",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3B",
+        "name": "Tricep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal · new picks at Wk4 (Phase B)",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4A",
+        "name": "DB Lateral",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "Cable Face-Pull",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 6,
+    "week_title": "Cluster-Sets",
+    "day": "Friday",
+    "day_title": "Total",
+    "day_type": "total",
+    "warmup_notes": "Spring ankle 105s/leg · hip hike 25/side · lunge ISO acc. 130s/leg · lunge bounce 2×15/leg · pogos 1×25",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 105s/leg · hip hike 25/side · lunge ISO acc. 130s/leg · lunge bounce 2×15/leg · pogos 1×25",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Standing Broad Jump",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "Sled March (10m)",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "10m",
+          "10m",
+          "10m"
+        ],
+        "notes": "Maintain Forward Lean and Hip Extension",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2B",
+        "name": "10m Acceleration",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "10m",
+          "10m",
+          "10m"
+        ],
+        "notes": "Explosive · Maintain Forward Lean and Hip Extension · sled primes sprint",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "BB Deadlift",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%",
+          "5 @ 65–70%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "4A",
+        "name": "DB Bench",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "12 @ RPE 9",
+          "12 @ RPE 9",
+          "12 @ RPE 9",
+          "12 @ RPE 9"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "1-Arm DB Row",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "Forward-to-Reverse Lunge",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "8/side @ RPE 8",
+          "8/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 7,
+    "week_title": "Deload Week",
+    "day": "Monday",
+    "day_title": "Upper A",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 55s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+    "max_sets": 5,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 55s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 1,
+        "targets": [
+          "5 p/side || 5"
+        ],
+        "notes": "Easy · Phase A · wk7: 1 round or lighter ball",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "BB Bench",
+        "block": "Main",
+        "set_count": 3,
+        "targets": [
+          "5 @ RPE 7",
+          "5 @ RPE 7",
+          "5 @ RPE 7"
+        ],
+        "notes": "Normal · wk 6",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2B",
+        "name": "BB Row",
+        "block": "Main",
+        "set_count": 3,
+        "targets": [
+          "8–10 @ RPE 7",
+          "8–10 @ RPE 7",
+          "8–10 @ RPE 7"
+        ],
+        "notes": "Normal · wk 6",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "BB Military Press",
+        "block": "Secondary",
+        "set_count": 2,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal · Moderate",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "Dips (or regression)",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "AMRAP @ RPE 9",
+          "AMRAP @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "DB Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12 @ RPE 9",
+          "12 @ RPE 9"
+        ],
+        "notes": "Normal · Easy",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "10yd Sprint",
+        "block": "conditioning",
+        "set_count": 5,
+        "targets": [
+          "1",
+          "1",
+          "1",
+          "1",
+          "1"
+        ],
+        "notes": "EMOM × 10 · odd minutes (10yd sprint) · submax",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Broad Jump",
+        "block": "conditioning",
+        "set_count": 5,
+        "targets": [
+          "1 max",
+          "1 max",
+          "1 max",
+          "1 max",
+          "1 max"
+        ],
+        "notes": "EMOM × 10 · even minutes (broad jump) · submax · stop if jump drops >5%",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "5 Min Finisher Flush",
+        "block": "conditioning",
+        "set_count": 1,
+        "targets": [
+          "5 min"
+        ],
+        "notes": "Light tempo jog or walk",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 7,
+    "week_title": "Deload Week",
+    "day": "Tuesday",
+    "day_title": "Lower A",
+    "day_type": "lower",
+    "warmup_notes": "Spring ankle 110s/leg · hip hike 30/side · lunge ISO acc. 140s/leg · deep-tier lunge plyo 2×15/leg · high side-plank 80s/side",
+    "max_sets": 3,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 110s/leg · hip hike 30/side · lunge ISO acc. 140s/leg · deep-tier lunge plyo 2×15/leg · high side-plank 80s/side",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "CMJ (Vertical Jump) — Submax",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Easy · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Depth-Drop (24–30\" Box, Submax)",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "3–5 @ RPE 6",
+          "3–5 @ RPE 6"
+        ],
+        "notes": "Easy · After each VJ round",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Back Squat",
+        "block": "Main",
+        "set_count": 3,
+        "targets": [
+          "5 @ RPE 7",
+          "5 @ RPE 7",
+          "5 @ RPE 7"
+        ],
+        "notes": "Normal · wk 6",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "Ffe Reverse Lunge",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "6/side @ RPE 8",
+          "6/side @ RPE 8",
+          "6/side @ RPE 8"
+        ],
+        "notes": "Normal · Moderate",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "Leg Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal · Easy",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "Leg Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal · Easy",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "GHD Back Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "8+ @ RPE 8",
+          "8+ @ RPE 8"
+        ],
+        "notes": "Normal · Easy",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 7,
+    "week_title": "Deload Week",
+    "day": "Wednesday",
+    "day_title": "Conditioning + Makeup",
+    "day_type": "conditioning",
+    "warmup_notes": "Spring ankle 110s/leg · hip hike 30/side · lunge ISO acc. 140s/leg · high-knee march 15yd+hold/leg · low pogos 2×30 · prime-times 2×15yd · A-switch 2×15yd",
+    "max_sets": 5,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 110s/leg · hip hike 30/side · lunge ISO acc. 140s/leg · high-knee march 15yd+hold/leg · low pogos 2×30 · prime-times 2×15yd · A-switch 2×15yd",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "10yd Sprint",
+        "block": "blocka",
+        "set_count": 5,
+        "targets": [
+          "1",
+          "1",
+          "1",
+          "1",
+          "1"
+        ],
+        "notes": "EMOM × 10 · odd minutes (10yd sprint) · submax",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Broad Jump",
+        "block": "blocka",
+        "set_count": 5,
+        "targets": [
+          "1 max",
+          "1 max",
+          "1 max",
+          "1 max",
+          "1 max"
+        ],
+        "notes": "EMOM × 10 · even minutes (broad jump) · submax · stop if jump drops >5%",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "5 Min Finisher Flush",
+        "block": "blocka",
+        "set_count": 1,
+        "targets": [
+          "5 min"
+        ],
+        "notes": "Light tempo jog or walk",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Makeup Lifting (coach assigned, if absent M/T)",
+        "block": "Block B",
+        "set_count": 1,
+        "targets": [
+          "as assigned"
+        ],
+        "notes": "Normal · Missed Mon/Tue/Thu/Fri main only",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 7,
+    "week_title": "Deload Week",
+    "day": "Thursday",
+    "day_title": "Upper B",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · push-up ISO hold 45–60s · high side-plank 55s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · push-up ISO hold 45–60s · high side-plank 55s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 1,
+        "targets": [
+          "5 p/side || 5"
+        ],
+        "notes": "Easy · Phase A · wk7: 1 round or lighter ball",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "BB Push-Press",
+        "block": "Main",
+        "set_count": 3,
+        "targets": [
+          "5 @ RPE 7",
+          "5 @ RPE 7",
+          "5 @ RPE 7"
+        ],
+        "notes": "Normal · wk 6",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2B",
+        "name": "Pull-Up/Pulldown",
+        "block": "Main",
+        "set_count": 3,
+        "targets": [
+          "8 @ RPE 7",
+          "8 @ RPE 7",
+          "8 @ RPE 7"
+        ],
+        "notes": "Normal · wk 6",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3A",
+        "name": "Bicep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 2,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal · Moderate · new picks at Wk7 (Phase C)",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3B",
+        "name": "Tricep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 2,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal · Moderate · new picks at Wk7 (Phase C)",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4A",
+        "name": "DB Lateral",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "Cable Face-Pull",
+        "block": "Accessory",
+        "set_count": 4,
+        "targets": [
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9",
+          "15 @ RPE 9"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 7,
+    "week_title": "Deload Week",
+    "day": "Friday",
+    "day_title": "Total",
+    "day_type": "total",
+    "warmup_notes": "Spring ankle 110s/leg · hip hike 30/side · lunge ISO acc. 140s/leg · lunge bounce 2×15/leg · pogos 2×25",
+    "max_sets": 3,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 110s/leg · hip hike 30/side · lunge ISO acc. 140s/leg · lunge bounce 2×15/leg · pogos 2×25",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Standing Broad Jump — Submax",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Easy · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Sled March (10m) → 10 M",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "10m",
+          "10m"
+        ],
+        "notes": "Maintain Forward Lean and Hip Extension",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Trap-Bar Deadlift",
+        "block": "Main",
+        "set_count": 3,
+        "targets": [
+          "5 @ RPE 7",
+          "5 @ RPE 7",
+          "5 @ RPE 7"
+        ],
+        "notes": "Normal · wk 6",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4A",
+        "name": "DB Bench",
+        "block": "Secondary",
+        "set_count": 2,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench Moderate · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "1-Arm DB Row",
+        "block": "Secondary",
+        "set_count": 2,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench Moderate · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "Reverse Lunge → Step-Up",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "6/side @ RPE 8",
+          "6/side @ RPE 8"
+        ],
+        "notes": "Normal · Easy/moderate",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 8,
+    "week_title": "Intensification and Peaking",
+    "day": "Monday",
+    "day_title": "Upper A",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 65s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 65s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5",
+          "5 p/side || 5"
+        ],
+        "notes": "Explosive · Submax · Phase A",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "BB Bench",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "2B",
+        "name": "BB Row",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · 1RM",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Bench AMRAP",
+        "block": "Main",
+        "set_count": 1,
+        "targets": [
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal · Set at  less than top-set of BB Bench",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "BB Military Press",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "8 @ RPE 8",
+          "8 @ RPE 8",
+          "8 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "Dips (or regression)",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "AMRAP @ RPE 8",
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "DB Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12–15 @ RPE 8",
+          "12–15 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Shuttle Run",
+        "block": "conditioning",
+        "set_count": 4,
+        "targets": [
+          "20yd",
+          "20yd",
+          "20yd",
+          "20yd"
+        ],
+        "notes": "@ 75s · clean cuts · stacked posture",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Competitive Relay",
+        "block": "conditioning",
+        "set_count": 1,
+        "targets": [
+          "relay"
+        ],
+        "notes": "Curved sprint / med-ball tag · lose = 2 push-ups",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 8,
+    "week_title": "Intensification and Peaking",
+    "day": "Tuesday",
+    "day_title": "Lower A",
+    "day_type": "lower",
+    "warmup_notes": "Spring ankle 120s/leg · hip hike 30/side · lunge ISO acc. 150s/leg · deep-tier lunge plyo 2×20/leg · high side-plank 90s/side",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 120s/leg · hip hike 30/side · lunge ISO acc. 150s/leg · deep-tier lunge plyo 2×20/leg · high side-plank 90s/side",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Seated Box Jump or Weighted VJ (Log)",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Depth-Drop (30–48\" Box)",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "3–5",
+          "3–5",
+          "3–5",
+          "3–5"
+        ],
+        "notes": "Explosive · After each unresisted round",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Back Squat",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "4",
+        "name": "Squat AMRAP",
+        "block": "Main",
+        "set_count": 1,
+        "targets": [
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal · Set at  less than top-set of Back Squat",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "Ffe Reverse Lunge",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "6/side @ RPE 8",
+          "6/side @ RPE 8",
+          "6/side @ RPE 8",
+          "6/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6A",
+        "name": "Leg Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6B",
+        "name": "Leg Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "7",
+        "name": "GHD Back Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "10+ @ RPE 8",
+          "10+ @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 8,
+    "week_title": "Intensification and Peaking",
+    "day": "Wednesday",
+    "day_title": "Conditioning + Makeup",
+    "day_type": "conditioning",
+    "warmup_notes": "Spring ankle 120s/leg · hip hike 30/side · lunge ISO acc. 150s/leg · high-knee march 15yd+hold/leg · low pogos 2×30 · prime-times 2×15yd · A-switch 2×15yd",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 120s/leg · hip hike 30/side · lunge ISO acc. 150s/leg · high-knee march 15yd+hold/leg · low pogos 2×30 · prime-times 2×15yd · A-switch 2×15yd",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Shuttle Run",
+        "block": "blocka",
+        "set_count": 4,
+        "targets": [
+          "20yd",
+          "20yd",
+          "20yd",
+          "20yd"
+        ],
+        "notes": "@ 75s · clean cuts · stacked posture",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Competitive Relay",
+        "block": "blocka",
+        "set_count": 1,
+        "targets": [
+          "relay"
+        ],
+        "notes": "Curved sprint / med-ball tag · lose = 2 push-ups",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Makeup Lifting (coach assigned, if absent M/T)",
+        "block": "Block B",
+        "set_count": 1,
+        "targets": [
+          "as assigned"
+        ],
+        "notes": "Normal · Missed Mon/Tue/Thu/Fri main only",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 8,
+    "week_title": "Intensification and Peaking",
+    "day": "Thursday",
+    "day_title": "Upper B",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · plyo push-ups 2×4–6 · high side-plank 65s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · plyo push-ups 2×4–6 · high side-plank 65s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5",
+          "5 p/side || 5"
+        ],
+        "notes": "Explosive · Submax · Phase A",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "BB Push-Press",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "2B",
+        "name": "Pull-Up/Pulldown",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "8",
+          "8",
+          "8",
+          "8",
+          "8",
+          "8"
+        ],
+        "notes": "Normal · 1RM",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Chin AMRAP",
+        "block": "Main",
+        "set_count": 1,
+        "targets": [
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal · Set at  less than top-set of Pull-Up/Pulldown",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4A",
+        "name": "Bicep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal · keep Phase C exercises",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "Tricep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal · keep Phase C exercises",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "DB Lateral",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "20 @ RPE 8",
+          "20 @ RPE 8",
+          "20 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "Cable Face-Pull",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "20 @ RPE 8",
+          "20 @ RPE 8",
+          "20 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 8,
+    "week_title": "Intensification and Peaking",
+    "day": "Friday",
+    "day_title": "Total",
+    "day_type": "total",
+    "warmup_notes": "Spring ankle 120s/leg · hip hike 30/side · lunge ISO acc. 150s/leg · lunge bounce 2×20/leg · pogos 2×30",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 120s/leg · hip hike 30/side · lunge ISO acc. 150s/leg · lunge bounce 2×20/leg · pogos 2×30",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Standing Broad Jump",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "Sprint",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "notes": "Explosive · Sled primes sprint",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2B",
+        "name": "15m Acceleration",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "15m",
+          "15m",
+          "15m",
+          "15m"
+        ],
+        "notes": "Explosive · Sled primes sprint",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Trap-Bar Deadlift",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "4A",
+        "name": "DB Bench",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8",
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "1-Arm DB Row",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "Reverse Lunge → Step-Up",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "8/side @ RPE 8",
+          "8/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 9,
+    "week_title": "Intensification and Peaking",
+    "day": "Monday",
+    "day_title": "Upper A",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 75s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 75s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5",
+          "5 p/side || 5"
+        ],
+        "notes": "Explosive · Submax · Phase A",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "BB Bench",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "2B",
+        "name": "BB Row",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · 1RM",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Bench AMRAP",
+        "block": "Main",
+        "set_count": 1,
+        "targets": [
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal · Set at  less than top-set of BB Bench",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "BB Military Press",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "8 @ RPE 8",
+          "8 @ RPE 8",
+          "8 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "Dips (or regression)",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "AMRAP @ RPE 8",
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "DB Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12–15 @ RPE 8",
+          "12–15 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Shuttle Run",
+        "block": "conditioning",
+        "set_count": 4,
+        "targets": [
+          "20yd",
+          "20yd",
+          "20yd",
+          "20yd"
+        ],
+        "notes": "@ 75s · clean cuts · stacked posture",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Competitive Relay",
+        "block": "conditioning",
+        "set_count": 1,
+        "targets": [
+          "relay"
+        ],
+        "notes": "Curved sprint / med-ball tag · lose = 2 push-ups",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 9,
+    "week_title": "Intensification and Peaking",
+    "day": "Tuesday",
+    "day_title": "Lower A",
+    "day_type": "lower",
+    "warmup_notes": "Spring ankle 120s/leg · hip hike 30/side · lunge ISO acc. 150s/leg · deep-tier lunge plyo 2×20/leg · high side-plank 90s/side",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 120s/leg · hip hike 30/side · lunge ISO acc. 150s/leg · deep-tier lunge plyo 2×20/leg · high side-plank 90s/side",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Trap-Bar Jump or Weighted VJ (Log)",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Depth-Jump (24–30\" Box)",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "3–5",
+          "3–5",
+          "3–5",
+          "3–5"
+        ],
+        "notes": "Explosive · After each unresisted round",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Back Squat",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "4",
+        "name": "Squat AMRAP",
+        "block": "Main",
+        "set_count": 1,
+        "targets": [
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal · Set at  less than top-set of Back Squat",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "Ffe Reverse Lunge",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "6/side @ RPE 8",
+          "6/side @ RPE 8",
+          "6/side @ RPE 8",
+          "6/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6A",
+        "name": "Leg Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6B",
+        "name": "Leg Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "7",
+        "name": "GHD Back Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "10+ @ RPE 8",
+          "10+ @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 9,
+    "week_title": "Intensification and Peaking",
+    "day": "Wednesday",
+    "day_title": "Conditioning + Makeup",
+    "day_type": "conditioning",
+    "warmup_notes": "Spring ankle 120s/leg · hip hike 30/side · lunge ISO acc. 150s/leg · high-knee march 15yd+hold/leg · low pogos 2×30 · prime-times 2×15yd · A-switch 2×15yd",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 120s/leg · hip hike 30/side · lunge ISO acc. 150s/leg · high-knee march 15yd+hold/leg · low pogos 2×30 · prime-times 2×15yd · A-switch 2×15yd",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Shuttle Run",
+        "block": "blocka",
+        "set_count": 4,
+        "targets": [
+          "20yd",
+          "20yd",
+          "20yd",
+          "20yd"
+        ],
+        "notes": "@ 75s · clean cuts · stacked posture",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Competitive Relay",
+        "block": "blocka",
+        "set_count": 1,
+        "targets": [
+          "relay"
+        ],
+        "notes": "Curved sprint / med-ball tag · lose = 2 push-ups",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Makeup Lifting (coach assigned, if absent M/T)",
+        "block": "Block B",
+        "set_count": 1,
+        "targets": [
+          "as assigned"
+        ],
+        "notes": "Normal · Missed Mon/Tue/Thu/Fri main only",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 9,
+    "week_title": "Intensification and Peaking",
+    "day": "Thursday",
+    "day_title": "Upper B",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · plyo push-ups 2×4–6 · high side-plank 75s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · plyo push-ups 2×4–6 · high side-plank 75s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5",
+          "5 p/side || 5"
+        ],
+        "notes": "Explosive · Submax · Phase A",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "BB Push-Press",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%",
+          "4 @ 75–80%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "2B",
+        "name": "Pull-Up/Pulldown",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "8",
+          "8",
+          "8",
+          "8",
+          "8",
+          "8"
+        ],
+        "notes": "Normal · 1RM",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Chin AMRAP",
+        "block": "Main",
+        "set_count": 1,
+        "targets": [
+          "AMRAP @ RPE 8"
+        ],
+        "notes": "Normal · Set at  less than top-set of Pull-Up/Pulldown",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4A",
+        "name": "Bicep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal · keep Phase C exercises",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "Tricep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal · keep Phase C exercises",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "DB Lateral",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "20 @ RPE 8",
+          "20 @ RPE 8",
+          "20 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "Cable Face-Pull",
+        "block": "Accessory",
+        "set_count": 3,
+        "targets": [
+          "20 @ RPE 8",
+          "20 @ RPE 8",
+          "20 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 9,
+    "week_title": "Intensification and Peaking",
+    "day": "Friday",
+    "day_title": "Total",
+    "day_type": "total",
+    "warmup_notes": "Spring ankle 120s/leg · hip hike 30/side · lunge ISO acc. 150s/leg · lunge bounce 2×20/leg · pogos 2×30",
+    "max_sets": 6,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 120s/leg · hip hike 30/side · lunge ISO acc. 150s/leg · lunge bounce 2×20/leg · pogos 2×30",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Standing Broad Jump",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Explosive · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "Sprint",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "notes": "Explosive · Sled primes sprint",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2B",
+        "name": "15m Acceleration",
+        "block": "Primer",
+        "set_count": 4,
+        "targets": [
+          "15m",
+          "15m",
+          "15m",
+          "15m"
+        ],
+        "notes": "Explosive · Sled primes sprint",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Trap-Bar Deadlift",
+        "block": "Main",
+        "set_count": 6,
+        "targets": [
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%",
+          "4 @ 70–75%"
+        ],
+        "notes": "Normal · 1RM · Calculate load from 1RM (or equivalent).",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": true
+      },
+      {
+        "label": "4A",
+        "name": "DB Bench",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8",
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "1-Arm DB Row",
+        "block": "Secondary",
+        "set_count": 4,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench  · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5",
+        "name": "Reverse Lunge → Step-Up",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "8/side @ RPE 8",
+          "8/side @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 10,
+    "week_title": "Intensification and Peaking",
+    "day": "Monday",
+    "day_title": "Upper A",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 45s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · deep push-up ISO 45–60s · high side-plank 45s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5",
+          "5 p/side || 5"
+        ],
+        "notes": "Easy · Submax · Phase A",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "BB Bench (1RM Test)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "6–8 @ RPE 7",
+          "4–5 @ RPE 8",
+          "2–3 @ RPE 8.5",
+          "1RM Attempt"
+        ],
+        "notes": "2–3 warmup sets, then one heavy single @ RPE 9–9.5 — no grinders · record Wk10-1RM.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3A",
+        "name": "BB Bench (Back-Offs)",
+        "block": "Main",
+        "set_count": 3,
+        "targets": [
+          "5–6",
+          "5–6",
+          "5–6"
+        ],
+        "notes": "Normal · set at 25–30% less than 1RM set above.",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3B",
+        "name": "BB Row (Back-Offs)",
+        "block": "Main",
+        "set_count": 3,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · set at 25–30% less than 1RM set above.",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "BB Military Press",
+        "block": "Secondary",
+        "set_count": 2,
+        "targets": [
+          "8",
+          "8"
+        ],
+        "notes": "Normal · Moderate",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 10,
+    "week_title": "Intensification and Peaking",
+    "day": "Tuesday",
+    "day_title": "Lower A",
+    "day_type": "lower",
+    "warmup_notes": "Spring ankle 90s/leg (ease) · hip hike 15/side · lunge ISO acc. 90s/leg · deep-tier lunge plyo 1×15/leg · high side-plank 45s/side",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 90s/leg (ease) · hip hike 15/side · lunge ISO acc. 90s/leg · deep-tier lunge plyo 1×15/leg · high side-plank 45s/side",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "CMJ (Vertical Jump) — Retest",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Fresh · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "Back Squat (1RM Test)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "6–8 @ RPE 7",
+          "4–5 @ RPE 8",
+          "2–3 @ RPE 8.5",
+          "1RM Attempt"
+        ],
+        "notes": "2–3 warmup sets, then one heavy single @ RPE 9–9.5 — no grinders · record Wk10-1RM.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Back Squat (Back-Offs)",
+        "block": "Main",
+        "set_count": 3,
+        "targets": [
+          "5–6",
+          "5–6",
+          "5–6"
+        ],
+        "notes": "Normal · set at 25–30% less than 1RM set above.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "Ffe Reverse Lunge",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "6/side",
+          "6/side",
+          "6/side"
+        ],
+        "notes": "Normal · Moderate (optional skip)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "Leg Curl",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "Leg Extension",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12 @ RPE 8",
+          "12 @ RPE 8"
+        ],
+        "notes": "Normal",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 10,
+    "week_title": "Intensification and Peaking",
+    "day": "Wednesday",
+    "day_title": "Dog Capacity Re-test + peak catch-up",
+    "day_type": "conditioning",
+    "warmup_notes": "Spring ankle 90s/leg (ease) · hip hike 15/side · lunge ISO acc. 90s/leg · high-knee march 5yd+hold/leg · low pogos 1×20",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 90s/leg (ease) · hip hike 15/side · lunge ISO acc. 90s/leg · high-knee march 5yd+hold/leg · low pogos 1×20",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Continuous Circuit",
+        "block": "blocka",
+        "set_count": 2,
+        "targets": [
+          "circuit",
+          "circuit"
+        ],
+        "notes": "20s split-squat ISO/side · 6 tempo goblet (3-3-3) · 20s SL balance · 15 low pogos",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Tempo Jog",
+        "block": "blocka",
+        "set_count": 1,
+        "targets": [
+          "6 min"
+        ],
+        "notes": "Continuous jog · nasal breath first 3 min · mid-effort coach Q",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "10yd Sprint",
+        "block": "blocka",
+        "set_count": 4,
+        "targets": [
+          "1",
+          "1",
+          "1",
+          "1"
+        ],
+        "notes": "EMOM × 8 · odd minutes (10yd sprint)",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Broad Jump",
+        "block": "blocka",
+        "set_count": 4,
+        "targets": [
+          "1 max",
+          "1 max",
+          "1 max",
+          "1 max"
+        ],
+        "notes": "EMOM × 8 · even minutes (broad jump) · stop if jump distance drops >5%",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Shuttle Run",
+        "block": "blocka",
+        "set_count": 4,
+        "targets": [
+          "20yd",
+          "20yd",
+          "20yd",
+          "20yd"
+        ],
+        "notes": "@ 75s · compare rep 1 vs rep 4 mechanics",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "",
+        "name": "Group Game",
+        "block": "blocka",
+        "set_count": 1,
+        "targets": [
+          "relay"
+        ],
+        "notes": "Group relay · curved sprint / med-ball tag · lose = 1 burpee",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Makeup Lifting (coach assigned, if absent M/T)",
+        "block": "Block B",
+        "set_count": 1,
+        "targets": [
+          "—"
+        ],
+        "notes": "Normal · Same 1RM protocol as missed day — not a fifth test",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 10,
+    "week_title": "Intensification and Peaking",
+    "day": "Thursday",
+    "day_title": "Upper B",
+    "day_type": "upper",
+    "warmup_notes": "Band face-pull ×15 · plyo push-ups 2×4–6 · high side-plank 45s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Band face-pull ×15 · plyo push-ups 2×4–6 · high side-plank 45s/side · GHD sit-up + twist 2×15–20 (while waiting)",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Med-Ball Prep:",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "5 p/side || 5",
+          "5 p/side || 5"
+        ],
+        "notes": "Easy · Submax · Phase A",
+        "from_pair": false,
+        "exercise_html": "Med-Ball Prep:<br/>· Rotation Throw ×5/Side<br/>· Overhead Slam ×5",
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2",
+        "name": "BB Push-Press (1RM Test)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "6–8 @ RPE 7",
+          "4–5 @ RPE 8",
+          "2–3 @ RPE 8.5",
+          "1RM Attempt"
+        ],
+        "notes": "2–3 warmup sets, then one heavy single @ RPE 9–9.5 — no grinders · record Wk10-1RM.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3A",
+        "name": "BB Push-Press (Back-Offs)",
+        "block": "Main",
+        "set_count": 3,
+        "targets": [
+          "5–6",
+          "5–6",
+          "5–6"
+        ],
+        "notes": "Normal · set at 25–30% less than 1RM set above.",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3B",
+        "name": "Pull-Up/Pulldown (Back-Offs)",
+        "block": "Main",
+        "set_count": 3,
+        "targets": [
+          "BW",
+          "BW",
+          "BW"
+        ],
+        "notes": "Normal · BW · adjust difficulty to match",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4A",
+        "name": "Bicep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 2,
+        "targets": [
+          "10",
+          "10"
+        ],
+        "notes": "Normal · Moderate · keep Phase C exercises",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4B",
+        "name": "Tricep (Athlete Choice)",
+        "block": "Secondary",
+        "set_count": 2,
+        "targets": [
+          "10",
+          "10"
+        ],
+        "notes": "Normal · Moderate · keep Phase C exercises",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "DB Lateral",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12",
+          "12"
+        ],
+        "notes": "Normal · Easy",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "Cable Face-Pull",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "12",
+          "12"
+        ],
+        "notes": "Normal · Easy",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  },
+  {
+    "week": 10,
+    "week_title": "Intensification and Peaking",
+    "day": "Friday",
+    "day_title": "Total",
+    "day_type": "total",
+    "warmup_notes": "Spring ankle 90s/leg (ease) · hip hike 15/side · lunge ISO acc. 90s/leg · lunge bounce 1×15/leg · pogos 1×15",
+    "max_sets": 4,
+    "movements": [
+      {
+        "label": "W",
+        "name": "Warmup Circuit",
+        "block": "Warmup",
+        "set_count": 0,
+        "targets": [],
+        "notes": "Spring ankle 90s/leg (ease) · hip hike 15/side · lunge ISO acc. 90s/leg · lunge bounce 1×15/leg · pogos 1×15",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "1",
+        "name": "Standing Broad Jump — Retest",
+        "block": "Primer",
+        "set_count": 3,
+        "targets": [
+          "Max Attempt",
+          "Max Attempt",
+          "Max Attempt"
+        ],
+        "notes": "Fresh · Log best",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2A",
+        "name": "10m Acceleration",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "10m",
+          "10m"
+        ],
+        "notes": "Fresh · No sled · log times",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "2B",
+        "name": "20m Acceleration",
+        "block": "Primer",
+        "set_count": 2,
+        "targets": [
+          "20m",
+          "20m"
+        ],
+        "notes": "Fresh · No sled · log times",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "3",
+        "name": "Trap-Bar Deadlift (1RM Test)",
+        "block": "Main",
+        "set_count": 4,
+        "targets": [
+          "6–8 @ RPE 7",
+          "4–5 @ RPE 8",
+          "2–3 @ RPE 8.5",
+          "1RM Attempt"
+        ],
+        "notes": "2–3 warmup sets, then one heavy single @ RPE 9–9.5 — no grinders · record Wk10-1RM.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "4",
+        "name": "Trap-Bar Deadlift (Back-Offs)",
+        "block": "Main",
+        "set_count": 3,
+        "targets": [
+          "5–6",
+          "5–6",
+          "5–6"
+        ],
+        "notes": "Normal · set at 25–30% less than 1RM set above.",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5A",
+        "name": "DB Bench",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "10 @ RPE 8",
+          "10 @ RPE 8",
+          "10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench Moderate · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "5B",
+        "name": "1-Arm DB Row",
+        "block": "Secondary",
+        "set_count": 3,
+        "targets": [
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8",
+          "8–10 @ RPE 8"
+        ],
+        "notes": "Normal · Bench Moderate · row 8–10 @",
+        "from_pair": true,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      },
+      {
+        "label": "6",
+        "name": "Reverse Lunge → Step-Up",
+        "block": "Accessory",
+        "set_count": 2,
+        "targets": [
+          "6/side",
+          "6/side"
+        ],
+        "notes": "Normal · Easy",
+        "from_pair": false,
+        "exercise_html": null,
+        "cluster_pct_targets": false
+      }
+    ]
+  }
+]

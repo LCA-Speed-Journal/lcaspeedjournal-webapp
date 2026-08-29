@@ -18,14 +18,14 @@ export async function GET(request: NextRequest) {
       let query;
       if (activeFilter === 'true') {
         query = sql`
-          SELECT id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at
+          SELECT id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at, hugo_group
           FROM athletes
           WHERE active = true
           ORDER BY last_name, first_name
         `;
       } else {
         query = sql`
-          SELECT id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at
+          SELECT id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at, hugo_group
           FROM athletes
           ORDER BY last_name, first_name
         `;

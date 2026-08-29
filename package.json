@@ -13,18 +13,25 @@
     "migrate:canonical": "tsx scripts/migrate-canonical-cumulative-entries.ts"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.8.1",
+    "@vercel/blob": "^2.8.0",
     "@vercel/postgres": "^0.10.0",
     "framer-motion": "^12.31.0",
+    "jsqr": "^1.4.0",
     "next": "16.1.6",
     "next-auth": "^4.24.10",
+    "openai": "^7.7.0",
+    "qrcode": "^1.5.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^2.15.0",
+    "sharp": "^0.35.4",
     "swr": "^2.2.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

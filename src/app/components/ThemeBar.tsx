@@ -11,7 +11,7 @@ export function ThemeBar({ children }: { children: React.ReactNode }) {
   return (
     <>
       {hideChrome ? null : (
-        <div className="fixed top-0 right-0 z-[100] flex items-center gap-3 p-3">
+        <div className="fixed top-0 right-0 z-[100] flex items-center gap-3 p-3 print:hidden">
           <ThemeToggle />
           <Link
             href="/"
