@@ -1,5 +1,11 @@
 import type { HugoGroup, ScanStatus } from "@/lib/weight-room/constants";
 
+export type AthleteHugoMembership = {
+  athlete_id: string;
+  hugo_group: HugoGroup;
+  created_at: string;
+};
+
 export type AthleteSticker = {
   id: string;
   athlete_id: string;

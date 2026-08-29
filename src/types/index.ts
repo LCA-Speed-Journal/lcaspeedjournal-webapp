@@ -8,6 +8,7 @@ export type Athlete = {
   active: boolean;
   created_at: string;
   hugo_group?: string | null;
+  hugo_groups?: string[];
 };
 
 /** Session-to-session comparison: up = better, down = worse, neutral = within band */
