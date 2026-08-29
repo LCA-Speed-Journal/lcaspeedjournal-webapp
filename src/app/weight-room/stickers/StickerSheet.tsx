@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
 import { HUGO_GROUP_META, type HugoGroup } from "@/lib/weight-room/constants";
+import { isOnHugoTeam } from "@/lib/weight-room/hugo-memberships";
 import type { Athlete } from "@/types";
 import type { AthleteSticker } from "@/types/weight-room";
 
@@ -50,9 +51,7 @@ export function StickerSheet() {
   );
   const issuable = useMemo(
     () =>
-      athletes.filter(
-        (a) => Boolean(a.hugo_group) && !issuedIds.has(a.id)
-      ),
+      athletes.filter((a) => isOnHugoTeam(a) && !issuedIds.has(a.id)),
     [athletes, issuedIds]
   );
 

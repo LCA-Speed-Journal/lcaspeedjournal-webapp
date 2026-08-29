@@ -9,6 +9,7 @@ import {
   parseScanExtraction,
 } from "@/lib/weight-room/confirm-scan";
 import { parseLoadReps } from "@/lib/weight-room/parse-load-reps";
+import { isOnHugoTeam } from "@/lib/weight-room/hugo-memberships";
 import type { Athlete } from "@/types";
 import type {
   ScanListRow,
@@ -68,7 +69,7 @@ export function ReviewClient({ scanId }: { scanId: string }) {
   const scan = detail?.scan;
   const template = detail?.template ?? null;
   const roster = useMemo(
-    () => (athletesRes?.data ?? []).filter((a) => Boolean(a.hugo_group)),
+    () => (athletesRes?.data ?? []).filter((a) => isOnHugoTeam(a)),
     [athletesRes]
   );
 

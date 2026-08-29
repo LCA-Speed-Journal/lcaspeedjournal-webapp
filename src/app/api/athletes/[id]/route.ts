@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { attachHugoGroupsFromDb } from "@/lib/weight-room/hugo-memberships";
 
 export async function GET(
   _request: NextRequest,
@@ -15,7 +16,7 @@ export async function GET(
     let row: Record<string, unknown>;
     try {
       const { rows } = await sql`
-        SELECT id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at
+        SELECT id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at, hugo_group
         FROM athletes
         WHERE id = ${id}
         LIMIT 1
@@ -46,7 +47,10 @@ export async function GET(
         throw legacyErr;
       }
     }
-    return NextResponse.json({ data: row });
+    const [withGroups] = await attachHugoGroupsFromDb([
+      row as Record<string, unknown> & { id: string },
+    ]);
+    return NextResponse.json({ data: withGroups });
   } catch (err) {
     console.error("GET /api/athletes/[id]:", err);
     return NextResponse.json(

@@ -7,6 +7,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { resolveGraduatingClass } from "@/lib/quick-athlete";
+import { attachHugoGroupsFromDb } from "@/lib/weight-room/hugo-memberships";
 
 export async function GET(request: NextRequest) {
   try {
@@ -31,7 +32,10 @@ export async function GET(request: NextRequest) {
         `;
       }
       const { rows } = await query;
-      return NextResponse.json({ data: rows });
+      const withGroups = await attachHugoGroupsFromDb(
+        rows as Array<Record<string, unknown> & { id: string }>
+      );
+      return NextResponse.json({ data: withGroups });
     } catch (legacyErr) {
       const msg = String((legacyErr as Error)?.message ?? "");
       if (
@@ -46,11 +50,12 @@ export async function GET(request: NextRequest) {
             FROM athletes
             ORDER BY last_name, first_name
           `;
-          const withActive = (rows as Record<string, unknown>[]).map((r) => ({
+          const withActive = (rows as Array<Record<string, unknown> & { id: string }>).map((r) => ({
             ...r,
             active: true,
           }));
-          return NextResponse.json({ data: withActive });
+          const withGroups = await attachHugoGroupsFromDb(withActive);
+          return NextResponse.json({ data: withGroups });
         } catch (noActiveErr) {
           const innerMsg = String((noActiveErr as Error)?.message ?? "");
           if (
@@ -63,12 +68,13 @@ export async function GET(request: NextRequest) {
               FROM athletes
               ORDER BY last_name, first_name
             `;
-            const withDefaults = (rows as Record<string, unknown>[]).map((r) => ({
+            const withDefaults = (rows as Array<Record<string, unknown> & { id: string }>).map((r) => ({
               ...r,
               athlete_type: "athlete",
               active: true,
             }));
-            return NextResponse.json({ data: withDefaults });
+            const withGroups = await attachHugoGroupsFromDb(withDefaults);
+            return NextResponse.json({ data: withGroups });
           }
           throw noActiveErr;
         }

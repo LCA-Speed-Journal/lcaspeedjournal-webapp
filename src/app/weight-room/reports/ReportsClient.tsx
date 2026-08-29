@@ -9,6 +9,7 @@ import {
   HUGO_GROUPS,
   type HugoGroup,
 } from "@/lib/weight-room/constants";
+import { athleteHasHugoGroup } from "@/lib/weight-room/hugo-memberships";
 import type { Athlete } from "@/types";
 
 const fetcher = (url: string) =>
@@ -98,8 +99,8 @@ export function ReportsClient() {
     fetcher
   );
 
-  const athletes = (data?.data ?? []).filter(
-    (a) => a.hugo_group === hugoGroup
+  const athletes = (data?.data ?? []).filter((a) =>
+    athleteHasHugoGroup(a, hugoGroup)
   );
 
   const rangeInvalid = !from || !to || from > to;

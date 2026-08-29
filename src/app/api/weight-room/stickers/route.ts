@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireCoachSession } from "@/lib/require-coach";
+import { athleteHasAnyMembership } from "@/lib/weight-room/hugo-memberships";
 import { encodeStickerPayload } from "@/lib/weight-room/qr-payload";
 
 const UUID_RE =
@@ -85,7 +86,8 @@ export async function POST(request: NextRequest) {
       last_name: string;
       hugo_group: string | null;
     };
-    if (athlete.hugo_group == null) {
+    const hasMembership = await athleteHasAnyMembership(athleteId);
+    if (!hasMembership && athlete.hugo_group == null) {
       return NextResponse.json(
         { error: "Athlete is not assigned to a Hugo group" },
         { status: 400 }
