@@ -32,7 +32,10 @@ export function HugoTeamsSection({ athleteId }: HugoTeamsSectionProps) {
   const athlete = data?.data;
 
   function isChecked(group: HugoGroup) {
-    return athlete?.hugo_groups?.includes(group) || athlete?.hugo_group === group;
+    if (athlete?.hugo_groups) {
+      return athlete.hugo_groups.includes(group);
+    }
+    return athlete?.hugo_group === group;
   }
 
   async function handleToggle(group: HugoGroup, checked: boolean) {
@@ -50,7 +53,7 @@ export function HugoTeamsSection({ athleteId }: HugoTeamsSectionProps) {
             { method: "DELETE" }
           );
       const json = await res.json();
-      if (!res.ok) {
+      if (!res.ok && !(res.status === 404 && !checked)) {
         setError(json.error ?? "Failed to update Hugo team");
         return;
       }
