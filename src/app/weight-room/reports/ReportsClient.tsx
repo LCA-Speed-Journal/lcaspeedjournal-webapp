@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
@@ -10,12 +10,28 @@ import {
   type HugoGroup,
 } from "@/lib/weight-room/constants";
 import { athleteHasHugoGroup } from "@/lib/weight-room/hugo-memberships";
+import type { WeightRoomOverview } from "@/lib/weight-room/overview-aggregate";
 import type { Athlete } from "@/types";
 
 const fetcher = (url: string) =>
   fetch(url).then((r) =>
     r.ok ? r.json() : Promise.reject(new Error(r.statusText))
   );
+
+async function overviewFetcher(url: string) {
+  const res = await fetch(url);
+  if (res.ok) return res.json();
+  let message = res.statusText || `Failed to load overview (${res.status})`;
+  try {
+    const json = (await res.json()) as { error?: unknown };
+    if (typeof json.error === "string" && json.error.trim()) {
+      message = json.error;
+    }
+  } catch {
+    // not JSON
+  }
+  throw new Error(message);
+}
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
@@ -62,6 +78,43 @@ async function errorMessage(res: Response): Promise<string> {
   return fallback;
 }
 
+function displayName(first: string, last: string): string {
+  return `${first} ${last}`.trim() || "Unknown";
+}
+
+function formatParsedOutput(out: {
+  load: number | null;
+  reps: number | null;
+  units: string | null;
+}): string {
+  if (out.load != null && out.reps != null) {
+    const unit = out.units ? ` ${out.units}` : "";
+    return `${out.load}×${out.reps}${unit}`;
+  }
+  if (out.load != null) {
+    return out.units ? `${out.load} ${out.units}` : String(out.load);
+  }
+  return "—";
+}
+
+function OverviewTile({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border-2 border-border/80 bg-surface/90 p-4 shadow-2xl shadow-black/30 backdrop-blur-sm ring-1 ring-white/5">
+      <div className="mb-2 h-1 w-12 rounded-full bg-accent" />
+      <h3 className="text-xs font-medium uppercase tracking-wider text-foreground-muted">
+        {title}
+      </h3>
+      <div className="mt-2">{children}</div>
+    </section>
+  );
+}
+
 async function downloadPdfBlob(url: string, fallbackName: string): Promise<void> {
   const res = await fetch(url, { credentials: "same-origin" });
   if (!res.ok) {
@@ -105,6 +158,18 @@ export function ReportsClient() {
 
   const rangeInvalid = !from || !to || from > to;
   const downloadsDisabled = rangeInvalid || downloadBusy;
+
+  const overviewKey = rangeInvalid
+    ? null
+    : `/api/weight-room/overview?hugo_group=${encodeURIComponent(hugoGroup)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+
+  const {
+    data: overviewRes,
+    error: overviewError,
+    isLoading: overviewLoading,
+  } = useSWR<{ data: WeightRoomOverview }>(overviewKey, overviewFetcher);
+
+  const overview = overviewRes?.data;
 
   async function onDownload(url: string, fallbackName: string) {
     if (rangeInvalid) return;
@@ -204,6 +269,110 @@ export function ReportsClient() {
           ) : null}
           {downloadError ? (
             <p className="mt-2 text-sm text-danger">{downloadError}</p>
+          ) : null}
+        </section>
+
+        <section className="mt-6">
+          <h2 className="text-sm font-medium uppercase tracking-wider text-foreground-muted">
+            Team overview
+          </h2>
+          {overviewLoading ? (
+            <p className="mt-3 text-sm text-foreground-muted">Loading overview…</p>
+          ) : null}
+          {overviewError ? (
+            <p className="mt-3 text-sm text-danger">
+              {overviewError instanceof Error
+                ? overviewError.message
+                : "Failed to load overview"}
+            </p>
+          ) : null}
+          {!rangeInvalid && !overviewLoading && !overviewError && overview ? (
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <OverviewTile title="Attendance">
+                <p className="text-2xl font-semibold text-foreground">
+                  {overview.attendanceCount} / {overview.rosterCount}
+                </p>
+                {overview.attendanceByDate.length === 0 ? (
+                  <p className="mt-2 text-sm text-foreground-muted">No sessions in range</p>
+                ) : (
+                  <ul className="mt-2 space-y-1">
+                    {overview.attendanceByDate.map((row) => (
+                      <li
+                        key={row.session_date}
+                        className="flex justify-between text-sm text-foreground"
+                      >
+                        <span>{row.session_date}</span>
+                        <span className="text-foreground-muted">{row.count}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </OverviewTile>
+
+              <OverviewTile title="Best loads">
+                {overview.bestLoads.length === 0 ? (
+                  <p className="text-sm text-foreground-muted">—</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {overview.bestLoads.map((row) => (
+                      <li
+                        key={row.athlete_id}
+                        className="flex justify-between gap-2 text-sm text-foreground"
+                      >
+                        <span>
+                          {displayName(row.first_name, row.last_name)}
+                        </span>
+                        <span className="text-foreground-muted">{row.load}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </OverviewTile>
+
+              <OverviewTile title="Outputs">
+                {overview.outputs.length === 0 ? (
+                  <p className="text-sm text-foreground-muted">—</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {overview.outputs.map((row, i) => (
+                      <li
+                        key={`${row.athlete_id}-${row.movement_name}-${row.session_date}-${i}`}
+                        className="text-sm text-foreground"
+                      >
+                        <p>
+                          {displayName(row.first_name, row.last_name)}
+                          <span className="text-foreground-muted">
+                            {" "}
+                            · {row.movement_name}
+                          </span>
+                        </p>
+                        <p className="text-foreground-muted">
+                          {row.raw_text?.trim() || "—"} / {formatParsedOutput(row)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </OverviewTile>
+
+              <OverviewTile title="No-shows">
+                {overview.noShows.length === 0 ? (
+                  <p className="text-sm text-foreground-muted">
+                    {overview.rosterCount === 0
+                      ? "No rostered athletes"
+                      : "None"}
+                  </p>
+                ) : (
+                  <ul className="space-y-1">
+                    {overview.noShows.map((a) => (
+                      <li key={a.id} className="text-sm text-foreground">
+                        {a.last_name}, {a.first_name}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </OverviewTile>
+            </div>
           ) : null}
         </section>
 

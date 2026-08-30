@@ -64,7 +64,7 @@ export default async function WeightRoomHubPage() {
             href="/weight-room/reports"
             className="rounded-xl border border-border bg-surface-elevated px-4 py-3 text-sm font-medium text-foreground hover:border-accent/50"
           >
-            Reports
+            Reports — Overview + PDF
           </Link>
         </div>
       </main>

@@ -84,6 +84,26 @@ export function rowsToReportSource(rows: Record<string, unknown>[]): ReportSourc
   return { logs, results, movements, athletes };
 }
 
+export async function loadRoster(hugo_group: HugoGroup): Promise<ReportAthlete[]> {
+  const { rows } = await sql`
+    SELECT
+      a.id,
+      a.first_name,
+      a.last_name
+    FROM athlete_hugo_memberships m
+    JOIN athletes a ON a.id = m.athlete_id
+    WHERE m.hugo_group = ${hugo_group} AND a.active = true
+    ORDER BY a.last_name, a.first_name
+  `;
+  return (rows as Array<{ id: string; first_name: string; last_name: string }>).map(
+    (row) => ({
+      id: String(row.id),
+      first_name: String(row.first_name ?? ""),
+      last_name: String(row.last_name ?? ""),
+    })
+  );
+}
+
 export async function loadTeamReportSource(opts: {
   hugo_group: string;
   from: string;
