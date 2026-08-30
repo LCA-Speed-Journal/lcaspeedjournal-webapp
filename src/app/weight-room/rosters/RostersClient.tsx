@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
@@ -124,6 +124,7 @@ function athleteLabel(a: { first_name: string; last_name: string }): string {
 
 export function RostersClient() {
   const [hugoGroup, setHugoGroup] = useState<HugoGroup>("soccer");
+  const [reviewGroup, setReviewGroup] = useState<HugoGroup | null>(null);
   const [pasteText, setPasteText] = useState("");
   const [reviewRows, setReviewRows] = useState<ReviewRow[]>([]);
   const [previewBusy, setPreviewBusy] = useState(false);
@@ -133,16 +134,19 @@ export function RostersClient() {
   const [commitResult, setCommitResult] = useState<CommitResult | null>(null);
   const [removingId, setRemovingId] = useState("");
   const [removeError, setRemoveError] = useState("");
+  const hugoGroupRef = useRef(hugoGroup);
+  hugoGroupRef.current = hugoGroup;
+  const confirmInFlight = useRef(false);
+  const removeInFlight = useRef(false);
 
   const rosterKey = `/api/weight-room/rosters?hugo_group=${encodeURIComponent(hugoGroup)}`;
   const { data, error, isLoading, mutate } = useSWR<{ data: Athlete[] }>(
     rosterKey,
     fetcher
   );
-  const { data: athletesData } = useSWR<{ data: Athlete[] }>(
-    "/api/athletes?active=true",
-    fetcher
-  );
+  const { data: athletesData, error: athletesError } = useSWR<{
+    data: Athlete[];
+  }>("/api/athletes?active=true", fetcher);
 
   const members = data?.data ?? [];
   const activeAthletes = athletesData?.data ?? [];
@@ -157,6 +161,7 @@ export function RostersClient() {
 
   function onGroupChange(next: HugoGroup) {
     setHugoGroup(next);
+    setReviewGroup(null);
     setReviewRows([]);
     setPreviewError("");
     setConfirmError("");
@@ -165,6 +170,7 @@ export function RostersClient() {
   }
 
   async function onPrepare() {
+    const preparedGroup = hugoGroup;
     setPreviewError("");
     setConfirmError("");
     setCommitResult(null);
@@ -173,28 +179,36 @@ export function RostersClient() {
       const res = await fetch("/api/weight-room/rosters/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hugo_group: hugoGroup, text: pasteText }),
+        body: JSON.stringify({ hugo_group: preparedGroup, text: pasteText }),
       });
       const json = (await res.json()) as {
         error?: string;
         data?: { rows?: PreviewRow[] };
       };
+      if (hugoGroupRef.current !== preparedGroup) return;
       if (!res.ok) {
         setPreviewError(jsonError(json, "Failed to prepare import"));
         setReviewRows([]);
+        setReviewGroup(null);
         return;
       }
       setReviewRows((json.data?.rows ?? []).map(toReviewRow));
+      setReviewGroup(preparedGroup);
     } catch {
+      if (hugoGroupRef.current !== preparedGroup) return;
       setPreviewError("Network error — try again");
       setReviewRows([]);
+      setReviewGroup(null);
     } finally {
       setPreviewBusy(false);
     }
   }
 
   async function onConfirm() {
-    if (incompleteLink || eligibleRows.length === 0) return;
+    if (confirmInFlight.current) return;
+    if (incompleteLink || eligibleRows.length === 0 || !reviewGroup) return;
+    const commitGroup = reviewGroup;
+    confirmInFlight.current = true;
     setConfirmError("");
     setCommitResult(null);
     setConfirmBusy(true);
@@ -215,7 +229,7 @@ export function RostersClient() {
       const res = await fetch("/api/weight-room/rosters/commit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hugo_group: hugoGroup, rows: payload }),
+        body: JSON.stringify({ hugo_group: commitGroup, rows: payload }),
       });
       const json = (await res.json()) as {
         error?: string;
@@ -237,11 +251,14 @@ export function RostersClient() {
     } catch {
       setConfirmError("Network error — try again");
     } finally {
+      confirmInFlight.current = false;
       setConfirmBusy(false);
     }
   }
 
   async function onRemove(athleteId: string) {
+    if (removeInFlight.current) return;
+    removeInFlight.current = true;
     setRemoveError("");
     setRemovingId(athleteId);
     try {
@@ -258,6 +275,7 @@ export function RostersClient() {
     } catch {
       setRemoveError("Network error — try again");
     } finally {
+      removeInFlight.current = false;
       setRemovingId("");
     }
   }
@@ -298,8 +316,9 @@ export function RostersClient() {
             Group
             <select
               value={hugoGroup}
+              disabled={previewBusy || confirmBusy}
               onChange={(e) => onGroupChange(e.target.value as HugoGroup)}
-              className="mt-1 block w-full max-w-md rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground"
+              className="mt-1 block w-full max-w-md rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground disabled:opacity-50"
             >
               {HUGO_GROUPS.map((g) => (
                 <option key={g} value={g}>
@@ -382,6 +401,7 @@ export function RostersClient() {
               disabled={
                 confirmBusy ||
                 previewBusy ||
+                !reviewGroup ||
                 eligibleRows.length === 0 ||
                 incompleteLink
               }
@@ -391,6 +411,9 @@ export function RostersClient() {
               {confirmBusy ? "Confirming…" : "Confirm import"}
             </button>
           </div>
+          {athletesError ? (
+            <p className="mt-2 text-sm text-danger">Failed to load athletes</p>
+          ) : null}
           {previewError ? (
             <p className="mt-2 text-sm text-danger">{previewError}</p>
           ) : null}
