@@ -97,17 +97,12 @@ img.wr-qr-placeholder {
 
 .wr-preview-frame {
   overflow: auto;
-  position: relative;
-  width: calc(11in * 0.55);
-  height: calc(8.5in * 0.55);
-}
-
-.wr-preview-frame .wr-preview-capture {
-  position: absolute;
-  top: 0;
-  left: 0;
+  width: 11in;
   transform: scale(0.55);
   transform-origin: top left;
+  /* Transform does not shrink layout; collapse the leftover box. */
+  margin-bottom: calc(8.5in * 0.55 - 8.5in);
+  margin-right: calc(11in * 0.55 - 11in);
 }
 
 .wr-print-copy {
