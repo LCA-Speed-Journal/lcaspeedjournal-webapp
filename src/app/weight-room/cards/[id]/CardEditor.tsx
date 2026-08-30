@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
 import useSWR from "swr";
@@ -88,6 +88,15 @@ function formToDraft(
   };
 }
 
+function draftSignature(d: CardDraft): string {
+  return JSON.stringify({
+    sessionDate: d.sessionDate,
+    focus: d.focus,
+    title: d.title,
+    movements: d.movements,
+  });
+}
+
 function newMovement(): MovementForm {
   return {
     key:
@@ -120,6 +129,10 @@ export function CardEditor({ templateId }: { templateId: string }) {
   const [saveBusy, setSaveBusy] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [saveError, setSaveError] = useState("");
+  const [previewDraft, setPreviewDraft] = useState<CardDraft | null>(null);
+  const [previewQr, setPreviewQr] = useState("");
+  const [previewUpdatedAt, setPreviewUpdatedAt] = useState<number | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!template || hydratedId === template.id) return;
@@ -147,6 +160,11 @@ export function CardEditor({ templateId }: { templateId: string }) {
     if (!template) return null;
     return formToDraft(template, sessionDate, focus, title, movements);
   }, [template, sessionDate, focus, title, movements]);
+
+  const previewStale =
+    previewDraft != null &&
+    draft != null &&
+    draftSignature(draft) !== draftSignature(previewDraft);
 
   const fit = draft ? analyzeCardFit(draft) : null;
   const canPrint = Boolean(fit?.scanSafe && qrUrl);
@@ -205,6 +223,13 @@ export function CardEditor({ templateId }: { templateId: string }) {
   function onPrint() {
     if (!canPrint) return;
     window.print();
+  }
+
+  function onUpdatePreview() {
+    if (!draft) return;
+    setPreviewDraft(draft);
+    setPreviewQr(qrUrl);
+    setPreviewUpdatedAt(Date.now());
   }
 
   return (
@@ -455,6 +480,45 @@ export function CardEditor({ templateId }: { templateId: string }) {
                     Print is blocked until this card is scan-safe (12 movements
                     / 6 set columns max).
                   </p>
+                )}
+              </section>
+
+              <section className="mt-6 rounded-xl border border-border bg-surface-elevated p-4 print:hidden">
+                <h2 className="text-sm font-medium uppercase tracking-wider text-foreground-muted">
+                  Preview
+                </h2>
+                <button
+                  type="button"
+                  onClick={onUpdatePreview}
+                  disabled={!draft}
+                  className="mt-3 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:border-accent/50 disabled:opacity-50"
+                >
+                  Update preview
+                </button>
+                {previewDraft == null ? (
+                  <p className="mt-3 text-sm text-foreground-muted">
+                    Click Update preview to render the signed-off sheet.
+                  </p>
+                ) : (
+                  <>
+                    {previewStale ? (
+                      <p className="mt-3 text-sm text-foreground-muted">
+                        Preview is stale — form changed since last update.
+                      </p>
+                    ) : null}
+                    <div className="wr-preview-frame mt-3">
+                      <div
+                        ref={previewRef}
+                        className="wr-preview-capture"
+                        data-updated-at={previewUpdatedAt ?? undefined}
+                      >
+                        <CardPrintView
+                          draft={previewDraft}
+                          templateQrUrl={previewQr || undefined}
+                        />
+                      </div>
+                    </div>
+                  </>
                 )}
               </section>
             </>

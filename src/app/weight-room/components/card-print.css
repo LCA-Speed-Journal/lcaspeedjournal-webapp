@@ -89,6 +89,27 @@ img.wr-qr-placeholder {
   display: none;
 }
 
+/* Screen-only preview frame. Capture stays letter-landscape (11in);
+   the wrapper scales it down so the editor stays readable. */
+.wr-preview-capture {
+  width: 11in;
+}
+
+.wr-preview-frame {
+  overflow: auto;
+  position: relative;
+  width: calc(11in * 0.55);
+  height: calc(8.5in * 0.55);
+}
+
+.wr-preview-frame .wr-preview-capture {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: scale(0.55);
+  transform-origin: top left;
+}
+
 .wr-print-copy {
   page-break-after: always;
   break-after: page;
@@ -291,6 +312,10 @@ img.wr-qr-placeholder {
 
   .wr-preview-chrome {
     display: none !important;
+  }
+
+  .wr-preview-capture {
+    display: none;
   }
 
   .wr-print-root {
