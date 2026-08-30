@@ -55,6 +55,12 @@ export default async function WeightRoomHubPage() {
             Scans
           </Link>
           <Link
+            href="/weight-room/rosters"
+            className="rounded-xl border border-border bg-surface-elevated px-4 py-3 text-sm font-medium text-foreground hover:border-accent/50"
+          >
+            Rosters
+          </Link>
+          <Link
             href="/weight-room/reports"
             className="rounded-xl border border-border bg-surface-elevated px-4 py-3 text-sm font-medium text-foreground hover:border-accent/50"
           >
