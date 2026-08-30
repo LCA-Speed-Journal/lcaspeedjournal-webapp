@@ -6,6 +6,7 @@ import { PRsSection } from "./PRsSection";
 import { ProgressionFlagsSection } from "./ProgressionFlagsSection";
 import { ArchetypesSection } from "./ArchetypesSection";
 import { SuperpowersKryptoniteSection } from "./SuperpowersKryptoniteSection";
+import { HugoTeamsSection } from "./HugoTeamsSection";
 
 type Athlete = {
   id: string;
@@ -90,6 +91,8 @@ export function AthleteDashboard({ athleteId }: AthleteDashboardProps) {
             {athlete.gender} • {athlete.athlete_type === "athlete" ? `Class of ${athlete.graduating_class}` : athlete.athlete_type} • {athlete.active ? "Active" : "Inactive"}
           </p>
         </header>
+
+        <HugoTeamsSection athleteId={athleteId} />
 
         {/* Sections */}
         <div className="space-y-4">
