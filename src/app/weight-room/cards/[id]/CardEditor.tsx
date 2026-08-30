@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
 import { CardPrintView } from "@/app/weight-room/components/CardPrintView";
+import { downloadPreviewPdf } from "@/lib/weight-room/card-pdf";
 import { isHugoGroup } from "@/lib/weight-room/constants";
 import { analyzeCardFit } from "@/lib/weight-room/layout-estimate";
 import { encodeTemplatePayload } from "@/lib/weight-room/qr-payload";
@@ -97,6 +98,17 @@ function draftSignature(d: CardDraft): string {
   });
 }
 
+function cardPdfFilename(title: string, sessionDate: string): string {
+  const slug = [title, sessionDate]
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `${slug || "card"}.pdf`;
+}
+
 function newMovement(): MovementForm {
   return {
     key:
@@ -132,7 +144,10 @@ export function CardEditor({ templateId }: { templateId: string }) {
   const [previewDraft, setPreviewDraft] = useState<CardDraft | null>(null);
   const [previewQr, setPreviewQr] = useState("");
   const [previewUpdatedAt, setPreviewUpdatedAt] = useState<number | null>(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState("");
   const previewRef = useRef<HTMLDivElement>(null);
+  const pdfBusyRef = useRef(false);
 
   useEffect(() => {
     if (!template || hydratedId === template.id) return;
@@ -167,6 +182,10 @@ export function CardEditor({ templateId }: { templateId: string }) {
     draftSignature(draft) !== draftSignature(previewDraft);
 
   const fit = draft ? analyzeCardFit(draft) : null;
+  const previewScanSafe = previewDraft
+    ? analyzeCardFit(previewDraft).scanSafe
+    : false;
+  const canDownloadPdf = Boolean(previewDraft && previewScanSafe);
   const canPrint = Boolean(fit?.scanSafe && qrUrl);
   const printCopies = Math.min(50, Math.max(1, Number.isFinite(copyCount) ? copyCount : 12));
 
@@ -230,6 +249,29 @@ export function CardEditor({ templateId }: { templateId: string }) {
     setPreviewDraft(draft);
     setPreviewQr(qrUrl);
     setPreviewUpdatedAt(Date.now());
+  }
+
+  async function onDownloadPdf() {
+    if (!previewDraft || !canDownloadPdf || pdfBusyRef.current) return;
+    const node = previewRef.current;
+    if (!node) {
+      setPdfError("Preview is not ready to capture.");
+      return;
+    }
+    pdfBusyRef.current = true;
+    setPdfBusy(true);
+    setPdfError("");
+    try {
+      await downloadPreviewPdf(
+        node,
+        cardPdfFilename(previewDraft.title, previewDraft.sessionDate)
+      );
+    } catch {
+      setPdfError("Could not create PDF — try again.");
+    } finally {
+      pdfBusyRef.current = false;
+      setPdfBusy(false);
+    }
   }
 
   return (
@@ -487,14 +529,27 @@ export function CardEditor({ templateId }: { templateId: string }) {
                 <h2 className="text-sm font-medium uppercase tracking-wider text-foreground-muted">
                   Preview
                 </h2>
-                <button
-                  type="button"
-                  onClick={onUpdatePreview}
-                  disabled={!draft}
-                  className="mt-3 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:border-accent/50 disabled:opacity-50"
-                >
-                  Update preview
-                </button>
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={onUpdatePreview}
+                    disabled={!draft}
+                    className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:border-accent/50 disabled:opacity-50"
+                  >
+                    Update preview
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void onDownloadPdf()}
+                    disabled={!canDownloadPdf || pdfBusy}
+                    className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:border-accent/50 disabled:opacity-50"
+                  >
+                    {pdfBusy ? "Downloading…" : "Download PDF"}
+                  </button>
+                </div>
+                {pdfError ? (
+                  <p className="mt-2 text-sm text-danger">{pdfError}</p>
+                ) : null}
                 {previewDraft == null ? (
                   <p className="mt-3 text-sm text-foreground-muted">
                     Click Update preview to render the signed-off sheet.
