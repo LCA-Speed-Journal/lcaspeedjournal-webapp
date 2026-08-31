@@ -2,6 +2,7 @@ import {
   type AttachZonesDefault,
   type AttachZonesMembership,
 } from "./attach-zones";
+import { getPrimaryComponent } from "../metric-utils";
 import { isZoneLabel, zoneRank, type ZoneLabel } from "./palette";
 
 export const FORTY_YARD_COMPONENTS = [
@@ -225,4 +226,44 @@ export function testingDayComponentParam(
   if (raw == null) return null;
   const trimmed = raw.trim();
   return trimmed === "" ? null : trimmed;
+}
+
+/**
+ * Empty/omitted component → primary split for cumulatives (0-40m, 0-40yd, …).
+ * Single-interval metrics stay null (overall / NULL-component rows).
+ */
+export function resolveTestingDayComponent(
+  metricKey: string,
+  raw: string | null | undefined
+): string | null {
+  const explicit = testingDayComponentParam(raw);
+  if (explicit) return explicit;
+  return getPrimaryComponent(metricKey);
+}
+
+export type TestingDaySessionComponent = {
+  component: string | null;
+  label?: string;
+};
+
+/**
+ * Named components for the picker. Prefers session-metrics entries; skips Overall.
+ * Empty session list falls back to the 40yd named set or the cumulative primary.
+ */
+export function testingDayNamedComponents(
+  metricKey: string,
+  sessionComponents: TestingDaySessionComponent[]
+): string[] {
+  const named: string[] = [];
+  const seen = new Set<string>();
+  for (const row of sessionComponents) {
+    const value = row.component?.trim();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    named.push(value);
+  }
+  if (named.length > 0) return named;
+  if (metricKey === "40yd_Dash") return [...FORTY_YARD_COMPONENTS];
+  const primary = getPrimaryComponent(metricKey);
+  return primary ? [primary] : [];
 }

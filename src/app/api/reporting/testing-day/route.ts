@@ -20,7 +20,7 @@ import type {
 } from "@/lib/norms/attach-zones";
 import {
   summarizeTestingDay,
-  testingDayComponentParam,
+  resolveTestingDayComponent,
   type TestingDayHit,
   type TestingDaySummaryData,
 } from "@/lib/norms/testing-day";
@@ -41,8 +41,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const session_id = searchParams.get("session_id");
     const metric = searchParams.get("metric");
-    const component = testingDayComponentParam(searchParams.get("component"));
-    const overallOnly = component == null;
+    const rawComponent = searchParams.get("component");
 
     if (!session_id || !metric) {
       return NextResponse.json(
@@ -67,6 +66,9 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const component = resolveTestingDayComponent(metric, rawComponent);
+    const overallOnly = component == null;
 
     const populationsPromise = sql`
       SELECT id, name

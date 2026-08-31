@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { summarizeTestingDay } from "./testing-day";
+import {
+  FORTY_YARD_COMPONENTS,
+  resolveTestingDayComponent,
+  summarizeTestingDay,
+  testingDayNamedComponents,
+} from "./testing-day";
 import type {
   AttachZonesDefault,
   AttachZonesMembership,
@@ -255,5 +260,55 @@ describe("summarizeTestingDay filled labels", () => {
     expect(labelNames(g!)).toEqual(["efficient", "elite"]);
     expect(g?.label_counts.find((c) => c.label === "poor")).toBeUndefined();
     expect(g?.label_counts.find((c) => c.label === "developmental")).toBeUndefined();
+  });
+});
+
+describe("resolveTestingDayComponent", () => {
+  it("defaults omitted component to the primary split for cumulatives", () => {
+    expect(resolveTestingDayComponent("40m_Sprint", null)).toBe("0-40m");
+    expect(resolveTestingDayComponent("40m_Sprint", "")).toBe("0-40m");
+    expect(resolveTestingDayComponent("20m_Accel", undefined)).toBe("0-20m");
+    expect(resolveTestingDayComponent("10m_Accel", "  ")).toBe("0-10m");
+    expect(resolveTestingDayComponent("40yd_Dash", null)).toBe("0-40yd");
+  });
+
+  it("keeps null for single-interval metrics like Vertical Jump", () => {
+    expect(resolveTestingDayComponent("Vertical Jump", null)).toBeNull();
+    expect(resolveTestingDayComponent("Vertical Jump", "")).toBeNull();
+  });
+
+  it("respects an explicit named component", () => {
+    expect(resolveTestingDayComponent("40m_Sprint", "0-10m")).toBe("0-10m");
+    expect(resolveTestingDayComponent("40yd_Dash", "10-20yd")).toBe("10-20yd");
+  });
+});
+
+describe("testingDayNamedComponents", () => {
+  it("lists named session-metrics components and skips Overall", () => {
+    expect(
+      testingDayNamedComponents("40m_Sprint", [
+        { component: null, label: "Overall" },
+        { component: "0-10m", label: "0-10m" },
+        { component: "0-40m", label: "0-40m" },
+      ])
+    ).toEqual(["0-10m", "0-40m"]);
+  });
+
+  it("returns empty when the session only has overall (Vertical Jump)", () => {
+    expect(
+      testingDayNamedComponents("Vertical Jump", [
+        { component: null, label: "Overall" },
+      ])
+    ).toEqual([]);
+  });
+
+  it("falls back to the 40yd named list when the session has no components yet", () => {
+    expect(testingDayNamedComponents("40yd_Dash", [])).toEqual([
+      ...FORTY_YARD_COMPONENTS,
+    ]);
+  });
+
+  it("falls back to the primary component for other cumulatives", () => {
+    expect(testingDayNamedComponents("40m_Sprint", [])).toEqual(["0-40m"]);
   });
 });

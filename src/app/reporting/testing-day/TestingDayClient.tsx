@@ -7,7 +7,8 @@ import { PageBackground } from "@/app/components/PageBackground";
 import type { SessionMetric } from "@/app/api/leaderboard/session-metrics/route";
 import type { NormPopulationOption } from "@/types";
 import {
-  FORTY_YARD_COMPONENTS,
+  resolveTestingDayComponent,
+  testingDayNamedComponents,
   type TestingDayGroup,
   type TestingDaySummaryData,
 } from "@/lib/norms/testing-day";
@@ -63,13 +64,6 @@ function genderLabel(gender: "M" | "F" | null): string {
   return "Unknown";
 }
 
-function componentOptionsFor(metricKey: string): string[] {
-  if (metricKey === "40yd_Dash") {
-    return [...FORTY_YARD_COMPONENTS];
-  }
-  return [];
-}
-
 export default function TestingDayClient() {
   const [sessionId, setSessionId] = useState("");
   const [metricKey, setMetricKey] = useState("");
@@ -109,7 +103,17 @@ export default function TestingDayClient() {
     return out;
   }, [metrics]);
 
-  const namedComponents = componentOptionsFor(metricKey);
+  const sessionComponents = useMemo(() => {
+    if (!metricKey) return [];
+    return metrics
+      .filter((m) => m.metric_key === metricKey)
+      .flatMap((m) => m.components);
+  }, [metrics, metricKey]);
+
+  const namedComponents = useMemo(
+    () => testingDayNamedComponents(metricKey, sessionComponents),
+    [metricKey, sessionComponents]
+  );
 
   const summaryUrl = useMemo(() => {
     if (!sessionId || !metricKey) return null;
@@ -139,7 +143,16 @@ export default function TestingDayClient() {
   function onMetricChange(key: string) {
     startTransition(() => {
       setMetricKey(key);
-      setComponent(key === "40yd_Dash" ? "0-40yd" : "");
+      const sessionComps = metrics
+        .filter((m) => m.metric_key === key)
+        .flatMap((m) => m.components);
+      const named = testingDayNamedComponents(key, sessionComps);
+      const resolved = resolveTestingDayComponent(key, null);
+      const next =
+        resolved && named.includes(resolved)
+          ? resolved
+          : named[0] ?? resolved ?? "";
+      setComponent(next);
     });
   }
 
