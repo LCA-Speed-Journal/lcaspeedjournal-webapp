@@ -90,19 +90,23 @@ img.wr-qr-placeholder {
 }
 
 /* Screen-only preview frame. Capture stays letter-landscape (11in);
-   the wrapper scales it down so the editor stays readable. */
+   the viewport scales it to the Preview section width. */
 .wr-preview-capture {
   width: 11in;
 }
 
+.wr-preview-viewport {
+  width: 100%;
+  overflow: hidden;
+}
+
 .wr-preview-frame {
-  overflow: auto;
   width: 11in;
-  transform: scale(0.55);
+  transform: scale(var(--wr-preview-scale, 1));
   transform-origin: top left;
   /* Transform does not shrink layout; collapse the leftover box. */
-  margin-bottom: calc(8.5in * 0.55 - 8.5in);
-  margin-right: calc(11in * 0.55 - 11in);
+  margin-bottom: calc(8.5in * var(--wr-preview-scale, 1) - 8.5in);
+  margin-right: calc(11in * var(--wr-preview-scale, 1) - 11in);
 }
 
 .wr-print-copy {

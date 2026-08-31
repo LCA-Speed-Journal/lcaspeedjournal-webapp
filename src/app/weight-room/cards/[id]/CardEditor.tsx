@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
 import useSWR from "swr";
@@ -147,6 +147,8 @@ export function CardEditor({ templateId }: { templateId: string }) {
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState("");
   const previewRef = useRef<HTMLDivElement>(null);
+  const previewViewportRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(1);
   const pdfBusyRef = useRef(false);
 
   useEffect(() => {
@@ -170,6 +172,27 @@ export function CardEditor({ templateId }: { templateId: string }) {
       cancelled = true;
     };
   }, [template?.id]);
+
+  useEffect(() => {
+    const viewport = previewViewportRef.current;
+    const capture = previewRef.current;
+    if (!viewport || !capture || !previewDraft) return;
+
+    function updateScale() {
+      const nextViewport = previewViewportRef.current;
+      const nextCapture = previewRef.current;
+      if (!nextViewport || !nextCapture) return;
+      const width = nextCapture.offsetWidth;
+      if (width <= 0) return;
+      setPreviewScale(nextViewport.clientWidth / width);
+    }
+
+    updateScale();
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(viewport);
+    observer.observe(capture);
+    return () => observer.disconnect();
+  }, [previewDraft]);
 
   const draft = useMemo(() => {
     if (!template) return null;
@@ -561,16 +584,28 @@ export function CardEditor({ templateId }: { templateId: string }) {
                         Preview is stale — form changed since last update.
                       </p>
                     ) : null}
-                    <div className="wr-preview-frame mt-3">
+                    <div
+                      ref={previewViewportRef}
+                      className="wr-preview-viewport mt-3"
+                    >
                       <div
-                        ref={previewRef}
-                        className="wr-preview-capture"
-                        data-updated-at={previewUpdatedAt ?? undefined}
+                        className="wr-preview-frame"
+                        style={
+                          {
+                            ["--wr-preview-scale"]: String(previewScale),
+                          } as CSSProperties
+                        }
                       >
-                        <CardPrintView
-                          draft={previewDraft}
-                          templateQrUrl={previewQr || undefined}
-                        />
+                        <div
+                          ref={previewRef}
+                          className="wr-preview-capture"
+                          data-updated-at={previewUpdatedAt ?? undefined}
+                        >
+                          <CardPrintView
+                            draft={previewDraft}
+                            templateQrUrl={previewQr || undefined}
+                          />
+                        </div>
                       </div>
                     </div>
                   </>
