@@ -27,6 +27,7 @@ type MetricDef = {
   default_splits: (number | string)[];
   category?: string;
   subcategory?: string;
+  interval_unit?: "m" | "yd";
 };
 
 const metrics = metricsData as Record<string, MetricDef>;
@@ -68,8 +69,8 @@ function getMetric(displayName: string): MetricDef | undefined {
   return metrics[displayName];
 }
 
-function formatIntervalLabel(startM: number, endM: number): string {
-  return `${startM}-${endM}m`;
+function formatIntervalLabel(start: number, end: number, unit = "m"): string {
+  return `${start}-${end}${unit}`;
 }
 
 function extractIntervalFromName(displayName: string): [number, number] | null {
@@ -295,6 +296,7 @@ function parseCumulative(
 
   const rows: ParsedEntry[] = [];
   const canonicalReg = metrics as MetricRegistry;
+  const unit = metric.interval_unit === "yd" ? "yd" : "m";
 
   // Cumulative rows (0–5m, 0–10m, etc.) — canonical metric_key when Nm_<suffix> exists in registry
   for (let i = 0; i < cumulativeValues.length; i++) {
@@ -306,7 +308,7 @@ function parseCumulative(
     const rowComponent =
       canonical != null
         ? canonical.component
-        : formatIntervalLabel(0, endM);
+        : formatIntervalLabel(0, endM, unit);
     const rowIntervalIndex = canonical ? null : i;
     const convSource = canonical ? getMetric(rowMetricKey)! : metric;
     const displayVal = applyConversion(
@@ -339,14 +341,15 @@ function parseCumulative(
     rows.push({
       metric_key: metric.display_name,
       interval_index: i + 1,
-      component: formatIntervalLabel(startM, endM),
+      component: formatIntervalLabel(startM, endM, unit),
       value: splitValue,
       display_value: displayVal,
       units: metric.display_units,
     });
 
-    // Velocity row for split (e.g. 5–10m_Split)
-    if (startM > 0) {
+    // Velocity row for split (e.g. 5–10m_Split). Yard metrics have no mph split keys;
+    // skip so 10-20m_Split / 20-40m_Split are not attached to 40yd_Dash.
+    if (startM > 0 && unit === "m") {
       const splitMetricKey = `${startM}-${endM}m_Split`;
       const splitMetric = getMetric(splitMetricKey);
       if (splitMetric && splitMetric.conversion_formula === "velocity_mph") {
@@ -358,7 +361,7 @@ function parseCumulative(
         rows.push({
           metric_key: splitMetric.display_name,
           interval_index: null,
-          component: formatIntervalLabel(startM, endM),
+          component: formatIntervalLabel(startM, endM, unit),
           value: splitValue,
           display_value: velDisplay,
           units: splitMetric.display_units,
@@ -384,23 +387,25 @@ function parseCumulative(
         rows.push({
           metric_key: metric.display_name,
           interval_index: null,
-          component: formatIntervalLabel(startM, endM),
+          component: formatIntervalLabel(startM, endM, unit),
           value: splitTime,
           display_value: displayVal,
           units: metric.display_units,
         });
 
-        const splitMetricKey = `${startM}-${endM}m_Split`;
-        const splitMetric = getMetric(splitMetricKey);
-        if (splitMetric && splitMetric.conversion_formula === "velocity_mph") {
-          rows.push({
-            metric_key: splitMetric.display_name,
-            interval_index: null,
-            component: formatIntervalLabel(startM, endM),
-            value: splitTime,
-            display_value: applyConversion(splitTime, "velocity_mph", intervalDist),
-            units: splitMetric.display_units,
-          });
+        if (unit === "m") {
+          const splitMetricKey = `${startM}-${endM}m_Split`;
+          const splitMetric = getMetric(splitMetricKey);
+          if (splitMetric && splitMetric.conversion_formula === "velocity_mph") {
+            rows.push({
+              metric_key: splitMetric.display_name,
+              interval_index: null,
+              component: formatIntervalLabel(startM, endM, unit),
+              value: splitTime,
+              display_value: applyConversion(splitTime, "velocity_mph", intervalDist),
+              units: splitMetric.display_units,
+            });
+          }
         }
       }
     }

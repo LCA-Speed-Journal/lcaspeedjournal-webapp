@@ -178,3 +178,29 @@ describe("parseEntry flying 20m split metrics", () => {
     ).toThrow(/Cannot parse single_interval input/);
   });
 });
+
+describe("40yd_Dash", () => {
+  it("emits yard components for default splits 10+10+20", () => {
+    const rows = parseEntry("40yd_Dash", "1.80|3.10|5.00");
+    const components = rows.map((r) => r.component);
+    expect(components).toContain("0-10yd");
+    expect(components).toContain("0-20yd");
+    expect(components).toContain("0-40yd");
+    expect(components).toContain("10-20yd");
+    expect(components).toContain("20-40yd");
+    expect(components.some((c) => c?.endsWith("m"))).toBe(false);
+    expect(rows.every((r) => r.metric_key === "40yd_Dash")).toBe(true);
+    expect(rows.every((r) => r.units === "s")).toBe(true);
+  });
+
+  it("adds 0-5yd when session splits are 5,5,10,20", () => {
+    const rows = parseEntry("40yd_Dash", "1.00|1.80|3.10|5.00", {
+      day_splits: { "40yd_Dash": [5, 5, 10, 20] },
+    });
+    const components = rows.map((r) => r.component);
+    expect(components).toContain("0-5yd");
+    expect(components).toContain("0-10yd");
+    expect(components).toContain("5-10yd");
+    expect(components).toContain("0-40yd");
+  });
+});

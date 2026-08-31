@@ -1,6 +1,7 @@
 type MetricDef = {
   input_structure: string;
   default_splits: (number | string)[];
+  interval_unit?: string;
 };
 
 export type MetricRegistry = Record<string, MetricDef>;
@@ -12,7 +13,8 @@ function primaryComponentForMetric(metricKey: string, reg: MetricRegistry): stri
   if (nums.length === 0) return null;
   const total = nums.reduce((a, b) => a + b, 0);
   if (total <= 0) return null;
-  return `0-${total}m`;
+  const unit = metric.interval_unit === "yd" ? "yd" : "m";
+  return `0-${total}${unit}`;
 }
 
 /**

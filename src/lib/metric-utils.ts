@@ -3,6 +3,18 @@ import { getMetricsRegistry } from "./parser";
 export type MetricRegistry = ReturnType<typeof getMetricsRegistry>;
 
 /**
+ * Interval unit for split labels (`"m"` | `"yd"`). Defaults to `"m"` when omitted or unknown.
+ */
+export function getIntervalUnit(
+  metricKey: string,
+  registry?: MetricRegistry
+): "m" | "yd" {
+  const reg = registry ?? getMetricsRegistry();
+  const metric = reg[metricKey];
+  return metric?.interval_unit === "yd" ? "yd" : "m";
+}
+
+/**
  * Returns the primary (full-run) component for a cumulative metric, e.g. "0-20m" for 20m_Accel.
  * Returns null for non-cumulative, unknown, or invalid metrics.
  */
@@ -19,7 +31,8 @@ export function getPrimaryComponent(
   if (nums.length === 0) return null;
   const total = nums.reduce((a, b) => a + b, 0);
   if (total <= 0) return null;
-  return `0-${total}m`;
+  const unit = getIntervalUnit(metricKey, reg);
+  return `0-${total}${unit}`;
 }
 
 /**

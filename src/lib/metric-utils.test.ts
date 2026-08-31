@@ -22,6 +22,10 @@ describe("getPrimaryComponent", () => {
     expect(getPrimaryComponent("40m_Sprint")).toBe("0-40m");
   });
 
+  it("returns 0-40yd for 40yd_Dash", () => {
+    expect(getPrimaryComponent("40yd_Dash")).toBe("0-40yd");
+  });
+
   it("returns null when default_splits has no numbers", () => {
     expect(getPrimaryComponent("5m_Accel")).toBeNull();
   });
