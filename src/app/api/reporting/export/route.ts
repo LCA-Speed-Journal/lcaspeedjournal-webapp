@@ -8,6 +8,17 @@ import { escapeCsvCell } from "@/lib/csv-escape";
 import { MAX_EXPORT_ROWS } from "@/lib/reporting-constants";
 import { parseReportingDateRange } from "@/lib/reporting-date-range";
 import { getMetricsRegistry } from "@/lib/parser";
+import type {
+  AttachZonesDefault,
+  AttachZonesMembership,
+  AttachZonesPopulation,
+} from "@/lib/norms/attach-zones";
+import {
+  attachExportZones,
+  mapExportThresholdRows,
+  type ExportZoneCells,
+  type RawExportThresholdRow,
+} from "@/lib/norms/export-zones";
 
 const SLOW_MS = 2000;
 
@@ -32,6 +43,8 @@ const CSV_HEADER = [
   "raw_input",
   "entry_id",
   "created_at",
+  "zone_label",
+  "population_name",
 ].join(",");
 
 type ExportRow = {
@@ -132,8 +145,59 @@ export async function GET(request: NextRequest) {
     }
 
     const registry = getMetricsRegistry();
+    const exportRows = rows as ExportRow[];
+    let zonedRows: Array<ExportRow & ExportZoneCells> = exportRows.map((r) => ({
+      ...r,
+      zone_label: "",
+      population_name: "",
+    }));
+
+    if (exportRows.length > 0) {
+      try {
+        const athleteIds = [...new Set(exportRows.map((r) => r.athlete_id))];
+        const [popResult, memResult, defResult, thrResult] = await Promise.all([
+          sql`
+            SELECT id, name
+            FROM norm_populations
+            WHERE archived_at IS NULL
+            ORDER BY name ASC
+          `,
+          sql`
+            SELECT athlete_id, hugo_group, is_primary
+            FROM athlete_hugo_memberships
+            WHERE athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
+          `,
+          sql`
+            SELECT hugo_group, metric_key, population_id
+            FROM norm_sport_defaults
+          `,
+          sql`
+            SELECT population_id, metric_key, gender, component, label, threshold
+            FROM norm_thresholds
+          `,
+        ]);
+        zonedRows = attachExportZones({
+          rows: exportRows,
+          memberships: (memResult.rows as AttachZonesMembership[]).map((m) => ({
+            athlete_id: m.athlete_id,
+            hugo_group: m.hugo_group,
+            is_primary: Boolean(m.is_primary),
+          })),
+          defaults: defResult.rows as AttachZonesDefault[],
+          thresholds: mapExportThresholdRows(
+            thrResult.rows as RawExportThresholdRow[]
+          ),
+          populations: popResult.rows as AttachZonesPopulation[],
+          lowerIsBetterFor: (metricKey) =>
+            (registry[metricKey]?.display_units ?? "").toLowerCase() === "s",
+        });
+      } catch (err) {
+        console.error("GET /api/reporting/export zones:", err);
+      }
+    }
+
     const lines: string[] = [CSV_HEADER];
-    for (const r of rows as ExportRow[]) {
+    for (const r of zonedRows) {
       const metricLabel = registry[r.metric_key]?.display_name ?? r.metric_key;
       lines.push(
         [
@@ -161,6 +225,8 @@ export async function GET(request: NextRequest) {
           escapeCsvCell(r.raw_input ?? ""),
           escapeCsvCell(r.entry_id),
           escapeCsvCell(formatCreatedAt(r.created_at)),
+          escapeCsvCell(r.zone_label),
+          escapeCsvCell(r.population_name),
         ].join(",")
       );
     }
