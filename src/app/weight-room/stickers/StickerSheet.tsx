@@ -5,6 +5,7 @@ import Link from "next/link";
 import QRCode from "qrcode";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
+import "./sticker-print.css";
 import { HUGO_GROUP_META, type HugoGroup } from "@/lib/weight-room/constants";
 import { isOnHugoTeam } from "@/lib/weight-room/hugo-memberships";
 import type { Athlete } from "@/types";
@@ -60,6 +61,29 @@ export function StickerSheet() {
   const [issueError, setIssueError] = useState("");
 
   useEffect(() => {
+    function onBeforePrint() {
+      let style = document.getElementById("wr-sticker-page-size");
+      if (!style) {
+        style = document.createElement("style");
+        style.id = "wr-sticker-page-size";
+        style.textContent =
+          "@page { size: letter portrait; margin: 0.4in; }";
+        document.head.appendChild(style);
+      }
+    }
+    function onAfterPrint() {
+      document.getElementById("wr-sticker-page-size")?.remove();
+    }
+    window.addEventListener("beforeprint", onBeforePrint);
+    window.addEventListener("afterprint", onAfterPrint);
+    return () => {
+      window.removeEventListener("beforeprint", onBeforePrint);
+      window.removeEventListener("afterprint", onAfterPrint);
+      onAfterPrint();
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     async function generate() {
       const next: Record<string, string> = {};
@@ -110,12 +134,12 @@ export function StickerSheet() {
       : "";
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background px-6 py-12 print:overflow-visible print:bg-white print:px-4 print:py-4">
+    <div className="relative min-h-screen overflow-hidden bg-background px-6 py-12 print:min-h-0 print:overflow-visible print:bg-white print:px-0 print:py-0">
       <div className="print:hidden">
         <PageBackground />
       </div>
-      <main className="relative z-10 mx-auto max-w-5xl">
-        <div className="print:hidden">
+      <main className="relative z-10 mx-auto max-w-5xl print:max-w-none">
+        <div className="wr-sticker-chrome print:hidden">
           <p className="text-xs font-medium uppercase tracking-wider text-foreground-muted">
             Weight room
           </p>
@@ -189,31 +213,27 @@ export function StickerSheet() {
         </div>
 
         <section className="mt-10 print:mt-0">
-          <h2 className="text-sm font-medium uppercase tracking-wider text-foreground-muted print:hidden">
+          <h2 className="wr-sticker-chrome text-sm font-medium uppercase tracking-wider text-foreground-muted print:hidden">
             Print sheet
           </h2>
           {stickers.length === 0 ? (
-            <p className="mt-3 text-sm text-foreground-muted print:hidden">
+            <p className="wr-sticker-chrome mt-3 text-sm text-foreground-muted print:hidden">
               No active stickers yet.
             </p>
           ) : (
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 print:mt-0 print:grid-cols-4 print:gap-2">
+            <div className="wr-sticker-sheet mt-3 print:mt-0">
               {stickers.map((s) => (
-                <div
-                  key={s.id}
-                  className="break-inside-avoid flex flex-col items-center bg-white p-3 text-black"
-                >
+                <div key={s.id} className="wr-sticker-cell">
                   {qrUrls[s.id] ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={qrUrls[s.id]}
                       alt={`QR sticker for ${s.last_name}, ${s.first_name}`}
-                      className="h-32 w-32"
                     />
                   ) : (
-                    <div className="h-32 w-32 bg-neutral-200 print:bg-white" />
+                    <div className="wr-sticker-qr-fallback bg-neutral-200 print:bg-white" />
                   )}
-                  <p className="mt-2 text-center text-sm font-medium text-black">
+                  <p className="wr-sticker-name">
                     {s.last_name}, {s.first_name}
                   </p>
                 </div>
