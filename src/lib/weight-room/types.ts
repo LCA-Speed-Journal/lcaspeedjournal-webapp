@@ -9,6 +9,7 @@ export type CardMovement = {
   notes: string;
   fromPair: boolean;
   exerciseHtml: string | null;
+  speedJournalMetricKey: string | null;
 };
 
 export type CardDraft = {

@@ -20,6 +20,7 @@ export function makeStressDraft(rowCount: number, setCount = 4): CardDraft {
       notes: "Placeholder note to match typical coaching cue height",
       fromPair: false,
       exerciseHtml: null,
+      speedJournalMetricKey: null,
     })),
   };
 }

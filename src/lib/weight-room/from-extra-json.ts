@@ -47,6 +47,7 @@ function mapMovement(m: ExtraMovementJson): CardMovement {
     notes: m.notes ?? "",
     fromPair: Boolean(m.from_pair),
     exerciseHtml: m.exercise_html ?? null,
+    speedJournalMetricKey: null,
   };
 }
 

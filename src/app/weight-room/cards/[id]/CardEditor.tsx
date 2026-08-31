@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
 import { CardPrintView } from "@/app/weight-room/components/CardPrintView";
+import { getMetricsRegistry } from "@/lib/parser";
 import { downloadPreviewPdf } from "@/lib/weight-room/card-pdf";
 import { isHugoGroup } from "@/lib/weight-room/constants";
 import { analyzeCardFit } from "@/lib/weight-room/layout-estimate";
@@ -20,6 +21,10 @@ const fetcher = (url: string) =>
     r.ok ? r.json() : Promise.reject(new Error(r.statusText))
   );
 
+const metricSelectOptions = Object.entries(getMetricsRegistry())
+  .map(([key, def]) => ({ key, label: def.display_name || key }))
+  .sort((a, b) => a.label.localeCompare(b.label));
+
 type MovementForm = {
   key: string;
   label: string;
@@ -29,6 +34,7 @@ type MovementForm = {
   targets: string;
   notes: string;
   from_pair: boolean;
+  speed_journal_metric_key: string;
 };
 
 const inputClass =
@@ -55,6 +61,7 @@ function movementsFromTemplate(template: TemplateDetail): MovementForm[] {
     targets: m.targets.join("|"),
     notes: m.notes ?? "",
     from_pair: m.from_pair,
+    speed_journal_metric_key: m.speed_journal_metric_key ?? "",
   }));
 }
 
@@ -84,6 +91,7 @@ function formToDraft(
         notes: m.notes,
         fromPair: m.from_pair,
         exerciseHtml: null,
+        speedJournalMetricKey: m.speed_journal_metric_key.trim() || null,
       })
     ),
   };
@@ -122,6 +130,7 @@ function newMovement(): MovementForm {
     targets: "",
     notes: "",
     from_pair: false,
+    speed_journal_metric_key: "",
   };
 }
 
@@ -241,6 +250,7 @@ export function CardEditor({ templateId }: { templateId: string }) {
               targets: splitTargets(m.targets, setCount),
               notes: m.notes,
               from_pair: m.from_pair,
+              speed_journal_metric_key: m.speed_journal_metric_key,
             };
           }),
         }),
@@ -357,7 +367,7 @@ export function CardEditor({ templateId }: { templateId: string }) {
               </section>
 
               <section className="mt-6 overflow-x-auto rounded-xl border border-border bg-surface-elevated">
-                <table className="min-w-[640px] w-full text-left text-sm">
+                <table className="min-w-[800px] w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-border text-xs uppercase tracking-wider text-foreground-muted">
                       <th className="px-2 py-2">Label</th>
@@ -366,6 +376,7 @@ export function CardEditor({ templateId }: { templateId: string }) {
                       <th className="px-2 py-2">Sets</th>
                       <th className="px-2 py-2">Targets (|)</th>
                       <th className="px-2 py-2">Notes</th>
+                      <th className="px-2 py-2">Journal metric</th>
                       <th className="px-2 py-2" />
                     </tr>
                   </thead>
@@ -430,6 +441,25 @@ export function CardEditor({ templateId }: { templateId: string }) {
                             }
                             className={inputClass}
                           />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <select
+                            value={m.speed_journal_metric_key}
+                            onChange={(e) =>
+                              updateMovement(m.key, {
+                                speed_journal_metric_key: e.target.value,
+                              })
+                            }
+                            className={inputClass}
+                            aria-label="Speed Journal metric"
+                          >
+                            <option value="">None</option>
+                            {metricSelectOptions.map((opt) => (
+                              <option key={opt.key} value={opt.key}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                         <td className="px-2 py-1.5">
                           <button

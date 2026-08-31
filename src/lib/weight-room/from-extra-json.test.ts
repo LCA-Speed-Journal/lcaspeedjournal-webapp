@@ -39,6 +39,7 @@ describe("extraSessionToDraft", () => {
       setCount: 2,
       targets: ["5 @ RPE 8", "5 @ RPE 8"],
       notes: "Normal",
+      speedJournalMetricKey: null,
     });
   });
 });

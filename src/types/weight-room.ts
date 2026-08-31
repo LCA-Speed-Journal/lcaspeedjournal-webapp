@@ -37,6 +37,7 @@ export type WorkoutMovement = {
   targets: string[];
   notes: string | null;
   from_pair: boolean;
+  speed_journal_metric_key: string | null;
 };
 
 export type CardScan = {

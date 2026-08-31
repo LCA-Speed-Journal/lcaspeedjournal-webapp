@@ -18,6 +18,7 @@ export const sampleInSeasonSoccer: CardDraft = {
       notes: "Spring ankle · hip hike · lunge ISO · pogos",
       fromPair: false,
       exerciseHtml: null,
+      speedJournalMetricKey: null,
     },
     {
       label: "1",
@@ -28,6 +29,7 @@ export const sampleInSeasonSoccer: CardDraft = {
       notes: "Explosive · log best (in)",
       fromPair: false,
       exerciseHtml: null,
+      speedJournalMetricKey: null,
     },
     {
       label: "2",
@@ -38,6 +40,7 @@ export const sampleInSeasonSoccer: CardDraft = {
       notes: "Stop short of grinders · in-season",
       fromPair: false,
       exerciseHtml: null,
+      speedJournalMetricKey: null,
     },
     {
       label: "3A",
@@ -48,6 +51,7 @@ export const sampleInSeasonSoccer: CardDraft = {
       notes: "Trunk stacked",
       fromPair: true,
       exerciseHtml: null,
+      speedJournalMetricKey: null,
     },
     {
       label: "3B",
@@ -58,6 +62,7 @@ export const sampleInSeasonSoccer: CardDraft = {
       notes: "Quality over time",
       fromPair: true,
       exerciseHtml: null,
+      speedJournalMetricKey: null,
     },
     {
       label: "4",
@@ -68,6 +73,7 @@ export const sampleInSeasonSoccer: CardDraft = {
       notes: "Eccentric control",
       fromPair: false,
       exerciseHtml: null,
+      speedJournalMetricKey: null,
     },
     {
       label: "5",
@@ -78,6 +84,7 @@ export const sampleInSeasonSoccer: CardDraft = {
       notes: "Submax · hip-shoulder timing",
       fromPair: false,
       exerciseHtml: null,
+      speedJournalMetricKey: null,
     },
   ],
 };

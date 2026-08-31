@@ -28,6 +28,7 @@ function tinyDraft(overrides: Partial<CardDraft> = {}): CardDraft {
         notes: "",
         fromPair: false,
         exerciseHtml: null,
+        speedJournalMetricKey: null,
       },
     ],
     ...overrides,
@@ -56,6 +57,7 @@ describe("analyzeCardFit", () => {
             notes: "",
             fromPair: false,
             exerciseHtml: null,
+            speedJournalMetricKey: null,
           },
         ],
       })

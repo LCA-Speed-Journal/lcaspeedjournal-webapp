@@ -75,6 +75,63 @@ describe("parseMovements", () => {
     ]);
     expect(r.ok).toBe(false);
   });
+
+  it('accepts speed_journal_metric_key "Vertical Jump"', () => {
+    const r = parseMovements([
+      {
+        name: "CMJ",
+        block: "Primer",
+        set_count: 1,
+        targets: ["Max"],
+        speed_journal_metric_key: "Vertical Jump",
+      },
+    ]);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value[0].speed_journal_metric_key).toBe("Vertical Jump");
+  });
+
+  it('rejects speed_journal_metric_key "not-a-metric"', () => {
+    const r = parseMovements([
+      {
+        name: "CMJ",
+        block: "Primer",
+        set_count: 1,
+        targets: ["Max"],
+        speed_journal_metric_key: "not-a-metric",
+      },
+    ]);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error).toBe(
+      "movements[0].speed_journal_metric_key is not a known metric"
+    );
+  });
+
+  it("treats omitted or empty speed_journal_metric_key as null", () => {
+    const omitted = parseMovements([
+      {
+        name: "DB Bench",
+        block: "Main",
+        set_count: 1,
+        targets: ["5"],
+      },
+    ]);
+    const empty = parseMovements([
+      {
+        name: "DB Bench",
+        block: "Main",
+        set_count: 1,
+        targets: ["5"],
+        speed_journal_metric_key: "",
+      },
+    ]);
+    expect(omitted.ok).toBe(true);
+    expect(empty.ok).toBe(true);
+    if (!omitted.ok || !empty.ok) return;
+    expect(omitted.value[0].speed_journal_metric_key).toBeNull();
+    expect(empty.value[0].speed_journal_metric_key).toBeNull();
+  });
 });
 
 describe("parseTemplatePayload", () => {
@@ -260,6 +317,7 @@ describe("templateFromCsv / templateFromDraft", () => {
       ],
     };
     expect(templateFromCsv(csv).movements[0].from_pair).toBe(false);
+    expect(templateFromCsv(csv).movements[0].speed_journal_metric_key).toBeNull();
     expect(templateFromCsv(csv).hugo_group).toBe("extracurricular");
   });
 
@@ -289,7 +347,12 @@ describe("templateFromCsv / templateFromDraft", () => {
       name: "DB Bench (Back-Offs)",
       set_count: 1,
       from_pair: true,
+      speed_journal_metric_key: null,
     });
+    draft.movements[0].speedJournalMetricKey = "Vertical Jump";
+    expect(templateFromDraft(draft).movements[0].speed_journal_metric_key).toBe(
+      "Vertical Jump"
+    );
   });
 
   it("draftFromTemplate maps snake_case from_pair and leaves exerciseHtml null", () => {
@@ -333,6 +396,7 @@ describe("templateFromCsv / templateFromDraft", () => {
           targets: ["6 @ RPE 8"],
           notes: "pair",
           from_pair: true,
+          speed_journal_metric_key: null,
         },
       ],
     });
@@ -342,6 +406,7 @@ describe("templateFromCsv / templateFromDraft", () => {
       setCount: 1,
       fromPair: true,
       exerciseHtml: null,
+      speedJournalMetricKey: null,
     });
   });
 });

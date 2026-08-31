@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import { getMetricsRegistry } from "@/lib/parser";
 import { isHugoGroup, type HugoGroup } from "./constants";
 import type { CsvImportTemplate } from "./csv-import";
 import type { CardDraft } from "./types";
@@ -19,6 +20,7 @@ export type MovementInsertInput = {
   targets: string[];
   notes: string;
   from_pair: boolean;
+  speed_journal_metric_key: string | null;
 };
 
 export type TemplateInsertInput = {
@@ -42,6 +44,7 @@ export type WorkoutMovementRow = {
   targets: string[];
   notes: string;
   from_pair: boolean;
+  speed_journal_metric_key: string | null;
 };
 
 export type WorkoutTemplateRow = {
@@ -132,6 +135,11 @@ export function serializeTemplateRow(
 export function serializeMovement(
   row: Record<string, unknown>
 ): WorkoutMovementRow {
+  const rawKey = row.speed_journal_metric_key;
+  const metricKey =
+    rawKey == null || String(rawKey).trim() === ""
+      ? null
+      : String(rawKey);
   return {
     id: String(row.id),
     template_id: String(row.template_id),
@@ -143,6 +151,7 @@ export function serializeMovement(
     targets: normalizeTargets(row.targets),
     notes: row.notes == null ? "" : String(row.notes),
     from_pair: Boolean(row.from_pair),
+    speed_journal_metric_key: metricKey,
   };
 }
 
@@ -151,6 +160,7 @@ export function parseMovements(raw: unknown): ParseResult<MovementInsertInput[]>
     return { ok: false, error: "movements must be an array" };
   }
 
+  const registry = getMetricsRegistry();
   const movements: MovementInsertInput[] = [];
   for (let i = 0; i < raw.length; i++) {
     const item = raw[i];
@@ -195,6 +205,27 @@ export function parseMovements(raw: unknown): ParseResult<MovementInsertInput[]>
         ? rec.sort_index
         : i;
 
+    let metricKey: string | null = null;
+    const rawKey = rec.speed_journal_metric_key;
+    if (rawKey !== undefined && rawKey !== null) {
+      if (typeof rawKey !== "string") {
+        return {
+          ok: false,
+          error: `movements[${i}].speed_journal_metric_key is not a known metric`,
+        };
+      }
+      const trimmed = rawKey.trim();
+      if (trimmed !== "") {
+        if (!(trimmed in registry)) {
+          return {
+            ok: false,
+            error: `movements[${i}].speed_journal_metric_key is not a known metric`,
+          };
+        }
+        metricKey = trimmed;
+      }
+    }
+
     movements.push({
       sort_index: sortIndex,
       label: typeof rec.label === "string" ? rec.label : "",
@@ -204,6 +235,7 @@ export function parseMovements(raw: unknown): ParseResult<MovementInsertInput[]>
       targets: rec.targets as string[],
       notes: typeof rec.notes === "string" ? rec.notes : "",
       from_pair: rec.from_pair === undefined ? false : Boolean(rec.from_pair),
+      speed_journal_metric_key: metricKey,
     });
   }
 
@@ -360,6 +392,7 @@ export function templateFromCsv(t: CsvImportTemplate): TemplateInsertInput {
       targets: m.targets,
       notes: m.notes,
       from_pair: false,
+      speed_journal_metric_key: null,
     })),
   };
 }
@@ -421,6 +454,9 @@ export function templateFromDraft(draft: CardDraft): TemplateInsertInput {
       targets: m.targets,
       notes: m.notes,
       from_pair: m.fromPair,
+      speed_journal_metric_key: m.speedJournalMetricKey?.trim()
+        ? m.speedJournalMetricKey.trim()
+        : null,
     })),
   };
 }
@@ -446,6 +482,7 @@ export function draftFromTemplate(template: TemplateWithMovements): CardDraft {
       notes: m.notes,
       fromPair: m.from_pair,
       exerciseHtml: null,
+      speedJournalMetricKey: m.speed_journal_metric_key,
     })),
   };
 }
@@ -460,7 +497,7 @@ async function insertMovements(
     const targetsJson = JSON.stringify(m.targets);
     const { rows } = await sql`
       INSERT INTO workout_movements (
-        id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair
+        id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key
       )
       VALUES (
         ${movementId},
@@ -472,9 +509,10 @@ async function insertMovements(
         ${m.set_count},
         ${targetsJson},
         ${m.notes},
-        ${m.from_pair}
+        ${m.from_pair},
+        ${m.speed_journal_metric_key}
       )
-      RETURNING id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair
+      RETURNING id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key
     `;
     inserted.push(serializeMovement(rows[0] as Record<string, unknown>));
   }
@@ -537,7 +575,7 @@ export async function getTemplateWithMovements(
     LIMIT 1
   `;
   const movementsPromise = sql`
-    SELECT id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair
+    SELECT id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key
     FROM workout_movements
     WHERE template_id = ${id}
     ORDER BY sort_index
