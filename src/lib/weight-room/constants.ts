@@ -2,6 +2,7 @@ export const HUGO_GROUPS = [
   "soccer",
   "volleyball",
   "xc",
+  "football",
   "extracurricular",
   "mens_basketball",
   "womens_basketball",
@@ -20,6 +21,7 @@ export const HUGO_GROUP_META: Record<
   soccer: { label: "Soccer", season: "fall" },
   volleyball: { label: "Volleyball", season: "fall" },
   xc: { label: "XC", season: "fall" },
+  football: { label: "Football", season: "fall" },
   extracurricular: { label: "Extracurricular", season: "year" },
   mens_basketball: { label: "Men's Basketball", season: "winter" },
   womens_basketball: { label: "Women's Basketball", season: "winter" },
@@ -31,6 +33,7 @@ export const FALL_IN_SEASON_GROUPS: readonly HugoGroup[] = [
   "soccer",
   "volleyball",
   "xc",
+  "football",
   "extracurricular",
 ];
 

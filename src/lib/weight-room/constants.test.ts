@@ -12,6 +12,7 @@ describe("isHugoGroup", () => {
     for (const g of HUGO_GROUPS) {
       expect(isHugoGroup(g)).toBe(true);
     }
+    expect(isHugoGroup("football")).toBe(true);
     expect(isHugoGroup("mens_basketball")).toBe(true);
     expect(isHugoGroup("womens_basketball")).toBe(true);
     expect(isHugoGroup("track")).toBe(true);
@@ -36,8 +37,10 @@ describe("HUGO_GROUP_META", () => {
       "soccer",
       "volleyball",
       "xc",
+      "football",
       "extracurricular",
     ]);
+    expect(HUGO_GROUP_META.football).toEqual({ label: "Football", season: "fall" });
     expect(HUGO_GROUP_META.soccer.season).toBe("fall");
     expect(HUGO_GROUP_META.extracurricular.season).toBe("year");
     expect(HUGO_GROUP_META.mens_basketball.season).toBe("winter");
@@ -49,6 +52,8 @@ describe("printHeaderGroups", () => {
   it("lists only fall cohort sports on extra and in-season fall cards", () => {
     expect(printHeaderGroups("extracurricular")).toEqual(FALL_IN_SEASON_GROUPS);
     expect(printHeaderGroups("soccer")).toEqual(FALL_IN_SEASON_GROUPS);
+    expect(printHeaderGroups("soccer")).toContain("football");
+    expect(printHeaderGroups("football")).toEqual(FALL_IN_SEASON_GROUPS);
     expect(printHeaderGroups("soccer")).not.toContain("mens_basketball");
     expect(printHeaderGroups("soccer")).not.toContain("track");
   });
