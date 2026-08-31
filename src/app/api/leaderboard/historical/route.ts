@@ -2,12 +2,25 @@
  * Historical leaderboard API - GET (public).
  * Returns ranked rows for a date range + metric; optional group_by=gender.
  * Supports metric=MaxVelocity (max display_value across all mph-metric entries in range).
+ * Zones are current-stick only (computed at read time from live cuts, never stored).
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
 import { getVelocityMetricKeys, getMaxVelocityKey } from "@/lib/velocity-metrics";
 import { getHistoricalComponentFilter } from "@/lib/historical-metric-filter";
+import {
+  applyLeaderboardZones,
+  mapThresholdRows,
+  parsePopulationIdParam,
+  resolveSelectedPopulation,
+  type RawThresholdRow,
+} from "@/lib/norms/leaderboard-zones";
+import type {
+  AttachZonesDefault,
+  AttachZonesMembership,
+  AttachZonesPopulation,
+} from "@/lib/norms/attach-zones";
 import type { LeaderboardRow } from "@/types";
 
 type Row = {
@@ -21,6 +34,101 @@ type Row = {
   units: string;
   source_metric_key?: string;
 };
+
+function splitByGender(rows: LeaderboardRow[]) {
+  const male = rows.filter(
+    (r) => r.gender?.toLowerCase() === "m" || r.gender?.toLowerCase() === "male"
+  );
+  const female = rows.filter(
+    (r) => r.gender?.toLowerCase() === "f" || r.gender?.toLowerCase() === "female"
+  );
+  return { male, female };
+}
+
+async function attachCurrentStickZones<T extends LeaderboardRow>(opts: {
+  rows: T[];
+  populationsPromise: Promise<{ rows: unknown[] } | null>;
+  metricKey: string;
+  component: string | null;
+  lowerIsBetter: boolean;
+  parsedPopulationId: string | null;
+}): Promise<
+  | { ok: false; error: string }
+  | {
+      ok: true;
+      rows: T[];
+      populations: AttachZonesPopulation[];
+      selected_population_id: string | null;
+    }
+> {
+  let populations: AttachZonesPopulation[] = [];
+  let populationsLoaded = false;
+  const popResult = await opts.populationsPromise;
+  if (popResult != null) {
+    populations = popResult.rows as AttachZonesPopulation[];
+    populationsLoaded = true;
+    const resolved = resolveSelectedPopulation(
+      opts.parsedPopulationId,
+      populations
+    );
+    if (!resolved.ok) {
+      return { ok: false, error: resolved.error };
+    }
+  }
+
+  let zonedRows: T[] = opts.rows;
+  if (populationsLoaded) {
+    try {
+      const athleteIds = opts.rows.map((r) => r.athlete_id);
+      const membershipsPromise =
+        athleteIds.length > 0
+          ? sql`
+              SELECT athlete_id, hugo_group, is_primary
+              FROM athlete_hugo_memberships
+              WHERE athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
+            `
+          : Promise.resolve({ rows: [] as unknown[] });
+      const [memResult, defResult, thrResult] = await Promise.all([
+        membershipsPromise,
+        sql`
+          SELECT hugo_group, metric_key, population_id
+          FROM norm_sport_defaults
+          WHERE metric_key = ${opts.metricKey}
+        `,
+        sql`
+          SELECT population_id, gender, component, label, threshold
+          FROM norm_thresholds
+          WHERE metric_key = ${opts.metricKey}
+        `,
+      ]);
+      const applied = applyLeaderboardZones({
+        rows: opts.rows,
+        memberships: (memResult.rows as AttachZonesMembership[]).map((m) => ({
+          athlete_id: m.athlete_id,
+          hugo_group: m.hugo_group,
+          is_primary: Boolean(m.is_primary),
+        })),
+        defaults: defResult.rows as AttachZonesDefault[],
+        thresholds: mapThresholdRows(thrResult.rows as RawThresholdRow[]),
+        populations,
+        metricKey: opts.metricKey,
+        component: opts.component,
+        lowerIsBetter: opts.lowerIsBetter,
+        overridePopulationId: opts.parsedPopulationId,
+      });
+      zonedRows = applied.rows;
+    } catch (err) {
+      console.error("GET /api/leaderboard/historical zones:", err);
+    }
+  }
+
+  return {
+    ok: true,
+    rows: zonedRows,
+    populations,
+    selected_population_id: opts.parsedPopulationId,
+  };
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,6 +145,28 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const parsedPopulation = parsePopulationIdParam(
+      searchParams.get("population_id")
+    );
+    if (!parsedPopulation.ok) {
+      return NextResponse.json(
+        { error: parsedPopulation.error },
+        { status: 400 }
+      );
+    }
+
+    const populationsPromise = Promise.resolve(
+      sql`
+        SELECT id, name
+        FROM norm_populations
+        WHERE archived_at IS NULL
+        ORDER BY name ASC
+      `
+    ).catch((err: unknown) => {
+      console.error("GET /api/leaderboard/historical populations:", err);
+      return null;
+    });
 
     const registry = getMetricsRegistry();
     const isMaxVelocity = metric === getMaxVelocityKey();
@@ -99,20 +229,28 @@ export async function GET(request: NextRequest) {
         source_metric_key: r.source_metric_key,
       }));
 
-      const male = leaderboardRows.filter(
-        (r) => r.gender?.toLowerCase() === "m" || r.gender?.toLowerCase() === "male"
-      );
-      const female = leaderboardRows.filter(
-        (r) => r.gender?.toLowerCase() === "f" || r.gender?.toLowerCase() === "female"
-      );
+      const zoned = await attachCurrentStickZones({
+        rows: leaderboardRows,
+        populationsPromise,
+        metricKey: metric,
+        component: null,
+        lowerIsBetter: false,
+        parsedPopulationId: parsedPopulation.populationId,
+      });
+      if (!zoned.ok) {
+        return NextResponse.json({ error: zoned.error }, { status: 400 });
+      }
+      const { male, female } = splitByGender(zoned.rows);
 
       return NextResponse.json({
         data: {
-          rows: leaderboardRows,
+          rows: zoned.rows,
           male,
           female,
           units: "mph",
           metric_display_name: "Max Velocity",
+          populations: zoned.populations,
+          selected_population_id: zoned.selected_population_id,
         },
       });
     }
@@ -193,20 +331,28 @@ export async function GET(request: NextRequest) {
       units: r.units,
     }));
 
-    const male = leaderboardRows.filter(
-      (r) => r.gender?.toLowerCase() === "m" || r.gender?.toLowerCase() === "male"
-    );
-    const female = leaderboardRows.filter(
-      (r) => r.gender?.toLowerCase() === "f" || r.gender?.toLowerCase() === "female"
-    );
+    const zoned = await attachCurrentStickZones({
+      rows: leaderboardRows,
+      populationsPromise,
+      metricKey: metric,
+      component: filter.primary,
+      lowerIsBetter: sortAsc,
+      parsedPopulationId: parsedPopulation.populationId,
+    });
+    if (!zoned.ok) {
+      return NextResponse.json({ error: zoned.error }, { status: 400 });
+    }
+    const { male, female } = splitByGender(zoned.rows);
 
     return NextResponse.json({
       data: {
-        rows: leaderboardRows,
+        rows: zoned.rows,
         male,
         female,
         units: metricDef.display_units ?? "",
         metric_display_name: metricDef.display_name ?? metric,
+        populations: zoned.populations,
+        selected_population_id: zoned.selected_population_id,
       },
     });
   } catch (err) {

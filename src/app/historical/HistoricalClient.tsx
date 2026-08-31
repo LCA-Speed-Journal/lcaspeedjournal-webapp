@@ -8,8 +8,10 @@ import { PageBackground } from "@/app/components/PageBackground";
 import { formatLeaderboardName } from "@/lib/display-names";
 import { getLeaderboardSections } from "@/lib/leaderboard-sections";
 import { useIsMobile } from "@/hooks/useMediaQuery";
-import type { LeaderboardRow } from "@/types";
+import type { LeaderboardRow, NormPopulationOption } from "@/types";
 import type { ProgressionPoint } from "@/types";
+import { ZoneLegend, ZoneMark } from "@/app/leaderboard/ZoneMark";
+import { buildHistoricalLeaderboardUrl } from "./historical-url";
 
 const ProgressionChart = dynamic(
   () => import("./ProgressionChart").then((m) => m.default),
@@ -50,6 +52,63 @@ function formatValue(n: number): string {
   return n.toFixed(2);
 }
 
+function HistoricalCard({
+  row,
+  rank,
+  units,
+  isMobile,
+}: {
+  row: LeaderboardRow;
+  rank: number;
+  units: string;
+  isMobile: boolean;
+}) {
+  const hasZone = Boolean(row.zone_color && row.zone_label);
+  const fullName = `${row.first_name} ${row.last_name}`.trim();
+  const displayName = formatLeaderboardName(
+    row.first_name,
+    row.last_name,
+    row.athlete_type,
+    isMobile
+  );
+  return (
+    <div
+      className={`relative flex flex-col rounded-lg border p-3 ${rankClass(rank)}${hasZone ? " zone-accent" : ""}`}
+      style={{
+        contentVisibility: "auto",
+        containIntrinsicSize: "0 80px",
+        ...(hasZone ? { borderLeftColor: row.zone_color } : {}),
+      }}
+    >
+      <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
+        #{rank}
+      </span>
+      <span
+        className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight"
+        title={displayName !== fullName ? fullName : undefined}
+      >
+        {displayName}
+      </span>
+      <span className="mt-2 flex min-w-0 flex-wrap items-baseline gap-2">
+        <span
+          className="font-mono text-lg font-semibold tabular-nums"
+          style={hasZone ? { color: row.zone_color } : undefined}
+        >
+          {formatValue(row.display_value)}{" "}
+          <span className="text-sm font-normal text-foreground-muted">{units}</span>
+        </span>
+        {hasZone && (
+          <ZoneMark
+            label={row.zone_label!}
+            color={row.zone_color!}
+            populationName={row.population_name}
+          />
+        )}
+      </span>
+    </div>
+  );
+}
+
 const MAX_PROGRESSION_ATHLETES = 5;
 
 type MetricOption = { key: string; display_name: string; display_units: string };
@@ -85,6 +144,7 @@ export default function HistoricalClient() {
   const [athleteIds, setAthleteIds] = useState<string[]>([]);
   const [progressionMetric, setProgressionMetric] = useState("");
   const [showTeamAvg, setShowTeamAvg] = useState(false);
+  const [populationId, setPopulationId] = useState("");
   const [isPending, startTransition] = useTransition();
 
   const { data: metricsData } = useSWR<{ data: { metrics: MetricOption[] } }>(
@@ -106,10 +166,20 @@ export default function HistoricalClient() {
   const { data: athletesData } = useSWR<{ data: AthleteOption[] }>("/api/athletes", fetcher);
   const athletes = athletesData?.data ?? [];
 
-  const historicalUrl =
-    from && to && metric
-      ? `/api/leaderboard/historical?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&metric=${encodeURIComponent(metric)}${phase ? `&phase=${encodeURIComponent(phase)}` : ""}${groupByGender ? "&group_by=gender" : ""}`
-      : null;
+  const { data: populationsData } = useSWR<{ data: NormPopulationOption[] }>(
+    "/api/norms/populations",
+    fetcher
+  );
+  const populations = populationsData?.data ?? [];
+
+  const historicalUrl = buildHistoricalLeaderboardUrl({
+    from,
+    to,
+    metric,
+    phase,
+    groupByGender,
+    populationId,
+  });
   const { data: historicalData, error: historicalError, mutate: mutateHistorical } = useSWR<{
     data: {
       rows: LeaderboardRow[];
@@ -308,7 +378,23 @@ export default function HistoricalClient() {
             />
             <span className="text-sm text-foreground-muted">Show team averages</span>
           </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-sm font-medium text-foreground-muted">Compare using</span>
+            <select
+              value={populationId}
+              onChange={(e) => startTransition(() => setPopulationId(e.target.value))}
+              className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground focus:border-accent"
+            >
+              <option value="">Athlete sport default</option>
+              {populations.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
+        <ZoneLegend />
         {isPending && (
           <p className="mb-2 text-xs text-foreground-muted">Updating…</p>
         )}
@@ -365,32 +451,13 @@ export default function HistoricalClient() {
               {sections.length === 1 && sections[0].title === "" ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {rows.map((r) => (
-                  <div
+                  <HistoricalCard
                     key={r.athlete_id}
-                    className={`relative flex flex-col rounded-lg border p-3 ${rankClass(r.rank)}`}
-                    style={{ contentVisibility: "auto", containIntrinsicSize: "0 80px" }}
-                  >
-                    <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
-                      #{r.rank}
-                    </span>
-                    <span
-                      className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight"
-                      title={
-                        formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile) !==
-                        `${r.first_name} ${r.last_name}`.trim()
-                          ? `${r.first_name} ${r.last_name}`.trim()
-                          : undefined
-                      }
-                    >
-                      {formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile)}
-                    </span>
-                    <span className="mt-2 font-mono text-lg font-semibold tabular-nums">
-                      {formatValue(r.display_value)}{" "}
-                      <span className="text-sm font-normal text-foreground-muted">
-                        {units}
-                      </span>
-                    </span>
-                  </div>
+                    row={r}
+                    rank={r.rank}
+                    units={units}
+                    isMobile={isMobile}
+                  />
                 ))}
               </div>
             ) : (
@@ -399,37 +466,15 @@ export default function HistoricalClient() {
                   <div key={section.title}>
                     <p className="mb-2 text-xs font-medium text-foreground-muted">{section.title}</p>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {section.rows.map((r, i) => {
-                        const displayRank = i + 1;
-                        return (
-                          <div
-                            key={r.athlete_id}
-                            className={`relative flex flex-col rounded-lg border p-3 ${rankClass(displayRank)}`}
-                            style={{ contentVisibility: "auto", containIntrinsicSize: "0 80px" }}
-                          >
-                            <span className="absolute right-2 top-2 text-xs font-mono tabular-nums text-foreground-muted">
-                              #{displayRank}
-                            </span>
-                            <span
-                              className="min-h-0 min-w-0 pr-8 truncate text-base font-semibold leading-tight"
-                              title={
-                                formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile) !==
-                                `${r.first_name} ${r.last_name}`.trim()
-                                  ? `${r.first_name} ${r.last_name}`.trim()
-                                  : undefined
-                              }
-                            >
-                              {formatLeaderboardName(r.first_name, r.last_name, r.athlete_type, isMobile)}
-                            </span>
-                            <span className="mt-2 font-mono text-lg font-semibold tabular-nums">
-                              {formatValue(r.display_value)}{" "}
-                              <span className="text-sm font-normal text-foreground-muted">
-                                {units}
-                              </span>
-                            </span>
-                          </div>
-                        );
-                      })}
+                      {section.rows.map((r, i) => (
+                        <HistoricalCard
+                          key={r.athlete_id}
+                          row={r}
+                          rank={i + 1}
+                          units={units}
+                          isMobile={isMobile}
+                        />
+                      ))}
                     </div>
                   </div>
                 ))}

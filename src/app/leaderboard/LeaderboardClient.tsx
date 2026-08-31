@@ -22,7 +22,7 @@ import { PageBackground } from "@/app/components/PageBackground";
 import type { LeaderboardRow, LeaderboardAnimationTrigger, NormPopulationOption } from "@/types";
 import type { SessionMetric, SessionMetricComponent } from "@/app/api/leaderboard/session-metrics/route";
 import { formatLeaderboardName } from "@/lib/display-names";
-import { ZONE_LABELS } from "@/lib/norms/palette";
+import { ZoneLegend, ZoneMark } from "./ZoneMark";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { computeLeaderboardTriggers } from "./leaderboardDiff";
 import { getLeaderboardSections } from "@/lib/leaderboard-sections";
@@ -349,33 +349,6 @@ export function LeaderboardClient() {
         </div>
       </div>
     </div>
-  );
-}
-
-function ZoneLegend() {
-  return (
-    <ul
-      className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-foreground-muted"
-      aria-label="Zone legend"
-    >
-      {ZONE_LABELS.map((label) => (
-        <li key={label} className="inline-flex items-center gap-1.5">
-          <span
-            className="inline-block h-2.5 w-2.5 rounded-full"
-            style={{ background: `var(--zone-${label})` }}
-            aria-hidden
-          />
-          <span className="capitalize">{label}</span>
-        </li>
-      ))}
-      <li className="inline-flex items-center gap-1.5">
-        <span
-          className="inline-block h-2.5 w-2.5 rounded-full border border-border bg-surface"
-          aria-hidden
-        />
-        <span>no badge</span>
-      </li>
-    </ul>
   );
 }
 
@@ -730,13 +703,11 @@ function LeaderboardCard({
           <span className="text-sm font-normal text-foreground-muted">{units}</span>
         </span>
         {hasZone && (
-          <span
-            className="zone-badge"
-            style={{ color: row.zone_color }}
-            title={row.population_name}
-          >
-            {row.zone_label}
-          </span>
+          <ZoneMark
+            label={row.zone_label!}
+            color={row.zone_color!}
+            populationName={row.population_name}
+          />
         )}
       </span>
       <div className="mt-2 flex items-center justify-between">
