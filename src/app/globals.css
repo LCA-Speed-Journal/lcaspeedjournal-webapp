@@ -26,6 +26,12 @@
   --pb-text: #b45309;
   --pb-bg: rgba(180, 83, 9, 0.2);
   --pb-border: rgba(180, 83, 9, 0.5);
+  --zone-poor: #dc2626;
+  --zone-developmental: #ea580c;
+  --zone-efficient: #ca8a04;
+  --zone-advanced: #16a34a;
+  --zone-elite: #2563eb;
+  --zone-world-class: #7c3aed;
 }
 
 .dark {
@@ -53,6 +59,12 @@
   --pb-text: #f59e0b;
   --pb-bg: rgba(245, 158, 11, 0.2);
   --pb-border: rgba(245, 158, 11, 0.5);
+  --zone-poor: #dc2626;
+  --zone-developmental: #ea580c;
+  --zone-efficient: #ca8a04;
+  --zone-advanced: #16a34a;
+  --zone-elite: #2563eb;
+  --zone-world-class: #7c3aed;
 }
 
 @theme inline {
@@ -283,5 +295,23 @@ body {
       0 0 10px color-mix(in srgb, var(--cohort-glow) 40%, transparent),
       0 0 22px color-mix(in srgb, var(--cohort-glow) 20%, transparent);
   }
+}
+
+/* Current-stick zone chips and card accent (live leaderboard) */
+.zone-badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent);
+  background: color-mix(in srgb, currentColor 16%, var(--surface));
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-transform: capitalize;
+}
+
+.zone-accent {
+  border-left-width: 4px;
+  border-left-style: solid;
 }
 

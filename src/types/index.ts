@@ -32,6 +32,16 @@ export type LeaderboardRow = {
   best_type?: "pb" | "sb";
   /** athlete | staff | alumni; used for name truncation */
   athlete_type?: "athlete" | "staff" | "alumni";
+  /** Current-stick zone (computed at read time; never stored on entries) */
+  zone_label?: string;
+  zone_color?: string;
+  population_name?: string;
+  population_id?: string;
+};
+
+export type NormPopulationOption = {
+  id: string;
+  name: string;
 };
 
 /** Animation trigger derived from diff(prev, current) leaderboard rows. One per card per refetch. */

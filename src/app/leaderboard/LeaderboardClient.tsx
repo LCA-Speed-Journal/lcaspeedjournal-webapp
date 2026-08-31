@@ -19,9 +19,10 @@ function usePageVisible(): boolean {
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { PageBackground } from "@/app/components/PageBackground";
-import type { LeaderboardRow, LeaderboardAnimationTrigger } from "@/types";
+import type { LeaderboardRow, LeaderboardAnimationTrigger, NormPopulationOption } from "@/types";
 import type { SessionMetric, SessionMetricComponent } from "@/app/api/leaderboard/session-metrics/route";
 import { formatLeaderboardName } from "@/lib/display-names";
+import { ZONE_LABELS } from "@/lib/norms/palette";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { computeLeaderboardTriggers } from "./leaderboardDiff";
 import { getLeaderboardSections } from "@/lib/leaderboard-sections";
@@ -51,7 +52,8 @@ function buildLeaderboardUrl(
   sessionId: string,
   metricKey: string,
   component: SessionMetricComponent,
-  groupByGender: boolean
+  groupByGender: boolean,
+  populationId: string
 ): string {
   const params = new URLSearchParams({
     session_id: sessionId,
@@ -64,6 +66,7 @@ function buildLeaderboardUrl(
     params.set("component", component.component);
   }
   if (groupByGender) params.set("group_by", "gender");
+  if (populationId) params.set("population_id", populationId);
   return `/api/leaderboard?${params.toString()}`;
 }
 
@@ -78,11 +81,17 @@ export function LeaderboardClient() {
   const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set());
   /** Per-metric set of selected component keys; default to first (Overall) when expanding */
   const [selectedComponentsByMetric, setSelectedComponentsByMetric] = useState<Record<string, Set<string>>>({});
+  const [populationId, setPopulationId] = useState("");
   const [isPending, startTransition] = useTransition();
   const isVisible = usePageVisible();
 
   const { data: sessionsData } = useSWR<{ data: SessionItem[] }>("/api/sessions", fetcher);
   const sessions = sessionsData?.data ?? [];
+  const { data: populationsData } = useSWR<{ data: NormPopulationOption[] }>(
+    "/api/norms/populations",
+    fetcher
+  );
+  const populations = populationsData?.data ?? [];
 
   const sessionMetricsUrl =
     sessionId ? `/api/leaderboard/session-metrics?session_id=${encodeURIComponent(sessionId)}` : null;
@@ -229,7 +238,24 @@ export function LeaderboardClient() {
           />
           <span className="text-sm text-foreground-muted">Split gender columns</span>
         </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-medium text-foreground-muted">Compare using</span>
+          <select
+            value={populationId}
+            onChange={(e) => startTransition(() => setPopulationId(e.target.value))}
+            className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground focus:border-accent"
+          >
+            <option value="">Athlete sport default</option>
+            {populations.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
       </section>
+
+      <ZoneLegend />
 
       {!sessionId ? (
         <p className="text-sm text-foreground-muted">
@@ -303,6 +329,7 @@ export function LeaderboardClient() {
                               topN={topN}
                               wideMode={wideMode}
                               splitGenderColumns={splitGenderColumns}
+                              populationId={populationId}
                             />
                           ))}
                         </div>
@@ -325,6 +352,33 @@ export function LeaderboardClient() {
   );
 }
 
+function ZoneLegend() {
+  return (
+    <ul
+      className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-foreground-muted"
+      aria-label="Zone legend"
+    >
+      {ZONE_LABELS.map((label) => (
+        <li key={label} className="inline-flex items-center gap-1.5">
+          <span
+            className="inline-block h-2.5 w-2.5 rounded-full"
+            style={{ background: `var(--zone-${label})` }}
+            aria-hidden
+          />
+          <span className="capitalize">{label}</span>
+        </li>
+      ))}
+      <li className="inline-flex items-center gap-1.5">
+        <span
+          className="inline-block h-2.5 w-2.5 rounded-full border border-border bg-surface"
+          aria-hidden
+        />
+        <span>no badge</span>
+      </li>
+    </ul>
+  );
+}
+
 function ComponentLeaderboard({
   sessionId,
   metric,
@@ -335,6 +389,7 @@ function ComponentLeaderboard({
   topN,
   wideMode,
   splitGenderColumns,
+  populationId,
 }: {
   sessionId: string;
   metric: SessionMetric;
@@ -345,8 +400,15 @@ function ComponentLeaderboard({
   topN: number;
   wideMode: boolean;
   splitGenderColumns: boolean;
+  populationId: string;
 }) {
-  const url = buildLeaderboardUrl(sessionId, metric.metric_key, component, groupByGender);
+  const url = buildLeaderboardUrl(
+    sessionId,
+    metric.metric_key,
+    component,
+    groupByGender,
+    populationId
+  );
   const isVisible = usePageVisible();
   const { data, error, isLoading, mutate } = useSWR<{
     data: {
@@ -355,6 +417,8 @@ function ComponentLeaderboard({
       female?: LeaderboardRow[];
       metric_display_name: string;
       units: string;
+      populations?: NormPopulationOption[];
+      selected_population_id?: string | null;
     };
   }>(url, fetcher, {
     refreshInterval: isVisible ? LIVE_LEADERBOARD_REFRESH_MS : 0,
@@ -633,12 +697,17 @@ function LeaderboardCard({
     row.athlete_type,
     isMobile || forceCompactName
   );
+  const hasZone = Boolean(row.zone_color && row.zone_label);
 
   return (
     <motion.div
       layout
-      className={`relative flex flex-col rounded-lg border p-3 ${rankClass(rank)}`}
-      style={{ contentVisibility: "auto", containIntrinsicSize: "0 80px" }}
+      className={`relative flex flex-col rounded-lg border p-3 ${rankClass(rank)}${hasZone ? " zone-accent" : ""}`}
+      style={{
+        contentVisibility: "auto",
+        containIntrinsicSize: "0 80px",
+        ...(hasZone ? { borderLeftColor: row.zone_color } : {}),
+      }}
       initial={variantKey}
       animate={variantKey}
       variants={variants}
@@ -652,10 +721,23 @@ function LeaderboardCard({
       >
         {displayName}
       </span>
-      <span
-        className={`mt-2 font-mono text-lg font-semibold tabular-nums ${rank === 1 ? "text-gold-text" : ""}`}
-      >
-        {formatValue(row.display_value)} <span className="text-sm font-normal text-foreground-muted">{units}</span>
+      <span className="mt-2 flex min-w-0 flex-wrap items-baseline gap-2">
+        <span
+          className={`font-mono text-lg font-semibold tabular-nums ${rank === 1 && !hasZone ? "text-gold-text" : ""}`}
+          style={hasZone ? { color: row.zone_color } : undefined}
+        >
+          {formatValue(row.display_value)}{" "}
+          <span className="text-sm font-normal text-foreground-muted">{units}</span>
+        </span>
+        {hasZone && (
+          <span
+            className="zone-badge"
+            style={{ color: row.zone_color }}
+            title={row.population_name}
+          >
+            {row.zone_label}
+          </span>
+        )}
       </span>
       <div className="mt-2 flex items-center justify-between">
         <span className="min-w-0">

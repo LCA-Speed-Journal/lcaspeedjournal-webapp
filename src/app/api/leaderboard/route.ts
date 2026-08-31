@@ -6,6 +6,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
+import {
+  applyLeaderboardZones,
+  mapThresholdRows,
+  parsePopulationIdParam,
+  resolveSelectedPopulation,
+  type RawThresholdRow,
+} from "@/lib/norms/leaderboard-zones";
+import type {
+  AttachZonesDefault,
+  AttachZonesMembership,
+  AttachZonesPopulation,
+} from "@/lib/norms/attach-zones";
 import type { LeaderboardRow, LeaderboardTrend } from "@/types";
 
 const TIME_NEUTRAL_BAND = 0.8;
@@ -45,6 +57,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const parsedPopulation = parsePopulationIdParam(searchParams.get("population_id"));
+    if (!parsedPopulation.ok) {
+      return NextResponse.json(
+        { error: parsedPopulation.error },
+        { status: 400 }
+      );
+    }
+
     const registry = getMetricsRegistry();
     const metricDef = registry[metric];
     if (!metricDef) {
@@ -53,6 +73,18 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const populationsPromise = Promise.resolve(
+      sql`
+        SELECT id, name
+        FROM norm_populations
+        WHERE archived_at IS NULL
+        ORDER BY name ASC
+      `
+    ).catch((err: unknown) => {
+      console.error("GET /api/leaderboard populations:", err);
+      return null;
+    });
 
     // Session exists and get session_date for previous-session lookup
     const sessionRows = await sql`
@@ -411,25 +443,88 @@ export async function GET(request: NextRequest) {
       return out;
     });
 
+    let populations: AttachZonesPopulation[] = [];
+    let populationsLoaded = false;
+    const popResult = await populationsPromise;
+    if (popResult != null) {
+      populations = popResult.rows as AttachZonesPopulation[];
+      populationsLoaded = true;
+      const resolved = resolveSelectedPopulation(
+        parsedPopulation.populationId,
+        populations
+      );
+      if (!resolved.ok) {
+        return NextResponse.json({ error: resolved.error }, { status: 400 });
+      }
+    }
+
+    let zonedRows: LeaderboardRow[] = leaderboardRows;
+    if (populationsLoaded) {
+      try {
+        const athleteIds = leaderboardRows.map((r) => r.athlete_id);
+        const membershipsPromise =
+          athleteIds.length > 0
+            ? sql`
+                SELECT athlete_id, hugo_group, is_primary
+                FROM athlete_hugo_memberships
+                WHERE athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
+              `
+            : Promise.resolve({ rows: [] as unknown[] });
+        const [memResult, defResult, thrResult] = await Promise.all([
+          membershipsPromise,
+          sql`
+            SELECT hugo_group, metric_key, population_id
+            FROM norm_sport_defaults
+            WHERE metric_key = ${metric}
+          `,
+          sql`
+            SELECT population_id, gender, component, label, threshold
+            FROM norm_thresholds
+            WHERE metric_key = ${metric}
+          `,
+        ]);
+        const applied = applyLeaderboardZones({
+          rows: leaderboardRows,
+          memberships: (memResult.rows as AttachZonesMembership[]).map((m) => ({
+            athlete_id: m.athlete_id,
+            hugo_group: m.hugo_group,
+            is_primary: Boolean(m.is_primary),
+          })),
+          defaults: defResult.rows as AttachZonesDefault[],
+          thresholds: mapThresholdRows(thrResult.rows as RawThresholdRow[]),
+          populations,
+          metricKey: metric,
+          component,
+          lowerIsBetter: sortAsc,
+          overridePopulationId: parsedPopulation.populationId,
+        });
+        zonedRows = applied.rows;
+      } catch (err) {
+        console.error("GET /api/leaderboard zones:", err);
+      }
+    }
+
     const payload = {
       data: {
-        rows: leaderboardRows,
+        rows: zonedRows,
         metric_display_name: metricDef.display_name ?? metric,
         units: effectiveUnits,
         sort_asc: sortAsc,
+        populations,
+        selected_population_id: parsedPopulation.populationId,
       },
     };
 
     if (group_by === "gender") {
-      const male = leaderboardRows.filter((r) => r.gender?.toLowerCase() === "m" || r.gender?.toLowerCase() === "male");
-      const female = leaderboardRows.filter((r) => r.gender?.toLowerCase() === "f" || r.gender?.toLowerCase() === "female");
+      const male = zonedRows.filter((r) => r.gender?.toLowerCase() === "m" || r.gender?.toLowerCase() === "male");
+      const female = zonedRows.filter((r) => r.gender?.toLowerCase() === "f" || r.gender?.toLowerCase() === "female");
       return NextResponse.json({
         ...payload,
         data: {
           ...payload.data,
           male,
           female,
-          rows: leaderboardRows,
+          rows: zonedRows,
         },
       });
     }
