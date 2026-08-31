@@ -1,0 +1,21 @@
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0.5in;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #18181b !important;
+  }
+
+  .testing-day-chrome {
+    display: none !important;
+  }
+
+  .testing-day-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
