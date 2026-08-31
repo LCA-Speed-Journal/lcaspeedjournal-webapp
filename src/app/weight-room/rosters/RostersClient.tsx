@@ -9,6 +9,10 @@ import {
   HUGO_GROUPS,
   type HugoGroup,
 } from "@/lib/weight-room/constants";
+import {
+  gradeToGraduatingClass,
+  graduatingClassToGrade,
+} from "@/lib/quick-athlete";
 import type { Athlete } from "@/types";
 
 const fetcher = (url: string) =>
@@ -134,6 +138,8 @@ export function RostersClient() {
   const [commitResult, setCommitResult] = useState<CommitResult | null>(null);
   const [removingId, setRemovingId] = useState("");
   const [removeError, setRemoveError] = useState("");
+  const [gradeBusyId, setGradeBusyId] = useState("");
+  const [gradeError, setGradeError] = useState("");
   const hugoGroupRef = useRef(hugoGroup);
   hugoGroupRef.current = hugoGroup;
   const confirmInFlight = useRef(false);
@@ -167,6 +173,7 @@ export function RostersClient() {
     setConfirmError("");
     setCommitResult(null);
     setRemoveError("");
+    setGradeError("");
   }
 
   async function onPrepare() {
@@ -280,6 +287,38 @@ export function RostersClient() {
     }
   }
 
+  async function onGradeChange(athlete: Athlete, gradeRaw: string) {
+    const grade = Number.parseInt(gradeRaw, 10);
+    const graduatingClass = gradeToGraduatingClass(grade);
+    if (graduatingClass == null) return;
+    setGradeError("");
+    setGradeBusyId(athlete.id);
+    try {
+      const res = await fetch(`/api/athletes/${athlete.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: athlete.first_name,
+          last_name: athlete.last_name,
+          gender: athlete.gender,
+          athlete_type: athlete.athlete_type || "athlete",
+          active: athlete.active !== false,
+          graduating_class: graduatingClass,
+        }),
+      });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setGradeError(json.error ?? "Failed to update grade");
+        return;
+      }
+      await mutate();
+    } catch {
+      setGradeError("Network error — try again");
+    } finally {
+      setGradeBusyId("");
+    }
+  }
+
   function updateRow(index: number, patch: Partial<ReviewRow>) {
     setReviewRows((prev) =>
       prev.map((row, i) => (i === index ? { ...row, ...patch } : row))
@@ -344,28 +383,55 @@ export function RostersClient() {
             </p>
           ) : (
             <ul className="mt-3 flex flex-col gap-2">
-              {members.map((athlete) => (
-                <li
-                  key={athlete.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3 py-2"
-                >
-                  <span className="min-w-0 text-sm text-foreground">
-                    {athleteLabel(athlete)}
-                  </span>
-                  <button
-                    type="button"
-                    disabled={removingId === athlete.id}
-                    onClick={() => void onRemove(athlete.id)}
-                    className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:border-accent/50 disabled:opacity-50"
+              {members.map((athlete) => {
+                const grade = graduatingClassToGrade(athlete.graduating_class);
+                const canEditGrade = (athlete.athlete_type || "athlete") === "athlete";
+                return (
+                  <li
+                    key={athlete.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-3 py-2"
                   >
-                    {removingId === athlete.id ? "Removing…" : "Remove"}
-                  </button>
-                </li>
-              ))}
+                    <span className="min-w-0 text-sm text-foreground">
+                      {athleteLabel(athlete)}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="flex items-center gap-2 text-sm text-foreground">
+                        Grade
+                        <select
+                          value={grade ?? ""}
+                          disabled={!canEditGrade || gradeBusyId === athlete.id}
+                          onChange={(e) =>
+                            void onGradeChange(athlete, e.target.value)
+                          }
+                          className="rounded-lg border border-border bg-surface-elevated px-2 py-1.5 text-sm text-foreground disabled:opacity-50"
+                          aria-label={`Grade for ${athleteLabel(athlete)}`}
+                        >
+                          <option value="">—</option>
+                          <option value="9">9</option>
+                          <option value="10">10</option>
+                          <option value="11">11</option>
+                          <option value="12">12</option>
+                        </select>
+                      </label>
+                      <button
+                        type="button"
+                        disabled={removingId === athlete.id}
+                        onClick={() => void onRemove(athlete.id)}
+                        className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-foreground hover:border-accent/50 disabled:opacity-50"
+                      >
+                        {removingId === athlete.id ? "Removing…" : "Remove"}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
           {removeError ? (
             <p className="mt-2 text-sm text-danger">{removeError}</p>
+          ) : null}
+          {gradeError ? (
+            <p className="mt-2 text-sm text-danger">{gradeError}</p>
           ) : null}
         </section>
 

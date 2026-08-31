@@ -24,6 +24,18 @@ export function gradeToGraduatingClass(
   return schoolYearEnd(now) + (12 - grade);
 }
 
+export function graduatingClassToGrade(
+  graduatingClass: number | null | undefined,
+  now: Date = new Date()
+): number | null {
+  if (graduatingClass == null || !Number.isFinite(Number(graduatingClass))) {
+    return null;
+  }
+  const grade = 12 - (Number(graduatingClass) - schoolYearEnd(now));
+  if (grade !== 9 && grade !== 10 && grade !== 11 && grade !== 12) return null;
+  return grade;
+}
+
 export function resolveGraduatingClass(
   athleteType: string,
   graduatingClass: unknown

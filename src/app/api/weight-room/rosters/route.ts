@@ -28,6 +28,10 @@ export async function GET(request: NextRequest) {
         a.id,
         a.first_name,
         a.last_name,
+        a.gender,
+        a.graduating_class,
+        a.athlete_type,
+        a.active,
         m.hugo_group
       FROM athlete_hugo_memberships m
       JOIN athletes a ON a.id = m.athlete_id
@@ -40,6 +44,10 @@ export async function GET(request: NextRequest) {
         id: string;
         first_name: string;
         last_name: string;
+        gender: string;
+        graduating_class: number | null;
+        athlete_type: string;
+        active: boolean;
         hugo_group: string;
       }>
     );

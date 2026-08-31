@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseNameFromQuery,
   gradeToGraduatingClass,
+  graduatingClassToGrade,
   resolveGraduatingClass,
   buildAthleteCreatePayload,
   addOptionVisible,
@@ -62,6 +63,22 @@ describe("gradeToGraduatingClass", () => {
   it("returns null for grades outside 9–12", () => {
     expect(gradeToGraduatingClass(8, btsnNight)).toBeNull();
     expect(gradeToGraduatingClass(13, btsnNight)).toBeNull();
+  });
+});
+
+describe("graduatingClassToGrade", () => {
+  const btsnNight = new Date("2026-08-25T18:00:00");
+
+  it("reverses gradeToGraduatingClass for 9–12", () => {
+    expect(graduatingClassToGrade(2027, btsnNight)).toBe(12);
+    expect(graduatingClassToGrade(2028, btsnNight)).toBe(11);
+    expect(graduatingClassToGrade(2029, btsnNight)).toBe(10);
+    expect(graduatingClassToGrade(2030, btsnNight)).toBe(9);
+  });
+
+  it("returns null when class year is missing or off the 9–12 band", () => {
+    expect(graduatingClassToGrade(null, btsnNight)).toBeNull();
+    expect(graduatingClassToGrade(2020, btsnNight)).toBeNull();
   });
 });
 
