@@ -13,6 +13,10 @@ import {
   type ConfirmResultPayload,
 } from "@/lib/weight-room/confirm-scan";
 import { loadScanRow, serializeScan } from "@/lib/weight-room/scan-row";
+import {
+  dualWriteWeightRoomJournal,
+  parseJournalPostsBody,
+} from "@/lib/norms/weight-room-journal";
 
 function errorMessage(err: unknown): string {
   if (err instanceof Error && err.message) return err.message;
@@ -279,7 +283,35 @@ export async function POST(
       WHERE id = ${scan.id}
     `;
 
-    return NextResponse.json({ data: { log, results } });
+    const journal_warnings: string[] = [];
+    const journal_entry_ids: string[] = [];
+    const parsedPosts = parseJournalPostsBody(rec.journal_posts);
+    if (!parsedPosts.ok) {
+      journal_warnings.push(parsedPosts.error);
+    } else if (parsedPosts.value.some((post) => post.post)) {
+      try {
+        const journal = await dualWriteWeightRoomJournal({
+          sessionDate: payload.log.session_date,
+          athleteId: payload.log.athlete_id,
+          movements: template.movements,
+          outputs: payload.results.map((result) => ({
+            movement_id: result.movement_id,
+            kind: result.kind ?? "",
+            load: result.load,
+            units: result.units,
+          })),
+          posts: parsedPosts.value,
+        });
+        journal_warnings.push(...journal.journal_warnings);
+        journal_entry_ids.push(...journal.journal_entry_ids);
+      } catch (journalErr) {
+        journal_warnings.push(errorMessage(journalErr));
+      }
+    }
+
+    return NextResponse.json({
+      data: { log, results, journal_warnings, journal_entry_ids },
+    });
   } catch (err) {
     console.error("POST /api/weight-room/scans/[id]/confirm:", errorMessage(err));
     return NextResponse.json(

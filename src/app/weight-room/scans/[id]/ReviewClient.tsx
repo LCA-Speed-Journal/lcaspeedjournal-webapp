@@ -10,6 +10,8 @@ import {
 } from "@/lib/weight-room/confirm-scan";
 import { parseLoadReps } from "@/lib/weight-room/parse-load-reps";
 import { isOnHugoTeam } from "@/lib/weight-room/hugo-memberships";
+import { getMetricsRegistry } from "@/lib/parser";
+import { buildJournalPostCandidates } from "@/lib/norms/journal-posts";
 import type { Athlete } from "@/types";
 import type {
   ScanListRow,
@@ -21,6 +23,17 @@ const fetcher = (url: string) =>
   fetch(url).then((r) =>
     r.ok ? r.json() : Promise.reject(new Error(r.statusText))
   );
+
+const metricSelectOptions = Object.entries(getMetricsRegistry())
+  .map(([key, def]) => ({
+    key,
+    label: def.display_name || key,
+    single: def.input_structure === "single_interval",
+  }))
+  .sort((a, b) => {
+    if (a.single !== b.single) return a.single ? -1 : 1;
+    return a.label.localeCompare(b.label);
+  });
 
 type ScanDetail = {
   scan: ScanListRow;
@@ -75,6 +88,9 @@ export function ReviewClient({ scanId }: { scanId: string }) {
 
   const [athleteId, setAthleteId] = useState("");
   const [editedCells, setEditedCells] = useState<Record<string, string>>({});
+  const [journalPosts, setJournalPosts] = useState<
+    Record<string, { post: boolean; metric_key: string }>
+  >({});
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
@@ -89,6 +105,7 @@ export function ReviewClient({ scanId }: { scanId: string }) {
     const cells = parseScanExtraction(scan.extraction).cells;
     if (!template) {
       setEditedCells(cells);
+      setJournalPosts({});
       return;
     }
     const next: Record<string, string> = {};
@@ -99,6 +116,7 @@ export function ReviewClient({ scanId }: { scanId: string }) {
       }
     }
     setEditedCells(next);
+    setJournalPosts({});
     // Seed from the loaded scan, not on every SWR mutate (athlete PATCH would wipe edits).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scan?.id, template?.id]);
@@ -106,6 +124,37 @@ export function ReviewClient({ scanId }: { scanId: string }) {
   const readOnly =
     scan?.status === "confirmed" || scan?.status === "rejected";
   const canConfirm = Boolean(athleteId) && Boolean(scan?.template_id) && !readOnly;
+
+  const journalCandidates = useMemo(() => {
+    if (!template) return [];
+    const registry = getMetricsRegistry();
+    const outputs = template.movements.flatMap((movement) =>
+      Array.from({ length: movement.set_count }, (_, setIndex) => {
+        const key = cellKey(movement.id, setIndex);
+        const parsed = parseLoadReps(editedCells[key] ?? "");
+        return {
+          movement_id: movement.id,
+          kind: parsed.kind,
+          load: parsed.load,
+          units: parsed.units,
+        };
+      })
+    );
+    return buildJournalPostCandidates({
+      movements: template.movements,
+      outputs,
+      lowerIsBetterFor: (key) =>
+        Boolean(key) && registry[key ?? ""]?.display_units === "s",
+    });
+  }, [template, editedCells]);
+
+  function journalChoice(movementId: string, suggestedPost: boolean, mappedKey: string | null) {
+    const stored = journalPosts[movementId];
+    return {
+      post: stored?.post ?? suggestedPost,
+      metric_key: stored?.metric_key || mappedKey || "",
+    };
+  }
 
   async function patchScan(body: Record<string, unknown>) {
     const res = await fetch(`/api/weight-room/scans/${scanId}`, {
@@ -144,14 +193,38 @@ export function ReviewClient({ scanId }: { scanId: string }) {
       const res = await fetch(`/api/weight-room/scans/${scanId}/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ athlete_id: athleteId, cells: editedCells }),
+        body: JSON.stringify({
+          athlete_id: athleteId,
+          cells: editedCells,
+          journal_posts: journalCandidates.map((candidate) => {
+            const noMark = candidate.mapped && candidate.best_value == null;
+            const choice = journalChoice(
+              candidate.movement_id,
+              candidate.suggested_post,
+              candidate.metric_key
+            );
+            return {
+              movement_id: candidate.movement_id,
+              metric_key: choice.metric_key,
+              post: noMark ? false : choice.post,
+            };
+          }),
+        }),
       });
-      const json = (await res.json()) as { error?: string };
+      const json = (await res.json()) as {
+        error?: string;
+        data?: { journal_warnings?: string[] };
+      };
       if (!res.ok) {
         setActionError(errorText(json, "Confirm failed"));
         return;
       }
-      setActionMessage("Confirmed. Session log saved.");
+      const warnings = json.data?.journal_warnings ?? [];
+      setActionMessage(
+        warnings.length > 0
+          ? `Confirmed. Session log saved. Journal: ${warnings.join("; ")}`
+          : "Confirmed. Session log saved."
+      );
       await mutate();
     } catch {
       setActionError("Network error — try again");
@@ -310,6 +383,89 @@ export function ReviewClient({ scanId }: { scanId: string }) {
                 </p>
               ) : null}
             </section>
+
+            {journalCandidates.length > 0 ? (
+              <section className="mt-6 rounded-xl border border-border bg-surface-elevated p-4">
+                <h2 className="text-sm font-medium text-foreground">
+                  Speed Journal tests
+                </h2>
+                <ul className="mt-3 space-y-3">
+                  {journalCandidates.map((candidate) => {
+                    const noMark =
+                      candidate.mapped && candidate.best_value == null;
+                    const choice = journalChoice(
+                      candidate.movement_id,
+                      candidate.suggested_post,
+                      candidate.metric_key
+                    );
+                    const movement = template?.movements.find(
+                      (m) => m.id === candidate.movement_id
+                    );
+                    return (
+                      <li
+                        key={candidate.movement_id}
+                        className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3"
+                      >
+                        <label className="flex min-w-0 flex-1 items-center gap-2 text-sm text-foreground">
+                          <input
+                            type="checkbox"
+                            disabled={busy || readOnly || noMark}
+                            checked={noMark ? false : choice.post}
+                            onChange={(e) =>
+                              setJournalPosts((prev) => ({
+                                ...prev,
+                                [candidate.movement_id]: {
+                                  post: e.target.checked,
+                                  metric_key: choice.metric_key,
+                                },
+                              }))
+                            }
+                          />
+                          <span className="min-w-0 truncate">
+                            {movement?.name ?? "Movement"}
+                          </span>
+                          {noMark ? (
+                            <span className="text-foreground-muted">no mark</span>
+                          ) : (
+                            <span className="text-foreground-muted">
+                              {candidate.best_value}
+                              {candidate.units ? ` ${candidate.units}` : ""}
+                            </span>
+                          )}
+                        </label>
+                        {candidate.mapped ? (
+                          <span className="text-sm text-foreground-muted">
+                            {candidate.metric_key}
+                          </span>
+                        ) : (
+                          <select
+                            disabled={busy || readOnly}
+                            value={choice.metric_key}
+                            onChange={(e) =>
+                              setJournalPosts((prev) => ({
+                                ...prev,
+                                [candidate.movement_id]: {
+                                  post: choice.post,
+                                  metric_key: e.target.value,
+                                },
+                              }))
+                            }
+                            className="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-foreground sm:max-w-xs"
+                          >
+                            <option value="">Select metric</option>
+                            {metricSelectOptions.map((opt) => (
+                              <option key={opt.key} value={opt.key}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ) : null}
 
             <div className="mt-6 flex flex-wrap gap-3">
               <button
