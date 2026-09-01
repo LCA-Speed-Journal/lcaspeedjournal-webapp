@@ -135,6 +135,8 @@ describe("PUT /api/norms/thresholds", () => {
     expect(res.status).toBe(200);
     expect(writes).toHaveLength(1);
     expect(writes[0].text).toMatch(/DELETE FROM norm_thresholds/i);
+    expect(writes[0].text).toMatch(/RETURNING/i);
+    expect(writes[0].text).toMatch(/CROSS JOIN/i);
     expect(writes[0].text).toMatch(/INSERT INTO norm_thresholds/i);
     expect(writes[0].text).toMatch(/json_to_recordset/i);
     expect(writes[0].values).toContain(JSON.stringify(cells));
@@ -159,6 +161,8 @@ describe("PUT /api/norms/thresholds", () => {
     expect(res.status).toBe(200);
     expect(writes).toHaveLength(1);
     expect(writes[0]).toMatch(/DELETE FROM norm_thresholds/i);
+    expect(writes[0]).toMatch(/RETURNING/i);
+    expect(writes[0]).toMatch(/CROSS JOIN/i);
     expect(writes[0]).toMatch(/json_to_recordset/i);
     await expect(jsonOf(res)).resolves.toEqual({ data: [] });
   });

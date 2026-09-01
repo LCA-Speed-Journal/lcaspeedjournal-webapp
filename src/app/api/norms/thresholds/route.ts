@@ -123,14 +123,16 @@ export async function PUT(request: NextRequest) {
       }))
     );
 
-    // One statement: DELETE the slice and INSERT filled cells.
-    // If INSERT fails, the DELETE rolls back with it.
+    // INSERT must reference DELETE (RETURNING + CROSS JOIN) so Postgres
+    // deletes first. An unreferenced DELETE CTE runs after INSERT and
+    // re-saving existing gender+label cells hits unique_cut.
     await sql`
       WITH deleted AS (
         DELETE FROM norm_thresholds
         WHERE population_id = ${population_id}
           AND metric_key = ${metric_key}
           AND COALESCE(component, '') = ${componentKey}
+        RETURNING id
       )
       INSERT INTO norm_thresholds (
         population_id, metric_key, gender, component, label, threshold
@@ -138,15 +140,13 @@ export async function PUT(request: NextRequest) {
       SELECT
         ${population_id},
         ${metric_key},
-        incoming.gender,
+        cell.gender,
         ${component},
-        incoming.label,
-        incoming.threshold
-      FROM json_to_recordset(CAST(${cellsJson} AS json)) AS incoming(
-        gender text,
-        label text,
-        threshold numeric
-      )
+        cell.label,
+        cell.threshold
+      FROM json_to_recordset(CAST(${cellsJson} AS json))
+        AS cell(gender text, label text, threshold numeric)
+      CROSS JOIN (SELECT COUNT(*) FROM deleted) AS _d
     `;
 
     return NextResponse.json({
