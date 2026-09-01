@@ -1,8 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
   FORTY_YARD_COMPONENTS,
+  buildTestingDayMatrix,
+  entryMatchesTestingDayComponent,
+  pickBestTestingDayHits,
   resolveTestingDayComponent,
+  sortTestingDayMetricKeys,
   summarizeTestingDay,
+  testingDayColumnKey,
   testingDayNamedComponents,
 } from "./testing-day";
 import type {
@@ -310,5 +315,129 @@ describe("testingDayNamedComponents", () => {
 
   it("falls back to the primary component for other cumulatives", () => {
     expect(testingDayNamedComponents("40m_Sprint", [])).toEqual(["0-40m"]);
+  });
+});
+
+describe("sortTestingDayMetricKeys", () => {
+  it("puts intake tests first then remaining keys alphabetically", () => {
+    expect(
+      sortTestingDayMetricKeys(["40yd_Dash", "10m_Accel", "Vertical Jump"])
+    ).toEqual(["Vertical Jump", "40yd_Dash", "10m_Accel"]);
+  });
+});
+
+describe("entryMatchesTestingDayComponent", () => {
+  it("matches overall-only rows when the resolved component is null", () => {
+    expect(
+      entryMatchesTestingDayComponent(
+        { component: null, interval_index: null },
+        null
+      )
+    ).toBe(true);
+    expect(
+      entryMatchesTestingDayComponent(
+        { component: "0-40yd", interval_index: 2 },
+        null
+      )
+    ).toBe(false);
+  });
+
+  it("matches named 40yd components", () => {
+    expect(
+      entryMatchesTestingDayComponent(
+        { component: "0-40yd", interval_index: 2 },
+        "0-40yd"
+      )
+    ).toBe(true);
+  });
+});
+
+describe("pickBestTestingDayHits", () => {
+  it("keeps the higher jump and the lower time", () => {
+    const jumps = pickBestTestingDayHits(
+      [
+        { athlete_id: "a", display_value: 20 },
+        { athlete_id: "a", display_value: 24 },
+      ],
+      false
+    );
+    expect(jumps[0].display_value).toBe(24);
+
+    const times = pickBestTestingDayHits(
+      [
+        { athlete_id: "a", display_value: 5.1 },
+        { athlete_id: "a", display_value: 4.9 },
+      ],
+      true
+    );
+    expect(times[0].display_value).toBe(4.9);
+  });
+});
+
+describe("buildTestingDayMatrix", () => {
+  it("pivots athletes as rows and tests as columns, keeping reporting badges", () => {
+    const vjKey = testingDayColumnKey("Vertical Jump", null);
+    const fortyKey = testingDayColumnKey("40yd_Dash", "0-40yd");
+    const matrix = buildTestingDayMatrix({
+      columns: [
+        {
+          key: vjKey,
+          metric_key: "Vertical Jump",
+          display_name: "Vertical Jump",
+          component: null,
+          units: "in",
+        },
+        {
+          key: fortyKey,
+          metric_key: "40yd_Dash",
+          display_name: "40yd Dash",
+          component: "0-40yd",
+          units: "s",
+        },
+      ],
+      hitsByColumn: {
+        [vjKey]: [
+          hit({
+            athlete_id: "vb",
+            first_name: "Val",
+            last_name: "Ball",
+            gender: "F",
+            display_value: 18,
+            zone_label: "poor",
+            zone_color: "#dc2626",
+          }),
+          hit({
+            athlete_id: "fb",
+            first_name: "Ford",
+            last_name: "Ball",
+            gender: "M",
+            display_value: 28,
+            zone_label: "elite",
+            zone_color: "#2563eb",
+          }),
+        ],
+        [fortyKey]: [
+          hit({
+            athlete_id: "fb",
+            first_name: "Ford",
+            last_name: "Ball",
+            gender: "M",
+            display_value: 4.5,
+            zone_label: "efficient",
+            zone_color: "#ca8a04",
+          }),
+        ],
+      },
+      memberships,
+    });
+
+    expect(matrix.athletes.map((a) => a.athlete_id)).toEqual(["fb", "vb"]);
+    const ford = matrix.athletes[0];
+    expect(ford.sport).toBe("football");
+    expect(ford.cells[vjKey]?.zone_label).toBe("elite");
+    expect(ford.cells[fortyKey]?.display_value).toBe(4.5);
+    const val = matrix.athletes[1];
+    expect(val.cells[vjKey]?.zone_label).toBe("poor");
+    expect(val.cells[fortyKey]).toBeUndefined();
   });
 });

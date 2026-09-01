@@ -11,6 +11,7 @@ import {
 import { parseLoadReps } from "@/lib/weight-room/parse-load-reps";
 import { isOnHugoTeam } from "@/lib/weight-room/hugo-memberships";
 import { getMetricsRegistry } from "@/lib/parser";
+import { FORTY_YD_COMPONENTS, FORTY_YD_DASH } from "@/lib/norms/editor-metrics";
 import { buildJournalPostCandidates } from "@/lib/norms/journal-posts";
 import type { Athlete } from "@/types";
 import type {
@@ -89,7 +90,7 @@ export function ReviewClient({ scanId }: { scanId: string }) {
   const [athleteId, setAthleteId] = useState("");
   const [editedCells, setEditedCells] = useState<Record<string, string>>({});
   const [journalPosts, setJournalPosts] = useState<
-    Record<string, { post: boolean; metric_key: string }>
+    Record<string, { post: boolean; metric_key: string; component?: string }>
   >({});
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -141,18 +142,29 @@ export function ReviewClient({ scanId }: { scanId: string }) {
       })
     );
     return buildJournalPostCandidates({
-      movements: template.movements,
+      movements: template.movements.map((m) => ({
+        id: m.id,
+        name: m.name,
+        speed_journal_metric_key: m.speed_journal_metric_key,
+        speed_journal_component: m.speed_journal_component,
+      })),
       outputs,
       lowerIsBetterFor: (key) =>
         Boolean(key) && registry[key ?? ""]?.display_units === "s",
     });
   }, [template, editedCells]);
 
-  function journalChoice(movementId: string, suggestedPost: boolean, mappedKey: string | null) {
+  function journalChoice(
+    movementId: string,
+    suggestedPost: boolean,
+    mappedKey: string | null,
+    mappedComponent: string | null
+  ) {
     const stored = journalPosts[movementId];
     return {
       post: stored?.post ?? suggestedPost,
       metric_key: stored?.metric_key || mappedKey || "",
+      component: stored?.component || mappedComponent || "",
     };
   }
 
@@ -201,11 +213,13 @@ export function ReviewClient({ scanId }: { scanId: string }) {
             const choice = journalChoice(
               candidate.movement_id,
               candidate.suggested_post,
-              candidate.metric_key
+              candidate.metric_key,
+              candidate.component
             );
             return {
               movement_id: candidate.movement_id,
               metric_key: choice.metric_key,
+              component: choice.component || null,
               post: noMark ? false : choice.post,
             };
           }),
@@ -396,7 +410,8 @@ export function ReviewClient({ scanId }: { scanId: string }) {
                     const choice = journalChoice(
                       candidate.movement_id,
                       candidate.suggested_post,
-                      candidate.metric_key
+                      candidate.metric_key,
+                      candidate.component
                     );
                     const movement = template?.movements.find(
                       (m) => m.id === candidate.movement_id
@@ -417,6 +432,7 @@ export function ReviewClient({ scanId }: { scanId: string }) {
                                 [candidate.movement_id]: {
                                   post: e.target.checked,
                                   metric_key: choice.metric_key,
+                                  component: choice.component,
                                 },
                               }))
                             }
@@ -436,29 +452,60 @@ export function ReviewClient({ scanId }: { scanId: string }) {
                         {candidate.mapped ? (
                           <span className="text-sm text-foreground-muted">
                             {candidate.metric_key}
+                            {candidate.component ? ` · ${candidate.component}` : ""}
                           </span>
                         ) : (
-                          <select
-                            disabled={busy || readOnly}
-                            value={choice.metric_key}
-                            onChange={(e) =>
-                              setJournalPosts((prev) => ({
-                                ...prev,
-                                [candidate.movement_id]: {
-                                  post: choice.post,
-                                  metric_key: e.target.value,
-                                },
-                              }))
-                            }
-                            className="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-foreground sm:max-w-xs"
-                          >
-                            <option value="">Select metric</option>
-                            {metricSelectOptions.map((opt) => (
-                              <option key={opt.key} value={opt.key}>
-                                {opt.label}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="flex w-full min-w-0 flex-col gap-1 sm:max-w-xs">
+                            <select
+                              disabled={busy || readOnly}
+                              value={choice.metric_key}
+                              onChange={(e) =>
+                                setJournalPosts((prev) => ({
+                                  ...prev,
+                                  [candidate.movement_id]: {
+                                    post: choice.post,
+                                    metric_key: e.target.value,
+                                    component:
+                                      e.target.value === FORTY_YD_DASH
+                                        ? choice.component || "0-10yd"
+                                        : "",
+                                  },
+                                }))
+                              }
+                              className="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-foreground"
+                            >
+                              <option value="">Select metric</option>
+                              {metricSelectOptions.map((opt) => (
+                                <option key={opt.key} value={opt.key}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                            {choice.metric_key === FORTY_YD_DASH ? (
+                              <select
+                                disabled={busy || readOnly}
+                                value={choice.component || "0-10yd"}
+                                onChange={(e) =>
+                                  setJournalPosts((prev) => ({
+                                    ...prev,
+                                    [candidate.movement_id]: {
+                                      post: choice.post,
+                                      metric_key: choice.metric_key,
+                                      component: e.target.value,
+                                    },
+                                  }))
+                                }
+                                className="w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-foreground"
+                                aria-label="40yd split"
+                              >
+                                {FORTY_YD_COMPONENTS.map((c) => (
+                                  <option key={c} value={c}>
+                                    {c}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : null}
+                          </div>
                         )}
                       </li>
                     );

@@ -3,6 +3,7 @@ import {
   segmentToCumulative,
   segmentInputToCumulativeInput,
   parseEntry,
+  parseFortyYardComponent,
 } from "./parser";
 
 describe("segmentToCumulative", () => {
@@ -202,5 +203,35 @@ describe("40yd_Dash", () => {
     expect(components).toContain("0-10yd");
     expect(components).toContain("5-10yd");
     expect(components).toContain("0-40yd");
+  });
+
+  it("accepts a 10yd-only session via day_splits [10]", () => {
+    const rows = parseEntry("40yd_Dash", "1.72", {
+      day_splits: { "40yd_Dash": [10] },
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      metric_key: "40yd_Dash",
+      component: "0-10yd",
+      display_value: 1.72,
+      units: "s",
+    });
+  });
+});
+
+describe("parseFortyYardComponent", () => {
+  it("writes one 40yd_Dash row on the named split", () => {
+    expect(parseFortyYardComponent("1.72", "0-10yd")).toEqual({
+      metric_key: "40yd_Dash",
+      interval_index: null,
+      component: "0-10yd",
+      value: 1.72,
+      display_value: 1.72,
+      units: "s",
+    });
+  });
+
+  it("rejects an unknown component", () => {
+    expect(() => parseFortyYardComponent("1.72", "0-10m")).toThrow(/Unknown 40yd component/);
   });
 });

@@ -23,6 +23,8 @@ import type { LeaderboardRow, LeaderboardAnimationTrigger, NormPopulationOption 
 import type { SessionMetric, SessionMetricComponent } from "@/app/api/leaderboard/session-metrics/route";
 import { formatLeaderboardName } from "@/lib/display-names";
 import { ZoneLegend, ZoneMark } from "./ZoneMark";
+import { isLiveLeaderboardZone } from "@/lib/norms/palette";
+import { fortyYardLiveReadout, isFortyYardMphPrimary } from "@/lib/norms/forty-yd";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { computeLeaderboardTriggers } from "./leaderboardDiff";
 import { getLeaderboardSections } from "@/lib/leaderboard-sections";
@@ -255,7 +257,7 @@ export function LeaderboardClient() {
         </label>
       </section>
 
-      <ZoneLegend />
+      <ZoneLegend minLabel="efficient" />
 
       {!sessionId ? (
         <p className="text-sm text-foreground-muted">
@@ -467,7 +469,9 @@ function ComponentLeaderboard({
   return (
     <div className="mt-2">
       <h3 className="mb-2 text-sm font-semibold text-foreground">
-        {component.label}
+        {isFortyYardMphPrimary(metric.metric_key, component.component)
+          ? `${component.label} · mph`
+          : component.label}
       </h3>
       {error && (
         <div className="flex flex-wrap items-center gap-2">
@@ -506,6 +510,8 @@ function ComponentLeaderboard({
                               key={r.athlete_id}
                               row={r}
                               units={r.units ?? defaultUnits}
+                              metricKey={metric.metric_key}
+                              component={component.component}
                               animationTrigger={triggerMap.get(r.athlete_id) ?? null}
                               displayRank={i + 1}
                               forceCompactName={compactNames}
@@ -534,6 +540,8 @@ function ComponentLeaderboard({
                               key={r.athlete_id}
                               row={r}
                               units={r.units ?? defaultUnits}
+                              metricKey={metric.metric_key}
+                              component={component.component}
                               animationTrigger={triggerMap.get(r.athlete_id) ?? null}
                               displayRank={i + 1}
                               forceCompactName={compactNames}
@@ -555,6 +563,8 @@ function ComponentLeaderboard({
                   key={r.athlete_id}
                   row={r}
                   units={r.units ?? defaultUnits}
+                  metricKey={metric.metric_key}
+                  component={component.component}
                   animationTrigger={triggerMap.get(r.athlete_id) ?? null}
                   forceCompactName={compactNames}
                 />
@@ -571,6 +581,8 @@ function ComponentLeaderboard({
                         key={r.athlete_id}
                         row={r}
                         units={r.units ?? defaultUnits}
+                        metricKey={metric.metric_key}
+                        component={component.component}
                         animationTrigger={triggerMap.get(r.athlete_id) ?? null}
                         displayRank={i + 1}
                         forceCompactName={compactNames}
@@ -641,12 +653,16 @@ function getCardVariants(reducedMotion: boolean): Record<string, { initial?: obj
 function LeaderboardCard({
   row,
   units,
+  metricKey,
+  component,
   animationTrigger = null,
   displayRank,
   forceCompactName = false,
 }: {
   row: LeaderboardRow;
   units: string;
+  metricKey: string;
+  component: string | null;
   animationTrigger?: LeaderboardAnimationTrigger | null;
   displayRank?: number;
   forceCompactName?: boolean;
@@ -670,7 +686,12 @@ function LeaderboardCard({
     row.athlete_type,
     isMobile || forceCompactName
   );
-  const hasZone = Boolean(row.zone_color && row.zone_label);
+  const hasZone = Boolean(
+    row.zone_color && row.zone_label && isLiveLeaderboardZone(row.zone_label)
+  );
+  const fortyReadout = fortyYardLiveReadout(metricKey, component, row.display_value);
+  const primaryValue = fortyReadout?.primaryValue ?? row.display_value;
+  const primaryUnits = fortyReadout?.primaryUnits ?? units;
 
   return (
     <motion.div
@@ -699,9 +720,14 @@ function LeaderboardCard({
           className={`font-mono text-lg font-semibold tabular-nums ${rank === 1 && !hasZone ? "text-gold-text" : ""}`}
           style={hasZone ? { color: row.zone_color } : undefined}
         >
-          {formatValue(row.display_value)}{" "}
-          <span className="text-sm font-normal text-foreground-muted">{units}</span>
+          {formatValue(primaryValue)}{" "}
+          <span className="text-sm font-normal text-foreground-muted">{primaryUnits}</span>
         </span>
+        {fortyReadout ? (
+          <span className="font-mono text-xs tabular-nums text-foreground-muted">
+            {formatValue(fortyReadout.secondaryValue)} {fortyReadout.secondaryUnits}
+          </span>
+        ) : null}
         {hasZone && (
           <ZoneMark
             label={row.zone_label!}

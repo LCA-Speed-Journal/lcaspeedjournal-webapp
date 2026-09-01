@@ -8,6 +8,7 @@ import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
 import {
   applyLeaderboardZones,
+  forPublicLeaderboard,
   mapThresholdRows,
   parsePopulationIdParam,
   resolveSelectedPopulation,
@@ -498,7 +499,7 @@ export async function GET(request: NextRequest) {
           lowerIsBetter: sortAsc,
           overridePopulationId: parsedPopulation.populationId,
         });
-        zonedRows = applied.rows;
+        zonedRows = applied.rows.map(forPublicLeaderboard);
       } catch (err) {
         console.error("GET /api/leaderboard zones:", err);
       }

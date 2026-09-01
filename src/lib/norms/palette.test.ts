@@ -4,6 +4,7 @@ import {
   ZONE_COLORS,
   zoneRank,
   isZoneLabel,
+  isLiveLeaderboardZone,
 } from "./palette";
 
 describe("ZONE_LABELS", () => {
@@ -31,6 +32,18 @@ describe("isZoneLabel", () => {
     expect(isZoneLabel("elite")).toBe(true);
     expect(isZoneLabel("Efficient")).toBe(false);
     expect(isZoneLabel("")).toBe(false);
+  });
+});
+
+describe("isLiveLeaderboardZone", () => {
+  it("hides poor and developmental; shows efficient and better", () => {
+    expect(isLiveLeaderboardZone("poor")).toBe(false);
+    expect(isLiveLeaderboardZone("developmental")).toBe(false);
+    expect(isLiveLeaderboardZone("efficient")).toBe(true);
+    expect(isLiveLeaderboardZone("advanced")).toBe(true);
+    expect(isLiveLeaderboardZone("elite")).toBe(true);
+    expect(isLiveLeaderboardZone("world-class")).toBe(true);
+    expect(isLiveLeaderboardZone(undefined)).toBe(false);
   });
 });
 

@@ -1,5 +1,6 @@
 import { sql } from "@/lib/db";
-import { getMetricsRegistry, parseEntry, type ParsedEntry } from "@/lib/parser";
+import { isFortyYardComponent } from "@/lib/norms/forty-yd";
+import { getMetricsRegistry, parseEntry, parseFortyYardComponent, type ParsedEntry } from "@/lib/parser";
 import {
   applyJournalPosts,
   buildJournalPostCandidates,
@@ -21,9 +22,14 @@ function parseJournalPostItem(value: unknown): JournalPostChoice | null {
   if (typeof value.movement_id !== "string") return null;
   if (typeof value.metric_key !== "string") return null;
   if (typeof value.post !== "boolean") return null;
+  const component =
+    typeof value.component === "string" && value.component.trim() !== ""
+      ? value.component.trim()
+      : null;
   return {
     movement_id: value.movement_id,
     metric_key: value.metric_key,
+    component,
     post: value.post,
   };
 }
@@ -119,6 +125,7 @@ export async function upsertWeightRoomEntry(input: {
     WHERE session_id = ${input.sessionId}
       AND athlete_id = ${input.athleteId}
       AND metric_key = ${input.parsed.metric_key}
+      AND COALESCE(component, '') = ${input.parsed.component ?? ""}
       AND source = ${"weight_room"}
     RETURNING id
   `;
@@ -183,7 +190,16 @@ export async function dualWriteWeightRoomJournal(input: {
 
   for (const item of posted) {
     try {
-      const rows = parseEntry(item.metric_key, String(item.best_value));
+      const rows =
+        item.metric_key === "40yd_Dash"
+          ? isFortyYardComponent(item.component)
+            ? [parseFortyYardComponent(String(item.best_value), item.component)]
+            : []
+          : parseEntry(item.metric_key, String(item.best_value));
+      if (item.metric_key === "40yd_Dash" && rows.length === 0) {
+        journal_warnings.push(`${item.metric_key}: pick a 40yd split`);
+        continue;
+      }
       const row = rows[0];
       if (!row) {
         journal_warnings.push(`${item.metric_key}: no parsed row`);

@@ -89,6 +89,34 @@ describe("parseMovements", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.value[0].speed_journal_metric_key).toBe("Vertical Jump");
+    expect(r.value[0].speed_journal_component).toBeNull();
+  });
+
+  it("requires a 40yd split when mapping 40yd_Dash", () => {
+    const missing = parseMovements([
+      {
+        name: "10yd",
+        block: "Primer",
+        set_count: 1,
+        targets: ["Best"],
+        speed_journal_metric_key: "40yd_Dash",
+      },
+    ]);
+    expect(missing.ok).toBe(false);
+
+    const ok = parseMovements([
+      {
+        name: "10yd",
+        block: "Primer",
+        set_count: 1,
+        targets: ["Best"],
+        speed_journal_metric_key: "40yd_Dash",
+        speed_journal_component: "0-10yd",
+      },
+    ]);
+    expect(ok.ok).toBe(true);
+    if (!ok.ok) return;
+    expect(ok.value[0].speed_journal_component).toBe("0-10yd");
   });
 
   it('rejects speed_journal_metric_key "not-a-metric"', () => {
@@ -397,6 +425,7 @@ describe("templateFromCsv / templateFromDraft", () => {
           notes: "pair",
           from_pair: true,
           speed_journal_metric_key: null,
+          speed_journal_component: null,
         },
       ],
     });

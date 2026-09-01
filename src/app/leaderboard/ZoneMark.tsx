@@ -1,4 +1,4 @@
-import { ZONE_LABELS } from "@/lib/norms/palette";
+import { ZONE_LABELS, zoneRank, type ZoneLabel } from "@/lib/norms/palette";
 
 export function ZoneMark({
   label,
@@ -16,13 +16,21 @@ export function ZoneMark({
   );
 }
 
-export function ZoneLegend() {
+export function ZoneLegend({
+  minLabel,
+}: {
+  /** Inclusive floor. Live board uses efficient; reporting/historical omit this. */
+  minLabel?: ZoneLabel;
+} = {}) {
+  const labels = minLabel
+    ? ZONE_LABELS.filter((label) => zoneRank(label) >= zoneRank(minLabel))
+    : ZONE_LABELS;
   return (
     <ul
       className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-foreground-muted"
       aria-label="Zone legend"
     >
-      {ZONE_LABELS.map((label) => (
+      {labels.map((label) => (
         <li key={label} className="inline-flex items-center gap-1.5">
           <span
             className="inline-block h-2.5 w-2.5 rounded-full"

@@ -200,7 +200,7 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
       {splitConfigMetrics.length > 0 && (
         <div>
           <span className="mb-2 block text-sm font-medium text-foreground">
-            Custom splits (optional) — comma-separated meters, e.g. 5,5 or 10,10
+            Custom splits (optional) — comma-separated distances, e.g. 5,5 or 10,10
           </span>
           <p className="mb-2 text-xs text-foreground-muted">
             Override defaults for cumulative and split-based metrics. Leave blank to use metric default.
@@ -208,6 +208,10 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
           <p className="mb-2 text-xs text-foreground-muted">
             For Flying 20m workflows, use <code className="font-mono">10,10</code> for two
             10m segments, or <code className="font-mono">20</code> for a single 20m interval.
+          </p>
+          <p className="mb-2 text-xs text-foreground-muted">
+            For 40yd, distances are yards: <code className="font-mono">10</code> for a 10yd-only
+            mark, or <code className="font-mono">10,10,20</code> for a full dash.
           </p>
           <div className="space-y-2">
             {splitConfigMetrics.map((m) => {

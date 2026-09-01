@@ -7,6 +7,8 @@ import type { ConversionFormula } from "./conversions";
 import { convertValue } from "./conversions";
 import type { MetricRegistry } from "./canonical-cumulative";
 import { resolveCanonicalZeroStartRow } from "./canonical-cumulative";
+import { FORTY_YD_DASH } from "./norms/editor-metrics";
+import { isFortyYardComponent } from "./norms/forty-yd";
 import metricsData from "./metrics.json";
 
 export type ParsedEntry = {
@@ -142,6 +144,28 @@ export function parseEntry(
   }
 
   throw new Error(`Unknown input_structure: ${inputStructure}`);
+}
+
+/** One 40yd component from a single time (weight-room 10yd / 5yd / 20yd). */
+export function parseFortyYardComponent(
+  rawInput: string,
+  component: string
+): ParsedEntry {
+  if (!isFortyYardComponent(component)) {
+    throw new Error(`Unknown 40yd component: ${component}`);
+  }
+  const time = parseFloat(String(rawInput).trim());
+  if (!Number.isFinite(time) || time <= 0) {
+    throw new Error(`Cannot parse 40yd component time "${rawInput}"`);
+  }
+  return {
+    metric_key: FORTY_YD_DASH,
+    interval_index: null,
+    component,
+    value: time,
+    display_value: time,
+    units: "s",
+  };
 }
 
 function parseSingleInterval(

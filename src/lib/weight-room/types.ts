@@ -10,6 +10,7 @@ export type CardMovement = {
   fromPair: boolean;
   exerciseHtml: string | null;
   speedJournalMetricKey: string | null;
+  speedJournalComponent?: string | null;
 };
 
 export type CardDraft = {

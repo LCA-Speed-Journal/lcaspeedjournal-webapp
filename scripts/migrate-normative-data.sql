@@ -135,14 +135,18 @@ BEGIN
   END IF;
 END $$;
 
--- 6. Upsert key for weight-room journal posts
+-- 6. Upsert key for weight-room journal posts (component so 40yd splits don't collide)
+DROP INDEX IF EXISTS entries_wr_upsert;
 CREATE UNIQUE INDEX IF NOT EXISTS entries_wr_upsert
-  ON entries (session_id, athlete_id, metric_key)
+  ON entries (session_id, athlete_id, metric_key, (COALESCE(component, '')))
   WHERE source = 'weight_room';
 
 -- 7. Map a card movement to a Speed Journal metric (NULL = unmapped)
 ALTER TABLE workout_movements
   ADD COLUMN IF NOT EXISTS speed_journal_metric_key TEXT;
+
+ALTER TABLE workout_movements
+  ADD COLUMN IF NOT EXISTS speed_journal_component TEXT;
 
 -- 8. Norm tables
 CREATE TABLE IF NOT EXISTS norm_populations (

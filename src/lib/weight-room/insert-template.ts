@@ -1,5 +1,7 @@
 import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
+import { FORTY_YD_DASH } from "@/lib/norms/editor-metrics";
+import { isFortyYardComponent } from "@/lib/norms/forty-yd";
 import { isHugoGroup, type HugoGroup } from "./constants";
 import type { CsvImportTemplate } from "./csv-import";
 import type { CardDraft } from "./types";
@@ -21,6 +23,7 @@ export type MovementInsertInput = {
   notes: string;
   from_pair: boolean;
   speed_journal_metric_key: string | null;
+  speed_journal_component: string | null;
 };
 
 export type TemplateInsertInput = {
@@ -45,6 +48,7 @@ export type WorkoutMovementRow = {
   notes: string;
   from_pair: boolean;
   speed_journal_metric_key: string | null;
+  speed_journal_component: string | null;
 };
 
 export type WorkoutTemplateRow = {
@@ -72,7 +76,12 @@ export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_RE.test(value.trim());
 }
 
-/** YYYY-MM-DD with a midday-UTC round-trip so 2026-02-30 is rejected. */
+function serializeComponent(raw: unknown): string | null {
+  if (raw == null) return null;
+  const trimmed = String(raw).trim();
+  return trimmed === "" ? null : trimmed;
+}
+
 export function isIsoCalendarDate(value: unknown): value is string {
   if (typeof value !== "string") return false;
   const t = value.trim();
@@ -152,6 +161,7 @@ export function serializeMovement(
     notes: row.notes == null ? "" : String(row.notes),
     from_pair: Boolean(row.from_pair),
     speed_journal_metric_key: metricKey,
+    speed_journal_component: serializeComponent(row.speed_journal_component),
   };
 }
 
@@ -226,6 +236,25 @@ export function parseMovements(raw: unknown): ParseResult<MovementInsertInput[]>
       }
     }
 
+    let component: string | null = null;
+    const rawComponent = rec.speed_journal_component;
+    if (metricKey === FORTY_YD_DASH) {
+      const trimmed =
+        typeof rawComponent === "string" ? rawComponent.trim() : "";
+      if (!isFortyYardComponent(trimmed)) {
+        return {
+          ok: false,
+          error: `movements[${i}].speed_journal_component must be a 40yd split`,
+        };
+      }
+      component = trimmed;
+    } else if (typeof rawComponent === "string" && rawComponent.trim() !== "") {
+      return {
+        ok: false,
+        error: `movements[${i}].speed_journal_component is only valid for 40yd_Dash`,
+      };
+    }
+
     movements.push({
       sort_index: sortIndex,
       label: typeof rec.label === "string" ? rec.label : "",
@@ -236,6 +265,7 @@ export function parseMovements(raw: unknown): ParseResult<MovementInsertInput[]>
       notes: typeof rec.notes === "string" ? rec.notes : "",
       from_pair: rec.from_pair === undefined ? false : Boolean(rec.from_pair),
       speed_journal_metric_key: metricKey,
+      speed_journal_component: component,
     });
   }
 
@@ -393,6 +423,7 @@ export function templateFromCsv(t: CsvImportTemplate): TemplateInsertInput {
       notes: m.notes,
       from_pair: false,
       speed_journal_metric_key: null,
+      speed_journal_component: null,
     })),
   };
 }
@@ -457,6 +488,9 @@ export function templateFromDraft(draft: CardDraft): TemplateInsertInput {
       speed_journal_metric_key: m.speedJournalMetricKey?.trim()
         ? m.speedJournalMetricKey.trim()
         : null,
+      speed_journal_component: m.speedJournalComponent?.trim()
+        ? m.speedJournalComponent.trim()
+        : null,
     })),
   };
 }
@@ -483,6 +517,7 @@ export function draftFromTemplate(template: TemplateWithMovements): CardDraft {
       fromPair: m.from_pair,
       exerciseHtml: null,
       speedJournalMetricKey: m.speed_journal_metric_key,
+      speedJournalComponent: m.speed_journal_component,
     })),
   };
 }
@@ -497,7 +532,7 @@ async function insertMovements(
     const targetsJson = JSON.stringify(m.targets);
     const { rows } = await sql`
       INSERT INTO workout_movements (
-        id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key
+        id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component
       )
       VALUES (
         ${movementId},
@@ -510,9 +545,10 @@ async function insertMovements(
         ${targetsJson},
         ${m.notes},
         ${m.from_pair},
-        ${m.speed_journal_metric_key}
+        ${m.speed_journal_metric_key},
+        ${m.speed_journal_component}
       )
-      RETURNING id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key
+      RETURNING id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component
     `;
     inserted.push(serializeMovement(rows[0] as Record<string, unknown>));
   }
@@ -575,7 +611,7 @@ export async function getTemplateWithMovements(
     LIMIT 1
   `;
   const movementsPromise = sql`
-    SELECT id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key
+    SELECT id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component
     FROM workout_movements
     WHERE template_id = ${id}
     ORDER BY sort_index

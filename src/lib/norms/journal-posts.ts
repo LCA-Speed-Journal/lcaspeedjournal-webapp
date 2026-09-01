@@ -2,6 +2,7 @@ export type JournalMovement = {
   id: string;
   name: string;
   speed_journal_metric_key: string | null;
+  speed_journal_component?: string | null;
 };
 
 export type CellOutput = {
@@ -14,6 +15,7 @@ export type CellOutput = {
 export type JournalPostCandidate = {
   movement_id: string;
   metric_key: string | null;
+  component: string | null;
   best_value: number | null;
   units: string | null;
   suggested_post: boolean;
@@ -23,12 +25,14 @@ export type JournalPostCandidate = {
 export type JournalPostChoice = {
   movement_id: string;
   metric_key: string;
+  component?: string | null;
   post: boolean;
 };
 
 export type AppliedJournalPost = {
   movement_id: string;
   metric_key: string;
+  component: string | null;
   best_value: number;
   units: string | null;
 };
@@ -70,6 +74,7 @@ export function buildJournalPostCandidates(input: {
       rows.push({
         movement_id: movement.id,
         metric_key: metricKey,
+        component: movement.speed_journal_component ?? null,
         best_value: null,
         units: null,
         suggested_post: false,
@@ -82,6 +87,7 @@ export function buildJournalPostCandidates(input: {
     rows.push({
       movement_id: movement.id,
       metric_key: mapped ? metricKey : null,
+      component: mapped ? (movement.speed_journal_component ?? null) : null,
       best_value: best.load as number,
       units: best.units,
       suggested_post: mapped,
@@ -112,6 +118,7 @@ export function applyJournalPosts(
     posted.push({
       movement_id: post.movement_id,
       metric_key: post.metric_key,
+      component: post.component ?? candidate.component ?? null,
       best_value: candidate.best_value,
       units: candidate.units,
     });

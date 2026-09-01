@@ -27,3 +27,10 @@ export function isZoneLabel(value: unknown): value is ZoneLabel {
 export function zoneRank(label: ZoneLabel): number {
   return ZONE_LABELS.indexOf(label);
 }
+
+/** Live board starts recognizing at efficient. Poor/developmental stay on reporting. */
+export const LIVE_LEADERBOARD_MIN_LABEL: ZoneLabel = "efficient";
+
+export function isLiveLeaderboardZone(label: unknown): boolean {
+  return isZoneLabel(label) && zoneRank(label) >= zoneRank(LIVE_LEADERBOARD_MIN_LABEL);
+}

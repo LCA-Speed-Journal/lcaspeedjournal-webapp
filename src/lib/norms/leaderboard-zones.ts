@@ -7,7 +7,12 @@ import {
   type AttachZonesThreshold,
   type ZoneAttachment,
 } from "./attach-zones";
-import { isZoneLabel, ZONE_LABELS, type ZoneLabel } from "./palette";
+import {
+  isLiveLeaderboardZone,
+  isZoneLabel,
+  ZONE_LABELS,
+  type ZoneLabel,
+} from "./palette";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -102,6 +107,23 @@ export function mapThresholdRows(rows: RawThresholdRow[]): AttachZonesThreshold[
     label: row.label,
     threshold: Number(row.threshold),
   }));
+}
+
+/** Drop poor/developmental (and invalid) zones for the public live board. */
+export function forPublicLeaderboard<T extends {
+  zone_label?: string;
+  zone_color?: string;
+  population_name?: string;
+  population_id?: string;
+}>(row: T): T {
+  if (isLiveLeaderboardZone(row.zone_label)) return row;
+  return {
+    ...row,
+    zone_label: undefined,
+    zone_color: undefined,
+    population_name: undefined,
+    population_id: undefined,
+  };
 }
 
 export function uniqueZoneLabels(

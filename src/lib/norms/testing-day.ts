@@ -2,6 +2,7 @@ import {
   type AttachZonesDefault,
   type AttachZonesMembership,
 } from "./attach-zones";
+import { NORMS_DEFAULTS_METRIC_KEYS } from "./editor-metrics";
 import { getPrimaryComponent } from "../metric-utils";
 import { isZoneLabel, zoneRank, type ZoneLabel } from "./palette";
 
@@ -24,6 +25,7 @@ export type TestingDayHit = {
   gender: string | null;
   display_value: number;
   zone_label?: string;
+  zone_color?: string;
 };
 
 export type TestingDayUnbadged = {
@@ -66,6 +68,50 @@ export type TestingDaySummaryData = {
   units: string;
   selected_population_id: string | null;
   groups: TestingDayGroup[];
+};
+
+export type TestingDayMatrixColumn = {
+  key: string;
+  metric_key: string;
+  display_name: string;
+  component: string | null;
+  units: string;
+};
+
+export type TestingDayMatrixCell = {
+  display_value: number;
+  zone_label?: string;
+  zone_color?: string;
+};
+
+export type TestingDayMatrixAthlete = {
+  athlete_id: string;
+  first_name: string;
+  last_name: string;
+  gender: "M" | "F" | null;
+  sport: string | null;
+  cells: Record<string, TestingDayMatrixCell>;
+};
+
+export type TestingDayMatrix = {
+  columns: TestingDayMatrixColumn[];
+  athletes: TestingDayMatrixAthlete[];
+};
+
+export type TestingDayBoardData = {
+  session_id: string;
+  session_date: string;
+  phase: string | null;
+  selected_population_id: string | null;
+  matrix: TestingDayMatrix;
+  tests: Array<{
+    column_key: string;
+    metric: string;
+    metric_display_name: string;
+    component: string | null;
+    units: string;
+    groups: TestingDayGroup[];
+  }>;
 };
 
 /** Leaderboard-style gender: m/male → M, f/female → F. */
@@ -218,6 +264,96 @@ export function summarizeTestingDay(
 
   groups.sort(compareGroups);
   return groups;
+}
+
+export function testingDayColumnKey(
+  metricKey: string,
+  component: string | null
+): string {
+  return `${metricKey}\0${component ?? ""}`;
+}
+
+export function sortTestingDayMetricKeys(keys: string[]): string[] {
+  const unique = Array.from(new Set(keys));
+  const preferred = NORMS_DEFAULTS_METRIC_KEYS as readonly string[];
+  const preferredSet = new Set(preferred);
+  const head = preferred.filter((key) => unique.includes(key));
+  const rest = unique
+    .filter((key) => !preferredSet.has(key))
+    .sort((a, b) => a.localeCompare(b));
+  return [...head, ...rest];
+}
+
+export function entryMatchesTestingDayComponent(
+  row: { component: string | null; interval_index: number | null },
+  resolvedComponent: string | null
+): boolean {
+  if (resolvedComponent == null) {
+    return (
+      row.interval_index == null &&
+      (row.component == null || row.component === "")
+    );
+  }
+  return row.component === resolvedComponent;
+}
+
+export function pickBestTestingDayHits<
+  T extends { athlete_id: string; display_value: number },
+>(rows: T[], lowerIsBetter: boolean): T[] {
+  const best = new Map<string, T>();
+  for (const row of rows) {
+    const prev = best.get(row.athlete_id);
+    if (!prev) {
+      best.set(row.athlete_id, row);
+      continue;
+    }
+    const better = lowerIsBetter
+      ? row.display_value < prev.display_value
+      : row.display_value > prev.display_value;
+    if (better) best.set(row.athlete_id, row);
+  }
+  return Array.from(best.values());
+}
+
+export function buildTestingDayMatrix(input: {
+  columns: TestingDayMatrixColumn[];
+  hitsByColumn: Record<string, TestingDayHit[]>;
+  memberships: AttachZonesMembership[];
+}): TestingDayMatrix {
+  const sportByAthlete = primarySportByAthlete(input.memberships);
+  const athletes = new Map<string, TestingDayMatrixAthlete>();
+
+  for (const column of input.columns) {
+    const hits = input.hitsByColumn[column.key] ?? [];
+    for (const row of hits) {
+      let athlete = athletes.get(row.athlete_id);
+      if (!athlete) {
+        athlete = {
+          athlete_id: row.athlete_id,
+          first_name: row.first_name,
+          last_name: row.last_name,
+          gender: normalizeTestingDayGender(row.gender),
+          sport: sportByAthlete.get(row.athlete_id) ?? null,
+          cells: {},
+        };
+        athletes.set(row.athlete_id, athlete);
+      }
+      athlete.cells[column.key] = {
+        display_value: row.display_value,
+        zone_label: row.zone_label,
+        zone_color: row.zone_color,
+      };
+    }
+  }
+
+  const list = Array.from(athletes.values()).sort(
+    (a, b) =>
+      a.last_name.localeCompare(b.last_name) ||
+      a.first_name.localeCompare(b.first_name) ||
+      a.athlete_id.localeCompare(b.athlete_id)
+  );
+
+  return { columns: input.columns, athletes: list };
 }
 
 export function testingDayComponentParam(

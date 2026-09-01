@@ -27,4 +27,15 @@ describe("ZoneLegend", () => {
     expect(html).toContain("world-class");
     expect(html).toContain("no badge");
   });
+
+  it("starts at efficient when minLabel is set (live board)", () => {
+    const html = renderToStaticMarkup(
+      createElement(ZoneLegend, { minLabel: "efficient" })
+    );
+    expect(html).not.toContain("poor");
+    expect(html).not.toContain("developmental");
+    expect(html).toContain("efficient");
+    expect(html).toContain("world-class");
+    expect(html).toContain("no badge");
+  });
 });

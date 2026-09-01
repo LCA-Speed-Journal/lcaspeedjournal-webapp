@@ -7,6 +7,7 @@ import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
 import { CardPrintView } from "@/app/weight-room/components/CardPrintView";
 import { getMetricsRegistry } from "@/lib/parser";
+import { FORTY_YD_COMPONENTS, FORTY_YD_DASH } from "@/lib/norms/editor-metrics";
 import { downloadPreviewPdf } from "@/lib/weight-room/card-pdf";
 import { isHugoGroup } from "@/lib/weight-room/constants";
 import { analyzeCardFit } from "@/lib/weight-room/layout-estimate";
@@ -35,6 +36,7 @@ type MovementForm = {
   notes: string;
   from_pair: boolean;
   speed_journal_metric_key: string;
+  speed_journal_component: string;
 };
 
 const inputClass =
@@ -62,6 +64,10 @@ function movementsFromTemplate(template: TemplateDetail): MovementForm[] {
     notes: m.notes ?? "",
     from_pair: m.from_pair,
     speed_journal_metric_key: m.speed_journal_metric_key ?? "",
+    speed_journal_component:
+      m.speed_journal_metric_key === FORTY_YD_DASH
+        ? m.speed_journal_component || "0-10yd"
+        : (m.speed_journal_component ?? ""),
   }));
 }
 
@@ -92,6 +98,10 @@ function formToDraft(
         fromPair: m.from_pair,
         exerciseHtml: null,
         speedJournalMetricKey: m.speed_journal_metric_key.trim() || null,
+        speedJournalComponent:
+          m.speed_journal_metric_key.trim() === FORTY_YD_DASH
+            ? m.speed_journal_component.trim() || null
+            : null,
       })
     ),
   };
@@ -131,6 +141,7 @@ function newMovement(): MovementForm {
     notes: "",
     from_pair: false,
     speed_journal_metric_key: "",
+    speed_journal_component: "",
   };
 }
 
@@ -251,6 +262,10 @@ export function CardEditor({ templateId }: { templateId: string }) {
               notes: m.notes,
               from_pair: m.from_pair,
               speed_journal_metric_key: m.speed_journal_metric_key,
+              speed_journal_component:
+                m.speed_journal_metric_key.trim() === FORTY_YD_DASH
+                  ? m.speed_journal_component.trim() || null
+                  : null,
             };
           }),
         }),
@@ -443,23 +458,48 @@ export function CardEditor({ templateId }: { templateId: string }) {
                           />
                         </td>
                         <td className="px-2 py-1.5">
-                          <select
-                            value={m.speed_journal_metric_key}
-                            onChange={(e) =>
-                              updateMovement(m.key, {
-                                speed_journal_metric_key: e.target.value,
-                              })
-                            }
-                            className={inputClass}
-                            aria-label="Speed Journal metric"
-                          >
-                            <option value="">None</option>
-                            {metricSelectOptions.map((opt) => (
-                              <option key={opt.key} value={opt.key}>
-                                {opt.label}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="flex min-w-[10rem] flex-col gap-1">
+                            <select
+                              value={m.speed_journal_metric_key}
+                              onChange={(e) => {
+                                const next = e.target.value;
+                                updateMovement(m.key, {
+                                  speed_journal_metric_key: next,
+                                  speed_journal_component:
+                                    next === FORTY_YD_DASH
+                                      ? m.speed_journal_component || "0-10yd"
+                                      : "",
+                                });
+                              }}
+                              className={inputClass}
+                              aria-label="Speed Journal metric"
+                            >
+                              <option value="">None</option>
+                              {metricSelectOptions.map((opt) => (
+                                <option key={opt.key} value={opt.key}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                            {m.speed_journal_metric_key === FORTY_YD_DASH ? (
+                              <select
+                                value={m.speed_journal_component}
+                                onChange={(e) =>
+                                  updateMovement(m.key, {
+                                    speed_journal_component: e.target.value,
+                                  })
+                                }
+                                className={inputClass}
+                                aria-label="40yd split"
+                              >
+                                {FORTY_YD_COMPONENTS.map((c) => (
+                                  <option key={c} value={c}>
+                                    {c}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : null}
+                          </div>
                         </td>
                         <td className="px-2 py-1.5">
                           <button

@@ -134,16 +134,31 @@ describe("applyJournalPosts", () => {
     ).toEqual([]);
   });
 
-  it("skips post true when best_value is null", () => {
+  it("keeps a 40yd component on the posted row", () => {
+    const ten: JournalMovement = {
+      id: "mov-10",
+      name: "10yd",
+      speed_journal_metric_key: "40yd_Dash",
+      speed_journal_component: "0-10yd",
+    };
     const candidates = buildJournalPostCandidates({
-      movements: [cmj],
-      outputs: [],
-      lowerIsBetterFor: () => false,
+      movements: [ten],
+      outputs: [{ movement_id: "mov-10", kind: "output", load: 1.72, units: "s" }],
+      lowerIsBetterFor: () => true,
     });
-    expect(
-      applyJournalPosts(candidates, [
-        { movement_id: "mov-cmj", metric_key: "Vertical Jump", post: true },
-      ])
-    ).toEqual([]);
+    expect(candidates[0]?.component).toBe("0-10yd");
+    const posted = applyJournalPosts(candidates, [
+      {
+        movement_id: "mov-10",
+        metric_key: "40yd_Dash",
+        component: "0-10yd",
+        post: true,
+      },
+    ]);
+    expect(posted[0]).toMatchObject({
+      metric_key: "40yd_Dash",
+      component: "0-10yd",
+      best_value: 1.72,
+    });
   });
 });

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   applyLeaderboardZones,
+  forPublicLeaderboard,
   mapThresholdRows,
   parsePopulationIdParam,
   resolveSelectedPopulation,
@@ -196,6 +197,35 @@ describe("mapThresholdRows", () => {
         threshold: 28,
       },
     ]);
+  });
+});
+
+describe("forPublicLeaderboard", () => {
+  it("keeps efficient and better", () => {
+    const row = forPublicLeaderboard({
+      athlete_id: "vb",
+      zone_label: "efficient",
+      zone_color: "#ca8a04",
+      population_name: "HS Volleyball VJ",
+      population_id: VJ_POP,
+    });
+    expect(row.zone_label).toBe("efficient");
+    expect(row.zone_color).toBe("#ca8a04");
+  });
+
+  it("strips poor and developmental so the live board stays unbadged", () => {
+    for (const label of ["poor", "developmental"] as const) {
+      const row = forPublicLeaderboard({
+        athlete_id: "vb",
+        zone_label: label,
+        zone_color: "#dc2626",
+        population_name: "HS Volleyball VJ",
+        population_id: VJ_POP,
+      });
+      expect(row.zone_label).toBeUndefined();
+      expect(row.zone_color).toBeUndefined();
+      expect(row.population_name).toBeUndefined();
+    }
   });
 });
 
