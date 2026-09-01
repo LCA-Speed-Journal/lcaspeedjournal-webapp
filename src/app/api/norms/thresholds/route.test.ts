@@ -119,65 +119,47 @@ describe("PUT /api/norms/thresholds", () => {
     expect(sql).not.toHaveBeenCalled();
   });
 
-  it("replaces only that slice: delete then insert filled cells", async () => {
-    const calls: string[] = [];
-    sql.mockImplementation(async (strings: TemplateStringsArray) => {
+  it("replaces the slice in one CTE write after the population lookup", async () => {
+    const writes: Array<{ text: string; values: unknown[] }> = [];
+    sql.mockImplementation(async (strings: TemplateStringsArray, ...values: unknown[]) => {
       const text = textOf(strings);
-      calls.push(text);
-      if (text.includes("FROM norm_populations")) {
+      if (text.includes("FROM norm_populations") && !text.includes("DELETE FROM")) {
         return { rows: [{ id: POP_ID, archived_at: null }] };
       }
-      if (text.includes("DELETE FROM norm_thresholds")) {
-        return { rows: [] };
-      }
-      if (text.includes("INSERT INTO norm_thresholds")) {
-        return { rows: [{ gender: "F", label: "efficient", threshold: 20 }] };
-      }
-      if (text.includes("FROM norm_thresholds")) {
-        return {
-          rows: [
-            {
-              gender: "F",
-              label: "efficient",
-              threshold: "20",
-              component: null,
-            },
-          ],
-        };
-      }
+      writes.push({ text, values });
       return { rows: [] };
     });
 
-    const res = await PUT(
-      putReq(sliceQuery, [{ gender: "F", label: "efficient", threshold: 20 }])
-    );
+    const cells = [{ gender: "F", label: "efficient", threshold: 20 }];
+    const res = await PUT(putReq(sliceQuery, cells));
     expect(res.status).toBe(200);
-    expect(calls.some((c) => c.includes("DELETE FROM norm_thresholds"))).toBe(true);
-    expect(calls.some((c) => c.includes("INSERT INTO norm_thresholds"))).toBe(true);
+    expect(writes).toHaveLength(1);
+    expect(writes[0].text).toMatch(/DELETE FROM norm_thresholds/i);
+    expect(writes[0].text).toMatch(/INSERT INTO norm_thresholds/i);
+    expect(writes[0].text).toMatch(/json_to_recordset/i);
+    expect(writes[0].values).toContain(JSON.stringify(cells));
     const body = await jsonOf(res);
     expect(body.data).toEqual([
       { gender: "F", label: "efficient", threshold: 20, component: null },
     ]);
   });
 
-  it("empty body deletes the slice and does not insert", async () => {
-    const calls: string[] = [];
+  it("empty body still uses one CTE write (delete + empty recordset)", async () => {
+    const writes: string[] = [];
     sql.mockImplementation(async (strings: TemplateStringsArray) => {
       const text = textOf(strings);
-      calls.push(text);
-      if (text.includes("FROM norm_populations")) {
+      if (text.includes("FROM norm_populations") && !text.includes("DELETE FROM")) {
         return { rows: [{ id: POP_ID, archived_at: null }] };
       }
-      if (text.includes("DELETE FROM norm_thresholds")) {
-        return { rows: [] };
-      }
+      writes.push(text);
       return { rows: [] };
     });
 
     const res = await PUT(putReq(sliceQuery, []));
     expect(res.status).toBe(200);
-    expect(calls.some((c) => c.includes("DELETE FROM norm_thresholds"))).toBe(true);
-    expect(calls.some((c) => c.includes("INSERT INTO norm_thresholds"))).toBe(false);
+    expect(writes).toHaveLength(1);
+    expect(writes[0]).toMatch(/DELETE FROM norm_thresholds/i);
+    expect(writes[0]).toMatch(/json_to_recordset/i);
     await expect(jsonOf(res)).resolves.toEqual({ data: [] });
   });
 });

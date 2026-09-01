@@ -115,28 +115,39 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Population not found" }, { status: 404 });
     }
 
-    await sql`
-      DELETE FROM norm_thresholds
-      WHERE population_id = ${population_id}
-        AND metric_key = ${metric_key}
-        AND COALESCE(component, '') = ${componentKey}
-    `;
+    const cellsJson = JSON.stringify(
+      cells.map((cell) => ({
+        gender: cell.gender,
+        label: cell.label,
+        threshold: cell.threshold,
+      }))
+    );
 
-    for (const cell of cells) {
-      await sql`
-        INSERT INTO norm_thresholds (
-          population_id, metric_key, gender, component, label, threshold
-        )
-        VALUES (
-          ${population_id},
-          ${metric_key},
-          ${cell.gender},
-          ${component},
-          ${cell.label},
-          ${cell.threshold}
-        )
-      `;
-    }
+    // One statement: DELETE the slice and INSERT filled cells.
+    // If INSERT fails, the DELETE rolls back with it.
+    await sql`
+      WITH deleted AS (
+        DELETE FROM norm_thresholds
+        WHERE population_id = ${population_id}
+          AND metric_key = ${metric_key}
+          AND COALESCE(component, '') = ${componentKey}
+      )
+      INSERT INTO norm_thresholds (
+        population_id, metric_key, gender, component, label, threshold
+      )
+      SELECT
+        ${population_id},
+        ${metric_key},
+        incoming.gender,
+        ${component},
+        incoming.label,
+        incoming.threshold
+      FROM json_to_recordset(CAST(${cellsJson} AS json)) AS incoming(
+        gender text,
+        label text,
+        threshold numeric
+      )
+    `;
 
     return NextResponse.json({
       data: cells.map((cell) => ({
