@@ -9,6 +9,7 @@ export type Athlete = {
   created_at: string;
   hugo_group?: string | null;
   hugo_groups?: string[];
+  hugo_primary?: string | null;
 };
 
 /** Session-to-session comparison: up = better, down = worse, neutral = within band */

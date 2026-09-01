@@ -5,6 +5,9 @@ import {
   groupMembershipsByAthleteId,
   isMissingRelationOrColumn,
   isOnHugoTeam,
+  nextPrimaryAfterRemove,
+  setPrimaryClearsOthers,
+  shouldSetPrimaryOnFirstAdd,
 } from "./hugo-memberships";
 
 describe("groupMembershipsByAthleteId", () => {
@@ -32,9 +35,26 @@ describe("attachHugoGroups", () => {
         { athlete_id: "a1", hugo_group: "track" },
       ])
     ).toEqual([
-      { id: "a1", first_name: "Jane", hugo_groups: ["soccer", "track"] },
-      { id: "a2", first_name: "John", hugo_groups: [] },
+      {
+        id: "a1",
+        first_name: "Jane",
+        hugo_groups: ["soccer", "track"],
+        hugo_primary: null,
+      },
+      { id: "a2", first_name: "John", hugo_groups: [], hugo_primary: null },
     ]);
+  });
+
+  it("exposes hugo_primary from the is_primary membership", () => {
+    const [jane] = attachHugoGroups(
+      [{ id: "a1", first_name: "Jane" }],
+      [
+        { athlete_id: "a1", hugo_group: "soccer", is_primary: false },
+        { athlete_id: "a1", hugo_group: "football", is_primary: true },
+      ]
+    );
+    expect(jane.hugo_groups).toEqual(["soccer", "football"]);
+    expect(jane.hugo_primary).toBe("football");
   });
 });
 
@@ -94,5 +114,55 @@ describe("athleteHasHugoGroup", () => {
     expect(
       athleteHasHugoGroup({ hugo_groups: ["track"], hugo_group: "xc" }, "soccer")
     ).toBe(false);
+  });
+});
+
+describe("shouldSetPrimaryOnFirstAdd", () => {
+  it("is true only when the athlete has no memberships yet", () => {
+    expect(shouldSetPrimaryOnFirstAdd(0)).toBe(true);
+    expect(shouldSetPrimaryOnFirstAdd(1)).toBe(false);
+    expect(shouldSetPrimaryOnFirstAdd(2)).toBe(false);
+  });
+});
+
+describe("setPrimaryClearsOthers", () => {
+  it("marks only the chosen group primary", () => {
+    expect(setPrimaryClearsOthers(["football", "soccer", "track"], "soccer")).toEqual([
+      { hugo_group: "football", is_primary: false },
+      { hugo_group: "soccer", is_primary: true },
+      { hugo_group: "track", is_primary: false },
+    ]);
+  });
+
+  it("clears every group when the chosen sport is not a membership", () => {
+    expect(setPrimaryClearsOthers(["football", "soccer"], "track")).toEqual([
+      { hugo_group: "football", is_primary: false },
+      { hugo_group: "soccer", is_primary: false },
+    ]);
+  });
+});
+
+describe("nextPrimaryAfterRemove", () => {
+  it("returns null when the last membership is removed", () => {
+    expect(nextPrimaryAfterRemove([])).toBeNull();
+  });
+
+  it("keeps an existing remaining primary", () => {
+    expect(
+      nextPrimaryAfterRemove([
+        { hugo_group: "soccer", is_primary: false },
+        { hugo_group: "track", is_primary: true },
+      ])
+    ).toBe("track");
+  });
+
+  it("promotes the remaining group sorted by hugo_group when primary was removed", () => {
+    expect(
+      nextPrimaryAfterRemove([
+        { hugo_group: "track", is_primary: false },
+        { hugo_group: "football", is_primary: false },
+        { hugo_group: "soccer", is_primary: false },
+      ])
+    ).toBe("football");
   });
 });

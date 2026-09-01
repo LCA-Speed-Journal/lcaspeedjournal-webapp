@@ -4,7 +4,10 @@ import { requireCoachSession } from "@/lib/require-coach";
 import { isHugoGroup } from "@/lib/weight-room/constants";
 import {
   attachHugoGroupsFromDb,
+  fetchMembershipsForAthletes,
   insertHugoMembership,
+  nextPrimaryAfterRemove,
+  setAthletePrimaryHugoGroup,
 } from "@/lib/weight-room/hugo-memberships";
 import { isUuid } from "@/lib/weight-room/insert-template";
 
@@ -116,6 +119,64 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PATCH(request: NextRequest) {
+  const auth = await requireCoachSession();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  try {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    const rec =
+      body && typeof body === "object"
+        ? (body as Record<string, unknown>)
+        : {};
+    const athleteId = rec.athlete_id;
+    const hugoGroupRaw = rec.hugo_group;
+
+    if (!isUuid(athleteId)) {
+      return NextResponse.json(
+        { error: "athlete_id is required and must be a UUID" },
+        { status: 400 }
+      );
+    }
+    if (!isHugoGroup(hugoGroupRaw)) {
+      return NextResponse.json(
+        { error: "Invalid hugo_group" },
+        { status: 400 }
+      );
+    }
+
+    const set = await setAthletePrimaryHugoGroup(athleteId.trim(), hugoGroupRaw);
+    if (!set) {
+      return NextResponse.json(
+        { error: "Membership not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      data: {
+        athlete_id: athleteId.trim(),
+        hugo_group: hugoGroupRaw,
+        is_primary: true,
+      },
+    });
+  } catch (err) {
+    console.error("PATCH /api/weight-room/rosters:", err);
+    return NextResponse.json(
+      { error: "Failed to set primary Hugo sport" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest) {
   const auth = await requireCoachSession();
   if (!auth.ok) {
@@ -150,6 +211,13 @@ export async function DELETE(request: NextRequest) {
         { error: "Membership not found" },
         { status: 404 }
       );
+    }
+
+    const remaining = await fetchMembershipsForAthletes([athleteId.trim()]);
+    const nextPrimary = nextPrimaryAfterRemove(remaining);
+    const currentPrimary = remaining.find((row) => row.is_primary)?.hugo_group;
+    if (nextPrimary && isHugoGroup(nextPrimary) && nextPrimary !== currentPrimary) {
+      await setAthletePrimaryHugoGroup(athleteId.trim(), nextPrimary);
     }
 
     try {

@@ -13,6 +13,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 type AthleteMembership = {
   hugo_group?: string | null;
   hugo_groups?: string[];
+  hugo_primary?: string | null;
 };
 
 type HugoTeamsSectionProps = {
@@ -27,6 +28,7 @@ export function HugoTeamsSection({ athleteId }: HugoTeamsSectionProps) {
   }>(athleteKey, fetcher);
 
   const [pendingGroup, setPendingGroup] = useState<HugoGroup | null>(null);
+  const [pendingPrimary, setPendingPrimary] = useState(false);
   const [error, setError] = useState("");
 
   const athlete = data?.data;
@@ -65,13 +67,36 @@ export function HugoTeamsSection({ athleteId }: HugoTeamsSectionProps) {
     }
   }
 
+  async function handleSetPrimary(group: HugoGroup) {
+    if (!isChecked(group) || athlete?.hugo_primary === group) return;
+    setError("");
+    setPendingPrimary(true);
+    try {
+      const res = await fetch("/api/weight-room/rosters", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ athlete_id: athleteId, hugo_group: group }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Failed to set primary sport");
+        return;
+      }
+      await mutate();
+    } catch {
+      setError("Network error");
+    } finally {
+      setPendingPrimary(false);
+    }
+  }
+
   return (
     <section className="rounded-2xl border-2 border-border/80 bg-surface/90 p-6 shadow-2xl shadow-black/30 backdrop-blur-sm ring-1 ring-white/5">
       <div className="mb-2 inline-block h-1 w-16 rounded-full bg-accent" />
       <h3 className="mb-1 text-lg font-semibold text-foreground">Hugo teams</h3>
       <p className="mb-4 text-xs text-foreground-muted">
-        Assign this athlete to one or more sports. Used for weight-room cards and
-        rosters.
+        Assign this athlete to one or more sports. The primary sport sets default
+        performance norms.
       </p>
 
       {isLoading && !athlete && (
@@ -89,23 +114,42 @@ export function HugoTeamsSection({ athleteId }: HugoTeamsSectionProps) {
           {HUGO_GROUPS.map((group) => {
             const label = HUGO_GROUP_META[group].label;
             const checked = isChecked(group);
-            const disabled = pendingGroup === group;
+            const isPrimary = athlete.hugo_primary === group;
+            const rowBusy = pendingGroup === group || pendingPrimary;
+            const primaryDisabled = !checked || pendingPrimary || pendingGroup !== null;
             return (
-              <label
+              <div
                 key={group}
-                className={`flex min-h-[44px] items-center gap-3 rounded-xl border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground ${
-                  disabled ? "opacity-50" : "hover:border-accent/50"
+                className={`flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground ${
+                  rowBusy ? "opacity-50" : "hover:border-accent/50"
                 }`}
               >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  disabled={disabled}
-                  onChange={(e) => handleToggle(group, e.target.checked)}
-                  className="h-4 w-4 accent-[var(--color-accent,#00f5d4)]"
-                />
-                {label}
-              </label>
+                <label className="flex min-w-0 flex-1 items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={rowBusy}
+                    onChange={(e) => handleToggle(group, e.target.checked)}
+                    className="h-4 w-4 accent-[var(--color-accent,#00f5d4)]"
+                  />
+                  {label}
+                </label>
+                <label
+                  className={`flex shrink-0 items-center gap-2 text-xs ${
+                    checked ? "text-foreground-muted" : "text-foreground-muted/40"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name={`hugo-primary-${athleteId}`}
+                    checked={isPrimary}
+                    disabled={primaryDisabled}
+                    onChange={() => handleSetPrimary(group)}
+                    className="h-4 w-4 accent-[var(--color-accent,#00f5d4)]"
+                  />
+                  Primary
+                </label>
+              </div>
             );
           })}
         </div>
