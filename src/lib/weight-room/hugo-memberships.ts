@@ -85,6 +85,43 @@ export function setPrimaryClearsOthers(
 }
 
 /**
+ * Existing memberships to mark primary after `is_primary` was added as DEFAULT false.
+ * Safe to re-run: athletes who already have a primary are skipped.
+ * Dual-sport with no scalar `athletes.hugo_group` match stay unbadged.
+ */
+export function membershipsToBackfillPrimary(
+  memberships: MembershipRow[],
+  athletes: Array<{ id: string; hugo_group?: string | null }>
+): Array<{ athlete_id: string; hugo_group: string }> {
+  const scalarById = new Map(
+    athletes.map((athlete) => [athlete.id, athlete.hugo_group ?? null])
+  );
+  const byAthlete = new Map<string, MembershipRow[]>();
+  for (const row of memberships) {
+    const list = byAthlete.get(row.athlete_id);
+    if (list) list.push(row);
+    else byAthlete.set(row.athlete_id, [row]);
+  }
+
+  const out: Array<{ athlete_id: string; hugo_group: string }> = [];
+  for (const [athleteId, rows] of byAthlete) {
+    if (rows.some((row) => row.is_primary)) continue;
+    if (rows.length === 1) {
+      const only = rows[0];
+      if (only) out.push({ athlete_id: athleteId, hugo_group: only.hugo_group });
+      continue;
+    }
+    const scalar = scalarById.get(athleteId);
+    if (!scalar) continue;
+    const match = rows.find((row) => row.hugo_group === scalar);
+    if (match) {
+      out.push({ athlete_id: athleteId, hugo_group: match.hugo_group });
+    }
+  }
+  return out;
+}
+
+/**
  * After a membership is removed, which group should be primary.
  * Empty remaining → none. Remaining already has a primary → keep it.
  * Otherwise promote the first remaining group sorted by hugo_group.

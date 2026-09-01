@@ -20,6 +20,8 @@ export const NORMS_DEFAULTS_METRIC_KEYS = [
 
 export const FORTY_YD_DASH = "40yd_Dash";
 
+export const FORTY_YD_PRIMARY_COMPONENT = "0-40yd";
+
 export const FORTY_YD_COMPONENTS = [
   "0-10yd",
   "0-20yd",
@@ -32,6 +34,11 @@ export const FORTY_YD_COMPONENTS = [
 
 export function metricLabel(key: string): string {
   return metrics[key]?.display_name || key;
+}
+
+/** Editor default: named 0-40yd for 40yd_Dash; empty/none for every other metric. */
+export function defaultCutsComponent(metric: string): string {
+  return metric === FORTY_YD_DASH ? FORTY_YD_PRIMARY_COMPONENT : "";
 }
 
 export function cutsEditorMetrics(): { key: string; label: string }[] {

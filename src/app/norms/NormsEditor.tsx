@@ -13,6 +13,7 @@ import {
 } from "@/lib/norms/cuts-grid";
 import {
   cutsEditorMetrics,
+  defaultCutsComponent,
   FORTY_YD_COMPONENTS,
   FORTY_YD_DASH,
   metricLabel,
@@ -87,7 +88,9 @@ export function NormsEditor() {
   const cutMetrics = useMemo(() => cutsEditorMetrics(), []);
   const [selectedId, setSelectedId] = useState<string>("");
   const [cutMetric, setCutMetric] = useState<string>("Vertical Jump");
-  const [cutComponent, setCutComponent] = useState("");
+  const [cutComponent, setCutComponent] = useState(() =>
+    defaultCutsComponent("Vertical Jump")
+  );
 
   const {
     data: popsData,
@@ -155,7 +158,11 @@ export function NormsEditor() {
             metricKey={cutMetric}
             onMetricKey={(key) => {
               setCutMetric(key);
-              if (key !== FORTY_YD_DASH) setCutComponent("");
+              setCutComponent((prev) =>
+                key === FORTY_YD_DASH
+                  ? prev || defaultCutsComponent(key)
+                  : ""
+              );
             }}
             component={cutComponent}
             onComponent={setCutComponent}

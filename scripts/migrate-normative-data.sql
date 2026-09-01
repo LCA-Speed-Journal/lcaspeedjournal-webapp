@@ -69,6 +69,44 @@ CREATE UNIQUE INDEX IF NOT EXISTS athlete_hugo_memberships_one_primary
   ON athlete_hugo_memberships (athlete_id)
   WHERE is_primary;
 
+-- 3b. Backfill is_primary on existing memberships (safe to re-run).
+-- attachZones only uses is_primary memberships. DEFAULT false left every
+-- pre-migration athlete unbadged until a coach clicked Primary.
+--
+-- 1. Exactly one membership and no primary → that row.
+-- 2. Multiple memberships, no primary, athletes.hugo_group matches one row → that row.
+-- 3. Remaining dual-sport with no scalar match stay unbadged (coach chooses).
+-- Never creates two primaries (partial unique index above).
+
+UPDATE athlete_hugo_memberships m
+SET is_primary = true
+WHERE m.is_primary = false
+  AND NOT EXISTS (
+    SELECT 1
+    FROM athlete_hugo_memberships p
+    WHERE p.athlete_id = m.athlete_id
+      AND p.is_primary = true
+  )
+  AND (
+    SELECT COUNT(*)
+    FROM athlete_hugo_memberships c
+    WHERE c.athlete_id = m.athlete_id
+  ) = 1;
+
+UPDATE athlete_hugo_memberships m
+SET is_primary = true
+FROM athletes a
+WHERE a.id = m.athlete_id
+  AND m.is_primary = false
+  AND a.hugo_group IS NOT NULL
+  AND m.hugo_group = a.hugo_group
+  AND NOT EXISTS (
+    SELECT 1
+    FROM athlete_hugo_memberships p
+    WHERE p.athlete_id = m.athlete_id
+      AND p.is_primary = true
+  );
+
 -- 4. Weight-room auto sessions (NULL = coach-created)
 ALTER TABLE sessions ADD COLUMN IF NOT EXISTS origin TEXT;
 

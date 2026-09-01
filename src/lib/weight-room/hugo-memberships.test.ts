@@ -5,6 +5,7 @@ import {
   groupMembershipsByAthleteId,
   isMissingRelationOrColumn,
   isOnHugoTeam,
+  membershipsToBackfillPrimary,
   nextPrimaryAfterRemove,
   setPrimaryClearsOthers,
   shouldSetPrimaryOnFirstAdd,
@@ -164,5 +165,98 @@ describe("nextPrimaryAfterRemove", () => {
         { hugo_group: "soccer", is_primary: false },
       ])
     ).toBe("football");
+  });
+});
+
+describe("membershipsToBackfillPrimary", () => {
+  it("sets the sole membership primary when the athlete has none", () => {
+    expect(
+      membershipsToBackfillPrimary(
+        [{ athlete_id: "a1", hugo_group: "soccer", is_primary: false }],
+        [{ id: "a1", hugo_group: "soccer" }]
+      )
+    ).toEqual([{ athlete_id: "a1", hugo_group: "soccer" }]);
+  });
+
+  it("sets the sole membership even when scalar hugo_group is null", () => {
+    expect(
+      membershipsToBackfillPrimary(
+        [{ athlete_id: "a1", hugo_group: "soccer", is_primary: false }],
+        [{ id: "a1", hugo_group: null }]
+      )
+    ).toEqual([{ athlete_id: "a1", hugo_group: "soccer" }]);
+  });
+
+  it("does not change an athlete who already has a primary", () => {
+    expect(
+      membershipsToBackfillPrimary(
+        [
+          { athlete_id: "a1", hugo_group: "soccer", is_primary: true },
+          { athlete_id: "a1", hugo_group: "football", is_primary: false },
+        ],
+        [{ id: "a1", hugo_group: "soccer" }]
+      )
+    ).toEqual([]);
+  });
+
+  it("uses scalar hugo_group when dual-sport has no primary", () => {
+    expect(
+      membershipsToBackfillPrimary(
+        [
+          { athlete_id: "a1", hugo_group: "soccer", is_primary: false },
+          { athlete_id: "a1", hugo_group: "football", is_primary: false },
+        ],
+        [{ id: "a1", hugo_group: "football" }]
+      )
+    ).toEqual([{ athlete_id: "a1", hugo_group: "football" }]);
+  });
+
+  it("leaves dual-sport unbadged when scalar hugo_group matches none", () => {
+    expect(
+      membershipsToBackfillPrimary(
+        [
+          { athlete_id: "a1", hugo_group: "soccer", is_primary: false },
+          { athlete_id: "a1", hugo_group: "football", is_primary: false },
+        ],
+        [{ id: "a1", hugo_group: "track" }]
+      )
+    ).toEqual([]);
+  });
+
+  it("leaves dual-sport unbadged when scalar hugo_group is null", () => {
+    expect(
+      membershipsToBackfillPrimary(
+        [
+          { athlete_id: "a1", hugo_group: "soccer", is_primary: false },
+          { athlete_id: "a1", hugo_group: "football", is_primary: false },
+        ],
+        [{ id: "a1", hugo_group: null }]
+      )
+    ).toEqual([]);
+  });
+
+  it("never returns two primaries for one athlete", () => {
+    const result = membershipsToBackfillPrimary(
+      [
+        { athlete_id: "a1", hugo_group: "soccer", is_primary: false },
+        { athlete_id: "a1", hugo_group: "football", is_primary: false },
+        { athlete_id: "a2", hugo_group: "xc", is_primary: false },
+      ],
+      [
+        { id: "a1", hugo_group: "soccer" },
+        { id: "a2", hugo_group: "xc" },
+      ]
+    );
+    const byAthlete = new Map<string, number>();
+    for (const row of result) {
+      byAthlete.set(row.athlete_id, (byAthlete.get(row.athlete_id) ?? 0) + 1);
+    }
+    expect(result).toEqual([
+      { athlete_id: "a1", hugo_group: "soccer" },
+      { athlete_id: "a2", hugo_group: "xc" },
+    ]);
+    for (const count of byAthlete.values()) {
+      expect(count).toBe(1);
+    }
   });
 });
