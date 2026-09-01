@@ -80,9 +80,10 @@ export async function PATCH(
 
     const name = parsed.value.name ?? existing.name;
     const notes = parsed.value.notes !== undefined ? parsed.value.notes : existing.notes;
-    let archivedAt: string | Date | null = existing.archived_at;
+    let archivedAt: string | null =
+      existing.archived_at == null ? null : new Date(existing.archived_at).toISOString();
     if (parsed.value.archived === true) {
-      archivedAt = existing.archived_at ?? new Date().toISOString();
+      archivedAt = archivedAt ?? new Date().toISOString();
     } else if (parsed.value.archived === false) {
       archivedAt = null;
     }
