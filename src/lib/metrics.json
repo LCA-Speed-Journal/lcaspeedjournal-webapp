@@ -901,6 +901,16 @@
     "input_structure": "single_interval",
     "default_splits": []
   },
+  "5-10-5_Agility": {
+    "display_name": "5-10-5_Agility",
+    "category": "Speed",
+    "subcategory": "Agility",
+    "input_units": "s",
+    "display_units": "s",
+    "conversion_formula": "",
+    "input_structure": "sided_optional",
+    "default_splits": ["L", "R"]
+  },
   "ShotPut": {
     "display_name": "ShotPut",
     "category": "Meet",

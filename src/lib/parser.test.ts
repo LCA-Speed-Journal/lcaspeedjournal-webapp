@@ -263,3 +263,43 @@ describe("parseFortyYardComponent", () => {
     expect(() => parseFortyYardComponent("1.72", "0-10m")).toThrow(/Unknown 40yd component/);
   });
 });
+
+describe("5-10-5_Agility", () => {
+  it("stores one time as Athlete-Comfort", () => {
+    const rows = parseEntry("5-10-5_Agility", "4.52");
+    expect(rows).toEqual([
+      {
+        metric_key: "5-10-5_Agility",
+        interval_index: null,
+        component: "Athlete-Comfort",
+        value: 4.52,
+        display_value: 4.52,
+        units: "s",
+      },
+    ]);
+  });
+
+  it("stores two times as L, R, and Average", () => {
+    const rows = parseEntry("5-10-5_Agility", "4.48|4.56");
+    expect(rows.map((r) => r.component)).toEqual(["L", "R", "Average"]);
+    expect(rows[0]).toMatchObject({ component: "L", value: 4.48, units: "s" });
+    expect(rows[1]).toMatchObject({ component: "R", value: 4.56, units: "s" });
+    expect(rows[2]).toMatchObject({
+      component: "Average",
+      value: 4.52,
+      display_value: 4.52,
+      units: "s",
+    });
+  });
+
+  it("does not emit an L-R percent row", () => {
+    const rows = parseEntry("5-10-5_Agility", "4.48|4.56");
+    expect(rows.some((r) => r.component === "L-R")).toBe(false);
+  });
+
+  it("rejects three values", () => {
+    expect(() => parseEntry("5-10-5_Agility", "4.48|4.56|4.60")).toThrow(
+      /1 or 2/
+    );
+  });
+});

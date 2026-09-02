@@ -1,7 +1,7 @@
 /**
  * Entry parsing engine — mirrors Python data_intake/parser.py.
  * Transforms raw coach input into entry rows based on metric input_structure:
- * single_interval, cumulative, paired_components.
+ * single_interval, cumulative, paired_components, sided_optional.
  */
 import type { ConversionFormula } from "./conversions";
 import { convertValue } from "./conversions";
@@ -25,7 +25,11 @@ type MetricDef = {
   input_units: string;
   display_units: string;
   conversion_formula: ConversionFormula | string;
-  input_structure: "single_interval" | "cumulative" | "paired_components";
+  input_structure:
+    | "single_interval"
+    | "cumulative"
+    | "paired_components"
+    | "sided_optional";
   default_splits: (number | string)[];
   category?: string;
   subcategory?: string;
@@ -141,6 +145,9 @@ export function parseEntry(
       throw new Error(`No component labels for paired metric ${metricKey}`);
     }
     return parsePairedComponents(metric, rawInput, labelStrs);
+  }
+  if (inputStructure === "sided_optional") {
+    return parseSidedOptional(metric, rawInput.trim());
   }
 
   throw new Error(`Unknown input_structure: ${inputStructure}`);
@@ -486,6 +493,50 @@ function parsePairedComponents(
   }
 
   return rows;
+}
+
+function parseSidedOptional(metric: MetricDef, rawInput: string): ParsedEntry[] {
+  const parts = splitValues(rawInput);
+  const values = parts.map((p) => {
+    const v = parseFloat(p);
+    if (Number.isNaN(v)) throw new Error(`Cannot parse component value "${p}"`);
+    return v;
+  });
+
+  if (values.length === 1) {
+    return [
+      {
+        metric_key: metric.display_name,
+        interval_index: null,
+        component: "Athlete-Comfort",
+        value: values[0],
+        display_value: applyConversion(values[0], metric.conversion_formula),
+        units: metric.display_units,
+      },
+    ];
+  }
+
+  if (values.length === 2) {
+    const [left, right] = values;
+    const average = (left + right) / 2;
+    const sides = [
+      { component: "L", value: left },
+      { component: "R", value: right },
+      { component: "Average", value: average },
+    ];
+    return sides.map((side) => ({
+      metric_key: metric.display_name,
+      interval_index: null,
+      component: side.component,
+      value: side.value,
+      display_value: applyConversion(side.value, metric.conversion_formula),
+      units: metric.display_units,
+    }));
+  }
+
+  throw new Error(
+    `${metric.display_name} expects 1 or 2 times, got ${values.length}`
+  );
 }
 
 export function getMetricsRegistry(): Record<string, MetricDef> {
