@@ -219,6 +219,34 @@ describe("40yd_Dash", () => {
   });
 });
 
+describe("20yd_Dash", () => {
+  it("emits yard components for default splits 5+5+10", () => {
+    const rows = parseEntry("20yd_Dash", "1.05|1.80|3.05");
+    const components = rows.map((r) => r.component);
+    expect(components).toContain("0-5yd");
+    expect(components).toContain("0-10yd");
+    expect(components).toContain("0-20yd");
+    expect(components).toContain("5-10yd");
+    expect(components).toContain("10-20yd");
+    expect(components.some((c) => c?.endsWith("m"))).toBe(false);
+    expect(rows.every((r) => r.metric_key === "20yd_Dash")).toBe(true);
+    expect(rows.every((r) => r.units === "s")).toBe(true);
+  });
+
+  it("accepts a 10yd-only session via day_splits [10]", () => {
+    const rows = parseEntry("20yd_Dash", "1.72", {
+      day_splits: { "20yd_Dash": [10] },
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      metric_key: "20yd_Dash",
+      component: "0-10yd",
+      display_value: 1.72,
+      units: "s",
+    });
+  });
+});
+
 describe("parseFortyYardComponent", () => {
   it("writes one 40yd_Dash row on the named split", () => {
     expect(parseFortyYardComponent("1.72", "0-10yd")).toEqual({

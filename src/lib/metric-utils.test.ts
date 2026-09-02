@@ -26,6 +26,10 @@ describe("getPrimaryComponent", () => {
     expect(getPrimaryComponent("40yd_Dash")).toBe("0-40yd");
   });
 
+  it("returns 0-20yd for 20yd_Dash", () => {
+    expect(getPrimaryComponent("20yd_Dash")).toBe("0-20yd");
+  });
+
   it("returns null when default_splits has no numbers", () => {
     expect(getPrimaryComponent("5m_Accel")).toBeNull();
   });

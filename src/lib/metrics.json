@@ -150,6 +150,17 @@
     "default_splits": [10, 10, 20],
     "interval_unit": "yd"
   },
+  "20yd_Dash": {
+    "display_name": "20yd_Dash",
+    "category": "Speed",
+    "subcategory": "MaxV",
+    "input_units": "s",
+    "display_units": "s",
+    "conversion_formula": "",
+    "input_structure": "cumulative",
+    "default_splits": [5, 5, 10],
+    "interval_unit": "yd"
+  },
   "50m_Sprint": {
     "display_name": "50m_Sprint",
     "category": "Speed",
