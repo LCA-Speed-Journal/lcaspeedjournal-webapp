@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { getPrimaryComponent, formatEntryMetricLabel } from "./metric-utils";
+import {
+  getPrimaryComponent,
+  formatEntryMetricLabel,
+  isPrimaryResultComponent,
+} from "./metric-utils";
 
 describe("getPrimaryComponent", () => {
   it("returns 0-20m for 20m_Accel (cumulative, default_splits [5,5,10])", () => {
@@ -57,5 +61,27 @@ describe("formatEntryMetricLabel", () => {
 
   it("handles unknown metric with component", () => {
     expect(formatEntryMetricLabel({ metric_key: "Unknown", component: "0-5m" })).toBe("Unknown (0-5m)");
+  });
+});
+
+describe("isPrimaryResultComponent", () => {
+  it("treats Average and Athlete-Comfort as 5-10-5 overall", () => {
+    expect(isPrimaryResultComponent("5-10-5_Agility", "Average")).toBe(true);
+    expect(isPrimaryResultComponent("5-10-5_Agility", "Athlete-Comfort")).toBe(true);
+    expect(isPrimaryResultComponent("5-10-5_Agility", "L")).toBe(false);
+    expect(isPrimaryResultComponent("5-10-5_Agility", "R")).toBe(false);
+    expect(isPrimaryResultComponent("5-10-5_Agility", null)).toBe(false);
+  });
+
+  it("uses the cumulative full-run component", () => {
+    expect(isPrimaryResultComponent("20yd_Dash", "0-20yd")).toBe(true);
+    expect(isPrimaryResultComponent("20yd_Dash", "0-10yd")).toBe(false);
+    expect(isPrimaryResultComponent("40yd_Dash", "0-40yd")).toBe(true);
+    expect(isPrimaryResultComponent("20m_Accel", "0-20m")).toBe(true);
+  });
+
+  it("treats empty component as overall for single-interval metrics", () => {
+    expect(isPrimaryResultComponent("Vertical Jump", null)).toBe(true);
+    expect(isPrimaryResultComponent("Vertical Jump", "")).toBe(true);
   });
 });
