@@ -2,8 +2,17 @@ import {
   type AttachZonesDefault,
   type AttachZonesMembership,
 } from "./attach-zones";
-import { NORMS_DEFAULTS_METRIC_KEYS } from "./editor-metrics";
-import { getPrimaryComponent } from "../metric-utils";
+import {
+  AGILITY_5105_CUT_COMPONENTS,
+  NORMS_DEFAULTS_METRIC_KEYS,
+  TWENTY_YD_COMPONENTS,
+  TWENTY_YD_DASH,
+} from "./editor-metrics";
+import {
+  AGILITY_5105,
+  getPrimaryComponent,
+  isPrimaryResultComponent,
+} from "../metric-utils";
 import { isZoneLabel, zoneRank, type ZoneLabel } from "./palette";
 
 export const FORTY_YARD_COMPONENTS = [
@@ -286,9 +295,13 @@ export function sortTestingDayMetricKeys(keys: string[]): string[] {
 
 export function entryMatchesTestingDayComponent(
   row: { component: string | null; interval_index: number | null },
-  resolvedComponent: string | null
+  resolvedComponent: string | null,
+  metricKey?: string
 ): boolean {
   if (resolvedComponent == null) {
+    if (metricKey && isPrimaryResultComponent(metricKey, row.component)) {
+      return row.interval_index == null;
+    }
     return (
       row.interval_index == null &&
       (row.component == null || row.component === "")
@@ -400,6 +413,8 @@ export function testingDayNamedComponents(
   }
   if (named.length > 0) return named;
   if (metricKey === "40yd_Dash") return [...FORTY_YARD_COMPONENTS];
+  if (metricKey === TWENTY_YD_DASH) return [...TWENTY_YD_COMPONENTS];
+  if (metricKey === AGILITY_5105) return [...AGILITY_5105_CUT_COMPONENTS];
   const primary = getPrimaryComponent(metricKey);
   return primary ? [primary] : [];
 }

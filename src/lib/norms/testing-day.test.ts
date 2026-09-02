@@ -441,3 +441,62 @@ describe("buildTestingDayMatrix", () => {
     expect(val.cells[fortyKey]).toBeUndefined();
   });
 });
+
+describe("5-10-5 and 20yd testing-day components", () => {
+  it("resolves empty 20yd component to 0-20yd", () => {
+    expect(resolveTestingDayComponent("20yd_Dash", null)).toBe("0-20yd");
+    expect(resolveTestingDayComponent("20yd_Dash", "")).toBe("0-20yd");
+  });
+
+  it("keeps empty 5-10-5 component as overall (null)", () => {
+    expect(resolveTestingDayComponent("5-10-5_Agility", null)).toBeNull();
+  });
+
+  it("matches Average or Athlete-Comfort when 5-10-5 overall is selected", () => {
+    expect(
+      entryMatchesTestingDayComponent(
+        { component: "Average", interval_index: null },
+        null,
+        "5-10-5_Agility"
+      )
+    ).toBe(true);
+    expect(
+      entryMatchesTestingDayComponent(
+        { component: "Athlete-Comfort", interval_index: null },
+        null,
+        "5-10-5_Agility"
+      )
+    ).toBe(true);
+    expect(
+      entryMatchesTestingDayComponent(
+        { component: "L", interval_index: null },
+        null,
+        "5-10-5_Agility"
+      )
+    ).toBe(false);
+  });
+
+  it("still matches Vertical Jump overall as null-component rows", () => {
+    expect(
+      entryMatchesTestingDayComponent(
+        { component: null, interval_index: null },
+        null,
+        "Vertical Jump"
+      )
+    ).toBe(true);
+  });
+
+  it("falls back to 20yd named windows", () => {
+    expect(testingDayNamedComponents("20yd_Dash", [])).toEqual([
+      "0-5yd",
+      "0-10yd",
+      "0-20yd",
+      "5-10yd",
+      "10-20yd",
+    ]);
+  });
+
+  it("falls back to 5-10-5 L and R (Overall is the empty default)", () => {
+    expect(testingDayNamedComponents("5-10-5_Agility", [])).toEqual(["L", "R"]);
+  });
+});

@@ -394,7 +394,7 @@ async function getTestingDayBoard(request: NextRequest, session_id: string) {
     const component = resolveTestingDayComponent(metricKey, null);
     const matching = rawEntries.filter((row) =>
       row.metric_key === metricKey &&
-      entryMatchesTestingDayComponent(row, component)
+      entryMatchesTestingDayComponent(row, component, metricKey)
     );
     if (matching.length === 0) continue;
 
