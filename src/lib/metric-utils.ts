@@ -48,6 +48,30 @@ export function isAgility5105PrimaryComponent(
   return component === "Average" || component === "Athlete-Comfort";
 }
 
+export function isLiveOverallEntry(
+  metricKey: string,
+  intervalIndex: number | null,
+  component: string | null
+): boolean {
+  if (intervalIndex != null) return false;
+  if (metricKey === AGILITY_5105) {
+    return isAgility5105PrimaryComponent(component);
+  }
+  return component == null || component === "";
+}
+
+export function sessionHasOverallChip(
+  metricKey: string,
+  pairs: { interval_index: number | null; component: string | null }[]
+): boolean {
+  if (metricKey === AGILITY_5105) {
+    return pairs.some((p) => isAgility5105PrimaryComponent(p.component));
+  }
+  return pairs.some(
+    (p) => p.interval_index == null && (p.component == null || p.component === "")
+  );
+}
+
 /**
  * True when the component is the overall/primary result for the metric
  * (5-10-5 Average or Athlete-Comfort, cumulative full-run split, or any

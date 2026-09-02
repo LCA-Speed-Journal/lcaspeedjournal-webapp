@@ -3,6 +3,8 @@ import {
   getPrimaryComponent,
   formatEntryMetricLabel,
   isPrimaryResultComponent,
+  isLiveOverallEntry,
+  sessionHasOverallChip,
 } from "./metric-utils";
 
 describe("getPrimaryComponent", () => {
@@ -91,5 +93,37 @@ describe("isPrimaryResultComponent", () => {
     expect(isPrimaryResultComponent("5-10-5_Agility", "L")).toBe(false);
     expect(isPrimaryResultComponent("5-10-5_Agility", "Average")).toBe(true);
     expect(isPrimaryResultComponent("Vertical Jump", null)).toBe(true);
+  });
+});
+
+describe("liveOverallEntry", () => {
+  it("treats 5-10-5 Average and Athlete-Comfort as overall", () => {
+    expect(isLiveOverallEntry("5-10-5_Agility", null, "Average")).toBe(true);
+    expect(isLiveOverallEntry("5-10-5_Agility", null, "Athlete-Comfort")).toBe(true);
+    expect(isLiveOverallEntry("5-10-5_Agility", null, "L")).toBe(false);
+    expect(isLiveOverallEntry("5-10-5_Agility", 0, "Average")).toBe(false);
+  });
+
+  it("treats null-component rows as overall for other metrics", () => {
+    expect(isLiveOverallEntry("Vertical Jump", null, null)).toBe(true);
+    expect(isLiveOverallEntry("Vertical Jump", null, "x")).toBe(false);
+  });
+});
+
+describe("sessionHasOverallChip", () => {
+  it("adds Overall when 5-10-5 has a primary side", () => {
+    expect(
+      sessionHasOverallChip("5-10-5_Agility", [
+        { interval_index: null, component: "Athlete-Comfort" },
+      ])
+    ).toBe(true);
+  });
+
+  it("does not invent Overall for 40yd named splits", () => {
+    expect(
+      sessionHasOverallChip("40yd_Dash", [
+        { interval_index: 2, component: "0-40yd" },
+      ])
+    ).toBe(false);
   });
 });

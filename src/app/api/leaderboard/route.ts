@@ -122,7 +122,17 @@ export async function GET(request: NextRequest) {
       FROM entries e
       WHERE e.session_id = ${session_id} AND e.metric_key = ${metric}
         AND (
-          (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+          (
+              ${overallOnly}::boolean = true
+              AND e.interval_index IS NULL
+              AND (
+                e.component IS NULL
+                OR (
+                  ${metric}::text = '5-10-5_Agility'
+                  AND e.component IN ('Average', 'Athlete-Comfort')
+                )
+              )
+            )
           OR (
             ${overallOnly}::boolean = false
             AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
@@ -170,7 +180,17 @@ export async function GET(request: NextRequest) {
           INNER JOIN athletes a ON a.id = e.athlete_id
           WHERE e.session_id = ${session_id} AND e.metric_key = ${metric}
             AND (
-              (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+              (
+              ${overallOnly}::boolean = true
+              AND e.interval_index IS NULL
+              AND (
+                e.component IS NULL
+                OR (
+                  ${metric}::text = '5-10-5_Agility'
+                  AND e.component IN ('Average', 'Athlete-Comfort')
+                )
+              )
+            )
               OR (
                 ${overallOnly}::boolean = false
                 AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
@@ -207,7 +227,17 @@ export async function GET(request: NextRequest) {
           INNER JOIN athletes a ON a.id = e.athlete_id
           WHERE e.session_id = ${session_id} AND e.metric_key = ${metric}
             AND (
-              (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+              (
+              ${overallOnly}::boolean = true
+              AND e.interval_index IS NULL
+              AND (
+                e.component IS NULL
+                OR (
+                  ${metric}::text = '5-10-5_Agility'
+                  AND e.component IN ('Average', 'Athlete-Comfort')
+                )
+              )
+            )
               OR (
                 ${overallOnly}::boolean = false
                 AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
@@ -247,7 +277,17 @@ export async function GET(request: NextRequest) {
               WHERE s.session_date < cs.session_date
                 AND e.metric_key = ${metric}
                 AND (
-                  (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                  (
+              ${overallOnly}::boolean = true
+              AND e.interval_index IS NULL
+              AND (
+                e.component IS NULL
+                OR (
+                  ${metric}::text = '5-10-5_Agility'
+                  AND e.component IN ('Average', 'Athlete-Comfort')
+                )
+              )
+            )
                   OR (
                     ${overallOnly}::boolean = false
                     AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
@@ -267,7 +307,17 @@ export async function GET(request: NextRequest) {
               JOIN last_prior_session l ON l.athlete_id = e.athlete_id AND l.prev_session_date = s.session_date
               WHERE e.metric_key = ${metric}
                 AND (
-                  (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                  (
+              ${overallOnly}::boolean = true
+              AND e.interval_index IS NULL
+              AND (
+                e.component IS NULL
+                OR (
+                  ${metric}::text = '5-10-5_Agility'
+                  AND e.component IN ('Average', 'Athlete-Comfort')
+                )
+              )
+            )
                   OR (
                     ${overallOnly}::boolean = false
                     AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
@@ -288,7 +338,17 @@ export async function GET(request: NextRequest) {
               WHERE s.session_date < cs.session_date
                 AND e.metric_key = ${metric}
                 AND (
-                  (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                  (
+              ${overallOnly}::boolean = true
+              AND e.interval_index IS NULL
+              AND (
+                e.component IS NULL
+                OR (
+                  ${metric}::text = '5-10-5_Agility'
+                  AND e.component IN ('Average', 'Athlete-Comfort')
+                )
+              )
+            )
                   OR (
                     ${overallOnly}::boolean = false
                     AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
@@ -308,7 +368,17 @@ export async function GET(request: NextRequest) {
               JOIN last_prior_session l ON l.athlete_id = e.athlete_id AND l.prev_session_date = s.session_date
               WHERE e.metric_key = ${metric}
                 AND (
-                  (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                  (
+              ${overallOnly}::boolean = true
+              AND e.interval_index IS NULL
+              AND (
+                e.component IS NULL
+                OR (
+                  ${metric}::text = '5-10-5_Agility'
+                  AND e.component IN ('Average', 'Athlete-Comfort')
+                )
+              )
+            )
                   OR (
                     ${overallOnly}::boolean = false
                     AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
@@ -340,7 +410,17 @@ export async function GET(request: NextRequest) {
             FROM entries e
             WHERE e.metric_key = ${metric}
               AND (
-                (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                (
+              ${overallOnly}::boolean = true
+              AND e.interval_index IS NULL
+              AND (
+                e.component IS NULL
+                OR (
+                  ${metric}::text = '5-10-5_Agility'
+                  AND e.component IN ('Average', 'Athlete-Comfort')
+                )
+              )
+            )
                 OR (
                   ${overallOnly}::boolean = false
                   AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
@@ -355,7 +435,17 @@ export async function GET(request: NextRequest) {
             FROM entries e
             WHERE e.metric_key = ${metric}
               AND (
-                (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                (
+              ${overallOnly}::boolean = true
+              AND e.interval_index IS NULL
+              AND (
+                e.component IS NULL
+                OR (
+                  ${metric}::text = '5-10-5_Agility'
+                  AND e.component IN ('Average', 'Athlete-Comfort')
+                )
+              )
+            )
                 OR (
                   ${overallOnly}::boolean = false
                   AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
@@ -380,7 +470,17 @@ export async function GET(request: NextRequest) {
             JOIN sessions s ON s.id = e.session_id
             WHERE e.metric_key = ${metric}
               AND (
-                (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                (
+              ${overallOnly}::boolean = true
+              AND e.interval_index IS NULL
+              AND (
+                e.component IS NULL
+                OR (
+                  ${metric}::text = '5-10-5_Agility'
+                  AND e.component IN ('Average', 'Athlete-Comfort')
+                )
+              )
+            )
                 OR (
                   ${overallOnly}::boolean = false
                   AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
@@ -397,7 +497,17 @@ export async function GET(request: NextRequest) {
             JOIN sessions s ON s.id = e.session_id
             WHERE e.metric_key = ${metric}
               AND (
-                (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+                (
+              ${overallOnly}::boolean = true
+              AND e.interval_index IS NULL
+              AND (
+                e.component IS NULL
+                OR (
+                  ${metric}::text = '5-10-5_Agility'
+                  AND e.component IN ('Average', 'Athlete-Comfort')
+                )
+              )
+            )
                 OR (
                   ${overallOnly}::boolean = false
                   AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})

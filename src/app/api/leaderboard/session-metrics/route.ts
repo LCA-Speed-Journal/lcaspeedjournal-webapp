@@ -4,6 +4,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { sessionHasOverallChip } from "@/lib/metric-utils";
 import { getMetricsRegistry } from "@/lib/parser";
 
 export type SessionMetricComponent = {
@@ -81,7 +82,7 @@ export async function GET(request: NextRequest) {
 
       const seen = new Set<string>();
       const components: SessionMetricComponent[] = [];
-      const hasOverall = pairs.some((p) => p.interval_index == null && p.component == null);
+      const hasOverall = sessionHasOverallChip(metric_key, pairs);
       if (hasOverall) {
         components.push({
           interval_index: null,
