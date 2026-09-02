@@ -92,6 +92,9 @@ function inputHint(
     const labels = (metric.defaultSplits as string[])?.join("|") ?? "L|R";
     return `e.g. 450|420 (${labels}, ${metric.inputUnits})`;
   }
+  if (metric.inputStructure === "sided_optional") {
+    return `e.g. 4.52 (Athlete-Comfort) or 4.48|4.56 (L|R, ${metric.inputUnits})`;
+  }
   return "";
 }
 

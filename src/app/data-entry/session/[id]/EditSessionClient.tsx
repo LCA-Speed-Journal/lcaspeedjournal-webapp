@@ -380,6 +380,10 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                 For 40yd, distances are yards: <code className="font-mono">10</code> for a 10yd-only
                 mark, or <code className="font-mono">10,10,20</code> for a full dash.
               </p>
+              <p className="mb-2 text-xs text-foreground-muted">
+                For 20yd, distances are yards: <code className="font-mono">10</code> for a
+                10yd-only mark, or <code className="font-mono">5,5,10</code> for a full 20.
+              </p>
               <div className="space-y-2">
                 {splitConfigMetrics.map((m) => (
                   <div key={m.key} className="flex items-center gap-3">
