@@ -1,4 +1,4 @@
-import { FORTY_YD_COMPONENTS, FORTY_YD_DASH } from "./editor-metrics";
+import { FORTY_YD_COMPONENTS, FORTY_YD_DASH, TWENTY_YD_DASH } from "./editor-metrics";
 
 /** 10 yards in 1.00s → 20.45 mph (coach stick). */
 export const MPH_PER_10YD_PER_SECOND = 20.45;
@@ -32,7 +32,9 @@ export function isFortyYardMphPrimary(
   metricKey: string,
   component: string | null | undefined
 ): boolean {
-  return metricKey === FORTY_YD_DASH && component === "20-40yd";
+  if (metricKey === FORTY_YD_DASH) return component === "20-40yd";
+  if (metricKey === TWENTY_YD_DASH) return component === "10-20yd";
+  return false;
 }
 
 /** Show mph as a secondary readout on 40yd splits (not the full 0-40yd dash). */
@@ -40,9 +42,15 @@ export function showFortyYardMphSecondary(
   metricKey: string,
   component: string | null | undefined
 ): boolean {
-  if (metricKey !== FORTY_YD_DASH) return false;
-  if (component === "0-40yd") return false;
-  return yardsInFortyComponent(component) != null;
+  if (metricKey === FORTY_YD_DASH) {
+    if (component === "0-40yd") return false;
+    return yardsInFortyComponent(component) != null;
+  }
+  if (metricKey === TWENTY_YD_DASH) {
+    if (component === "0-20yd") return false;
+    return yardsInFortyComponent(component) != null;
+  }
+  return false;
 }
 
 export type FortyYardLiveReadout = {

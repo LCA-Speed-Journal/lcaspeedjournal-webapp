@@ -58,3 +58,33 @@ describe("live 20-40yd mph primary", () => {
     expect(fortyYardLiveReadout("40yd_Dash", "0-40yd", 4.9)).toBeNull();
   });
 });
+
+describe("live 10-20yd mph on 20yd_Dash", () => {
+  it("is only the 10-20yd fly on 20yd_Dash", () => {
+    expect(isFortyYardMphPrimary("20yd_Dash", "10-20yd")).toBe(true);
+    expect(isFortyYardMphPrimary("20yd_Dash", "5-10yd")).toBe(false);
+    expect(isFortyYardMphPrimary("20yd_Dash", "0-20yd")).toBe(false);
+    expect(isFortyYardMphPrimary("40yd_Dash", "10-20yd")).toBe(false);
+  });
+
+  it("shows mph on short 20yd splits but not the full dash", () => {
+    expect(showFortyYardMphSecondary("20yd_Dash", "0-5yd")).toBe(true);
+    expect(showFortyYardMphSecondary("20yd_Dash", "5-10yd")).toBe(true);
+    expect(showFortyYardMphSecondary("20yd_Dash", "0-10yd")).toBe(true);
+    expect(showFortyYardMphSecondary("20yd_Dash", "0-20yd")).toBe(false);
+  });
+
+  it("ranks 10-20yd as mph with time underneath", () => {
+    const fly = fortyYardLiveReadout("20yd_Dash", "10-20yd", 1.0);
+    expect(fly?.primaryUnits).toBe("mph");
+    expect(fly?.primaryValue).toBeCloseTo(20.45, 5);
+    expect(fly?.secondaryValue).toBe(1.0);
+    expect(fly?.secondaryUnits).toBe("s");
+
+    const five = fortyYardLiveReadout("20yd_Dash", "0-5yd", 1.05);
+    expect(five?.primaryUnits).toBe("s");
+    expect(five?.secondaryUnits).toBe("mph");
+
+    expect(fortyYardLiveReadout("20yd_Dash", "0-20yd", 3.05)).toBeNull();
+  });
+});

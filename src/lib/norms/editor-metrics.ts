@@ -20,6 +20,8 @@ export const NORMS_DEFAULTS_METRIC_KEYS = [
 
 export const FORTY_YD_DASH = "40yd_Dash";
 
+export const TWENTY_YD_DASH = "20yd_Dash";
+
 export const FORTY_YD_PRIMARY_COMPONENT = "0-40yd";
 
 export const FORTY_YD_COMPONENTS = [
