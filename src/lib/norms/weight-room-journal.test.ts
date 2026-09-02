@@ -39,8 +39,8 @@ describe("parseJournalPostsBody", () => {
     expect(result).toEqual({
       ok: true,
       value: [
-        { movement_id: "m1", metric_key: "Vertical Jump", post: true },
-        { movement_id: "m2", metric_key: "Standing-Broad", post: false },
+        { movement_id: "m1", metric_key: "Vertical Jump", component: null, post: true },
+        { movement_id: "m2", metric_key: "Standing-Broad", component: null, post: false },
       ],
     });
   });
