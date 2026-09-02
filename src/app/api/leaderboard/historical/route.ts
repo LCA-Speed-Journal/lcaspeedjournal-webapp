@@ -265,6 +265,8 @@ export async function GET(request: NextRequest) {
 
     const sortAsc = (metricDef.display_units ?? "").toLowerCase() === "s";
     const filter = getHistoricalComponentFilter(metric);
+    const restrictToAllowed = filter.allowedComponents != null;
+    const allowed = filter.allowedComponents ?? [];
 
     let result: Awaited<ReturnType<typeof sql>>;
     if (sortAsc) {
@@ -278,9 +280,18 @@ export async function GET(request: NextRequest) {
           AND (${phase === ""} OR s.phase = ${phase})
           AND e.metric_key = ${metric}
           AND (
-            ${filter.primary}::text IS NULL
-            OR e.component = ${filter.primary}
-            OR (${filter.allowNullComponent} AND e.component IS NULL)
+            (
+              ${restrictToAllowed}::boolean = true
+              AND e.component = ANY(${allowed})
+            )
+            OR (
+              ${restrictToAllowed}::boolean = false
+              AND (
+                ${filter.primary}::text IS NULL
+                OR e.component = ${filter.primary}
+                OR (${filter.allowNullComponent} AND e.component IS NULL)
+              )
+            )
           )
       ),
       best AS (
@@ -303,9 +314,18 @@ export async function GET(request: NextRequest) {
           AND (${phase === ""} OR s.phase = ${phase})
           AND e.metric_key = ${metric}
           AND (
-            ${filter.primary}::text IS NULL
-            OR e.component = ${filter.primary}
-            OR (${filter.allowNullComponent} AND e.component IS NULL)
+            (
+              ${restrictToAllowed}::boolean = true
+              AND e.component = ANY(${allowed})
+            )
+            OR (
+              ${restrictToAllowed}::boolean = false
+              AND (
+                ${filter.primary}::text IS NULL
+                OR e.component = ${filter.primary}
+                OR (${filter.allowNullComponent} AND e.component IS NULL)
+              )
+            )
           )
       ),
       best AS (
@@ -335,7 +355,7 @@ export async function GET(request: NextRequest) {
       rows: leaderboardRows,
       populationsPromise,
       metricKey: metric,
-      component: filter.primary,
+      component: filter.allowedComponents ? null : filter.primary,
       lowerIsBetter: sortAsc,
       parsedPopulationId: parsedPopulation.populationId,
     });
