@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import useSWR, { useSWRConfig } from "swr";
-import metricsData from "@/lib/metrics.json";
 import { segmentInputToCumulativeInput } from "@/lib/parser";
 import {
   addOptionVisible,
@@ -12,26 +11,18 @@ import {
   parseNameFromQuery,
   pickerOptionCount,
 } from "@/lib/quick-athlete";
+import { sessionSetupMetricOptions } from "@/lib/metric-utils";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
-type MetricDef = {
-  display_name: string;
-  input_units: string;
-  input_structure: string;
-  default_splits: (number | string)[];
-};
-
-const metrics = metricsData as Record<string, MetricDef>;
 
 function isSplitMetricKey(metricKey: string): boolean {
   return metricKey.endsWith("_Split");
 }
 
 function metricOptions() {
-  return Object.entries(metrics).map(([key, m]) => ({
-    key,
-    label: m.display_name,
+  return sessionSetupMetricOptions().map((m) => ({
+    key: m.key,
+    label: m.label,
     inputStructure: m.input_structure,
     inputUnits: m.input_units,
     defaultSplits: m.default_splits,

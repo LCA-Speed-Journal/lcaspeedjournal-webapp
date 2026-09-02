@@ -5,6 +5,7 @@ import {
   isPrimaryResultComponent,
   isLiveOverallEntry,
   sessionHasOverallChip,
+  sessionSetupMetricOptions,
 } from "./metric-utils";
 
 describe("getPrimaryComponent", () => {
@@ -125,5 +126,13 @@ describe("sessionHasOverallChip", () => {
         { interval_index: 2, component: "0-40yd" },
       ])
     ).toBe(false);
+  });
+});
+
+describe("sessionSetupMetricOptions", () => {
+  it("includes 20yd_Dash and 5-10-5_Agility for day-entry metric lists", () => {
+    const keys = sessionSetupMetricOptions().map((o) => o.key);
+    expect(keys).toContain("20yd_Dash");
+    expect(keys).toContain("5-10-5_Agility");
   });
 });

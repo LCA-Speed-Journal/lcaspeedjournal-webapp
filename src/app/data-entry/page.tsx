@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
-import metricsData from "@/lib/metrics.json";
+import { sessionSetupMetricOptions } from "@/lib/metric-utils";
 import Link from "next/link";
 import { PageBackground } from "@/app/components/PageBackground";
 import { DataEntryLayout } from "./DataEntryLayout";
@@ -20,20 +20,7 @@ const PHASES = [
   "Other",
 ] as const;
 
-/** Metric key, label, and structure for session setup */
-type MetricMeta = {
-  display_name: string;
-  input_structure: string;
-  default_splits: (number | string)[];
-};
-const metricOptions = Object.entries(metricsData as Record<string, MetricMeta>).map(
-  ([key, m]) => ({
-    key,
-    label: m.display_name,
-    input_structure: m.input_structure,
-    default_splits: m.default_splits ?? [],
-  })
-);
+const metricOptions = sessionSetupMetricOptions();
 
 function DataEntryError({ message }: { message: string }) {
   return (

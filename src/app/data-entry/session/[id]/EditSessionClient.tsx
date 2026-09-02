@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
-import metricsData from "@/lib/metrics.json";
-import { formatEntryMetricLabel } from "@/lib/metric-utils";
+import { formatEntryMetricLabel, sessionSetupMetricOptions } from "@/lib/metric-utils";
 import { getMetricsRegistry, segmentInputToCumulativeInput } from "@/lib/parser";
 import { EntryForm } from "../../EntryForm";
 
@@ -18,19 +17,7 @@ const PHASES = [
   "Other",
 ] as const;
 
-type MetricMeta = {
-  display_name: string;
-  input_structure?: string;
-  default_splits?: (number | string)[];
-};
-const metricOptions = Object.entries(metricsData as Record<string, MetricMeta>).map(
-  ([key, m]) => ({
-    key,
-    label: m.display_name,
-    input_structure: m.input_structure ?? "single_interval",
-    default_splits: m.default_splits ?? [],
-  })
-);
+const metricOptions = sessionSetupMetricOptions();
 
 function isSplitMetric(option: { input_structure?: string; key: string }): boolean {
   return option.input_structure === "single_interval" && option.key.endsWith("_Split");

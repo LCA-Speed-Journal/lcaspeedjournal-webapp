@@ -105,3 +105,22 @@ export function formatEntryMetricLabel(
   }
   return row.metric_key;
 }
+
+export type SessionSetupMetricOption = {
+  key: string;
+  label: string;
+  input_structure: string;
+  default_splits: (number | string)[];
+  input_units: string;
+};
+
+/** Full registry as day-entry metric-list options (session setup + entry form). */
+export function sessionSetupMetricOptions(): SessionSetupMetricOption[] {
+  return Object.entries(getMetricsRegistry()).map(([key, m]) => ({
+    key,
+    label: m.display_name || key,
+    input_structure: m.input_structure,
+    default_splits: m.default_splits ?? [],
+    input_units: m.input_units,
+  }));
+}
