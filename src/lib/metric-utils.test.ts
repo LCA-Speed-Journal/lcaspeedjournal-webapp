@@ -84,4 +84,12 @@ describe("isPrimaryResultComponent", () => {
     expect(isPrimaryResultComponent("Vertical Jump", null)).toBe(true);
     expect(isPrimaryResultComponent("Vertical Jump", "")).toBe(true);
   });
+
+  it("keeps ISO paired L/R rows when there is no cumulative primary", () => {
+    expect(isPrimaryResultComponent("ISO-Force_Ham-Curl", "L")).toBe(true);
+    expect(isPrimaryResultComponent("ISO-Force_Ham-Curl", "R")).toBe(true);
+    expect(isPrimaryResultComponent("5-10-5_Agility", "L")).toBe(false);
+    expect(isPrimaryResultComponent("5-10-5_Agility", "Average")).toBe(true);
+    expect(isPrimaryResultComponent("Vertical Jump", null)).toBe(true);
+  });
 });

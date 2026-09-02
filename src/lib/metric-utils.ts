@@ -50,8 +50,9 @@ export function isAgility5105PrimaryComponent(
 
 /**
  * True when the component is the overall/primary result for the metric
- * (5-10-5 Average or Athlete-Comfort, cumulative full-run split, or empty
- * for single-interval metrics).
+ * (5-10-5 Average or Athlete-Comfort, cumulative full-run split, or any
+ * row when there is no cumulative primary — same as the old PR keep-all
+ * rule, so ISO L/R rows are kept).
  */
 export function isPrimaryResultComponent(
   metricKey: string,
@@ -63,7 +64,7 @@ export function isPrimaryResultComponent(
   }
   const primary = getPrimaryComponent(metricKey, registry);
   if (primary == null) {
-    return component == null || component === "";
+    return true;
   }
   return component === primary || component == null || component === "";
 }
