@@ -11,13 +11,17 @@ import {
   gridToCells,
   type CutsGrid,
 } from "@/lib/norms/cuts-grid";
+import { AGILITY_5105 } from "@/lib/metric-utils";
 import {
+  AGILITY_5105_CUT_COMPONENTS,
   cutsEditorMetrics,
   defaultCutsComponent,
   FORTY_YD_COMPONENTS,
   FORTY_YD_DASH,
   metricLabel,
   NORMS_DEFAULTS_METRIC_KEYS,
+  TWENTY_YD_COMPONENTS,
+  TWENTY_YD_DASH,
 } from "@/lib/norms/editor-metrics";
 import { ZONE_LABELS, type ZoneLabel } from "@/lib/norms/palette";
 import {
@@ -158,11 +162,7 @@ export function NormsEditor() {
             metricKey={cutMetric}
             onMetricKey={(key) => {
               setCutMetric(key);
-              setCutComponent((prev) =>
-                key === FORTY_YD_DASH
-                  ? prev || defaultCutsComponent(key)
-                  : ""
-              );
+              setCutComponent(defaultCutsComponent(key));
             }}
             component={cutComponent}
             onComponent={setCutComponent}
@@ -465,7 +465,17 @@ function CutsPane({
   onComponent: (value: string) => void;
   metrics: { key: string; label: string }[];
 }) {
-  const showComponent = metricKey === FORTY_YD_DASH;
+  const forty = metricKey === FORTY_YD_DASH;
+  const twenty = metricKey === TWENTY_YD_DASH;
+  const agility = metricKey === AGILITY_5105;
+  const showComponent = forty || twenty || agility;
+  const componentOptions = forty
+    ? FORTY_YD_COMPONENTS
+    : twenty
+      ? TWENTY_YD_COMPONENTS
+      : agility
+        ? AGILITY_5105_CUT_COMPONENTS
+        : [];
   const sliceKey = `${populationId}|${metricKey}|${showComponent ? component : ""}`;
 
   return (
@@ -518,8 +528,10 @@ function CutsPane({
               value={component}
               onChange={(e) => onComponent(e.target.value)}
             >
-              <option value="">(none)</option>
-              {FORTY_YD_COMPONENTS.map((c) => (
+              <option value="">
+                {agility ? "Overall (Average or Athlete-Comfort)" : "(none)"}
+              </option>
+              {componentOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
