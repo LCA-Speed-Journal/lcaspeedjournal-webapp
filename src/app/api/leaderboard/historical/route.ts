@@ -282,7 +282,7 @@ export async function GET(request: NextRequest) {
           AND (
             (
               ${restrictToAllowed}::boolean = true
-              AND e.component = ANY(${allowed})
+              AND e.component = ANY(${allowed as unknown as string}::text[])
             )
             OR (
               ${restrictToAllowed}::boolean = false
@@ -316,7 +316,7 @@ export async function GET(request: NextRequest) {
           AND (
             (
               ${restrictToAllowed}::boolean = true
-              AND e.component = ANY(${allowed})
+              AND e.component = ANY(${allowed as unknown as string}::text[])
             )
             OR (
               ${restrictToAllowed}::boolean = false

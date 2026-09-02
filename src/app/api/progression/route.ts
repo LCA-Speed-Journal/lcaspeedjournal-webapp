@@ -128,7 +128,7 @@ WHERE s.session_date >= `,
           `::date AND s.session_date <= `,
           `::date AND e.metric_key = `,
           ` AND e.component = ANY(`,
-          `) AND (e.athlete_id = `,
+          `::text[]) AND (e.athlete_id = `,
         ];
         for (let i = 1; i < cappedIds.length; i++) {
           stringParts.push(" OR e.athlete_id = ");
@@ -144,7 +144,7 @@ ORDER BY s.session_date, e.athlete_id`
           from,
           to,
           metric,
-          primaryComponents,
+          primaryComponents as unknown as string,
           ...cappedIds
         );
         rows = (result.rows as ProgressionRow[]) ?? [];
@@ -264,7 +264,7 @@ ORDER BY s.session_date, e.athlete_id`
                 INNER JOIN athletes a ON a.id = e.athlete_id
                 WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
                   AND e.metric_key = ${metric}
-                  AND e.component = ANY(${[...AGILITY_5105_PRIMARY_COMPONENTS]})
+                  AND e.component = ANY(${[...AGILITY_5105_PRIMARY_COMPONENTS] as unknown as string}::text[])
                 GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
                 ORDER BY s.session_date, e.athlete_id
               `;
@@ -277,7 +277,7 @@ ORDER BY s.session_date, e.athlete_id`
                 INNER JOIN athletes a ON a.id = e.athlete_id
                 WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
                   AND e.metric_key = ${metric}
-                  AND e.component = ANY(${[...AGILITY_5105_PRIMARY_COMPONENTS]})
+                  AND e.component = ANY(${[...AGILITY_5105_PRIMARY_COMPONENTS] as unknown as string}::text[])
                 GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
                 ORDER BY s.session_date, e.athlete_id
               `;

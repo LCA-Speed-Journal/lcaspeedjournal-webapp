@@ -265,4 +265,17 @@ describe("GET /api/leaderboard/historical current-stick zones", () => {
       { id: VJ_POP, name: "HS Volleyball VJ" },
     ]);
   });
+
+  it("passes 5-10-5 sides as text[] so Vercel sql accepts the array", async () => {
+    mockSql({ entries: [] });
+    const res = await GET(
+      req("from=2026-01-01&to=2026-12-31&metric=5-10-5_Agility")
+    );
+    expect(res.status).toBe(200);
+    const entryCall = sql.mock.calls.find((call) =>
+      textOf(call[0] as TemplateStringsArray).includes("FROM entries")
+    );
+    expect(entryCall).toBeDefined();
+    expect(textOf(entryCall![0] as TemplateStringsArray)).toContain("::text[]");
+  });
 });
