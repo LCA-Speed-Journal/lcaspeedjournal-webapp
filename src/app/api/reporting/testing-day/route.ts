@@ -121,7 +121,17 @@ export async function GET(request: NextRequest) {
       FROM entries e
       WHERE e.session_id = ${session_id} AND e.metric_key = ${metric}
         AND (
-          (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+          (
+            ${overallOnly}::boolean = true
+            AND e.interval_index IS NULL
+            AND (
+              e.component IS NULL
+              OR (
+                ${metric}::text = '5-10-5_Agility'
+                AND e.component IN ('Average', 'Athlete-Comfort')
+              )
+            )
+          )
           OR (
             ${overallOnly}::boolean = false
             AND e.component = ${component}
@@ -157,7 +167,17 @@ export async function GET(request: NextRequest) {
           INNER JOIN athletes a ON a.id = e.athlete_id
           WHERE e.session_id = ${session_id} AND e.metric_key = ${metric}
             AND (
-              (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+              (
+                ${overallOnly}::boolean = true
+                AND e.interval_index IS NULL
+                AND (
+                  e.component IS NULL
+                  OR (
+                    ${metric}::text = '5-10-5_Agility'
+                    AND e.component IN ('Average', 'Athlete-Comfort')
+                  )
+                )
+              )
               OR (
                 ${overallOnly}::boolean = false
                 AND e.component = ${component}
@@ -176,7 +196,17 @@ export async function GET(request: NextRequest) {
           INNER JOIN athletes a ON a.id = e.athlete_id
           WHERE e.session_id = ${session_id} AND e.metric_key = ${metric}
             AND (
-              (${overallOnly}::boolean = true AND e.interval_index IS NULL AND e.component IS NULL)
+              (
+                ${overallOnly}::boolean = true
+                AND e.interval_index IS NULL
+                AND (
+                  e.component IS NULL
+                  OR (
+                    ${metric}::text = '5-10-5_Agility'
+                    AND e.component IN ('Average', 'Athlete-Comfort')
+                  )
+                )
+              )
               OR (
                 ${overallOnly}::boolean = false
                 AND e.component = ${component}
