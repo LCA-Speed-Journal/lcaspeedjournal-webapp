@@ -7,7 +7,7 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
 import { getMaxVelocityKey, getVelocityMetricKeys, hasVelocityMetrics } from "@/lib/velocity-metrics";
-import { getPrimaryComponent } from "@/lib/metric-utils";
+import { isPrimaryResultComponent } from "@/lib/metric-utils";
 
 export async function GET() {
   try {
@@ -99,8 +99,7 @@ export async function GET() {
 
       for (const r of entries) {
         const def = registry[r.metric_key];
-        const primary = getPrimaryComponent(r.metric_key, registry);
-        if (primary != null && r.component != null && r.component !== primary) {
+        if (!isPrimaryResultComponent(r.metric_key, r.component, registry)) {
           continue;
         }
         const k = athleteMetricKey(r.athlete_id, r.metric_key);

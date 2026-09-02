@@ -4,15 +4,15 @@
  * Time metrics (display_units "s"): MIN. Others: MAX.
  * MaxVelocity: max of all mph-metric entries.
  *
- * For cumulative metrics with multiple components (e.g. 20m_Accel),
- * we restrict aggregation to the primary (full-run) component so the
- * PR reflects the full repetition, not a short segment.
+ * Restrict aggregation to the overall/primary result (cumulative full-run
+ * split, 5-10-5 Average or Athlete-Comfort) so the PR is not a short
+ * segment or a single side.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
 import { getMaxVelocityKey, getVelocityMetricKeys, hasVelocityMetrics } from "@/lib/velocity-metrics";
-import { getPrimaryComponent } from "@/lib/metric-utils";
+import { isPrimaryResultComponent } from "@/lib/metric-utils";
 
 export async function GET(
   _request: NextRequest,
@@ -36,9 +36,7 @@ export async function GET(
       display_value: number;
       units: string;
     }[]) {
-      const primary = getPrimaryComponent(r.metric_key, registry);
-      const keep =
-        primary == null || r.component === primary || r.component == null;
+      const keep = isPrimaryResultComponent(r.metric_key, r.component, registry);
       if (!keep) continue;
 
       const list = byMetric.get(r.metric_key) ?? [];

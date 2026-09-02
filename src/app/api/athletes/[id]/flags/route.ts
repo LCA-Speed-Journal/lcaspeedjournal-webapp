@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import type { AthleteFlag } from "@/types";
-import { getPrimaryComponent } from "@/lib/metric-utils";
+import { isPrimaryResultComponent } from "@/lib/metric-utils";
 
 const NO_DATA_DAYS = 14;
 const DECLINING_SESSIONS = 3;
@@ -95,9 +95,7 @@ export async function GET(
       const def = registry[r.metric_key];
       const units = (def?.display_units ?? "").toLowerCase();
       const useMin = units === "s";
-      const primary = getPrimaryComponent(r.metric_key, registry);
-
-      if (primary != null && r.component != null && r.component !== primary) {
+      if (!isPrimaryResultComponent(r.metric_key, r.component, registry)) {
         continue;
       }
 
