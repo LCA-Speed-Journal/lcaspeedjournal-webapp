@@ -49,6 +49,70 @@ async function jsonFetcher<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+function filenameFromDisposition(
+  header: string | null,
+  fallback: string
+): string {
+  if (!header) return fallback;
+  const quoted = header.match(/filename="([^"]+)"/i);
+  if (quoted?.[1]) return quoted[1];
+  const plain = header.match(/filename=([^;]+)/i);
+  return plain?.[1]?.trim() ?? fallback;
+}
+
+async function errorMessage(res: Response): Promise<string> {
+  const fallback = `Download failed (${res.status})`;
+  try {
+    const json = (await res.json()) as { error?: unknown };
+    if (typeof json.error === "string" && json.error.trim()) {
+      return json.error;
+    }
+  } catch {
+    // not JSON
+  }
+  return fallback;
+}
+
+async function downloadPdfBlob(url: string, fallbackName: string): Promise<void> {
+  const res = await fetch(url, { credentials: "same-origin" });
+  if (!res.ok) {
+    throw new Error(await errorMessage(res));
+  }
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filenameFromDisposition(
+      res.headers.get("Content-Disposition"),
+      fallbackName
+    );
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function downloadAudiencePdf(
+  sessionId: string,
+  populationId: string,
+  audience: "coach" | "athlete",
+  fallbackDate: string
+) {
+  const params = new URLSearchParams({
+    session_id: sessionId,
+    audience,
+  });
+  if (populationId) params.set("population_id", populationId);
+  await downloadPdfBlob(
+    `/api/reporting/testing-day/pdf?${params.toString()}`,
+    `testing-day-${fallbackDate}-${audience}.pdf`
+  );
+}
+
 function fmtMark(value: number, units: string): string {
   const n = Number.isInteger(value) ? String(value) : value.toFixed(2);
   return units ? `${n} ${units}` : n;
@@ -73,6 +137,8 @@ function efficientPlusTotal(groups: TestingDayGroup[]): number {
 export default function TestingDayClient() {
   const [sessionId, setSessionId] = useState("");
   const [populationId, setPopulationId] = useState("");
+  const [downloadError, setDownloadError] = useState("");
+  const [downloadBusy, setDownloadBusy] = useState(false);
   const [, startTransition] = useTransition();
 
   const { data: sessionsData } = useSWR<{ data: SessionItem[] }>(
@@ -108,6 +174,22 @@ export default function TestingDayClient() {
 
   const selectedSession = sessions.find((s) => s.id === sessionId);
 
+  async function onDownloadPdf(audience: "coach" | "athlete") {
+    if (!sessionId || !board) return;
+    setDownloadError("");
+    setDownloadBusy(true);
+    try {
+      const fallbackDate = String(board.session_date).slice(0, 10);
+      await downloadAudiencePdf(sessionId, populationId, audience, fallbackDate);
+    } catch (err) {
+      setDownloadError(
+        err instanceof Error ? err.message : "Network error — try again"
+      );
+    } finally {
+      setDownloadBusy(false);
+    }
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-background px-6 py-8 print:overflow-visible print:bg-white print:px-0 print:py-0 md:px-8 md:py-10">
       <div className="testing-day-chrome print:hidden">
@@ -141,6 +223,22 @@ export default function TestingDayClient() {
                 className="rounded-xl border border-accent/60 bg-accent/15 px-4 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Print
+              </button>
+              <button
+                type="button"
+                onClick={() => void onDownloadPdf("coach")}
+                disabled={!board || downloadBusy}
+                className="rounded-xl border border-accent/60 bg-accent/15 px-4 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Download coach PDF
+              </button>
+              <button
+                type="button"
+                onClick={() => void onDownloadPdf("athlete")}
+                disabled={!board || downloadBusy}
+                className="rounded-xl border border-accent/60 bg-accent/15 px-4 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Download athlete PDF
               </button>
               <Link
                 href="/reporting"
@@ -190,6 +288,12 @@ export default function TestingDayClient() {
           {error && (
             <p className="testing-day-chrome mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 print:hidden">
               {error instanceof Error ? error.message : "Failed to load summary"}
+            </p>
+          )}
+
+          {downloadError && (
+            <p className="testing-day-chrome mb-4 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200 print:hidden">
+              {downloadError}
             </p>
           )}
 
