@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildF2fProfile } from "./profile";
+import { resolveForce } from "./resolve-mark";
 
 const male = { gender: "M" as const };
 
@@ -21,6 +22,8 @@ describe("buildF2fProfile", () => {
     expect(profile.form?.predicted_40).toBeCloseTo(4.9, 2);
     expect(profile.form?.projected).toBe(false);
     expect(profile.eligible_for_labels).toBe(true);
+    expect(profile.flags).toEqual([]);
+    expect(profile.primary).toBe("balanced");
   });
 
   it("does not let a big broad jump average up a mediocre 20yd", () => {
@@ -35,8 +38,32 @@ describe("buildF2fProfile", () => {
     );
     expect(profile.reference_source).toBe("projected");
     const explosion = profile.explosion!.predicted_40;
+    const force = profile.force!.predicted_40;
+    const form = profile.form!.predicted_40;
+    const sprintMedian = (force + form) / 2;
+    const withExplosion = (explosion + force + form) / 3;
+    expect(profile.reference_40).toBeCloseTo(sprintMedian);
+    expect(profile.reference_40).not.toBeCloseTo(withExplosion);
     expect(profile.reference_40).toBeGreaterThan(explosion);
     expect(profile.form?.projected).toBe(true);
+  });
+
+  it("projects reference from a 20yd Force stand-in without averaging explosion", () => {
+    const profile = buildF2fProfile(
+      [
+        { metric_key: "Standing-Broad", component: null, display_value: 10 },
+        { metric_key: "20yd_Dash", component: "0-20yd", display_value: 2.9 },
+      ],
+      male
+    );
+    const standIn = resolveForce({ timeS: 2.9, yards: 20 });
+    expect(profile.force).not.toBeNull();
+    expect(profile.force?.predicted_40).toBeCloseTo(standIn!.predicted_40);
+    expect(profile.reference_source).toBe("projected");
+    expect(profile.reference_40).toBeCloseTo(profile.force!.predicted_40);
+    expect(profile.form?.projected).toBe(true);
+    expect(profile.form?.predicted_40).toBeCloseTo(profile.reference_40!);
+    expect(profile.reference_40).toBeGreaterThan(profile.explosion!.predicted_40);
   });
 
   it("flags qualities 3-4% slower than reference and picks the worst as primary", () => {
