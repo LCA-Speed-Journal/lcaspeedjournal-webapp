@@ -79,18 +79,28 @@ export type TestingDaySummaryData = {
   groups: TestingDayGroup[];
 };
 
+export type TestingDayColumnKind =
+  | "test"
+  | "derived_20yd"
+  | "derived_max_v"
+  | "total";
+
 export type TestingDayMatrixColumn = {
   key: string;
   metric_key: string;
   display_name: string;
   component: string | null;
   units: string;
+  kind?: TestingDayColumnKind;
 };
 
 export type TestingDayMatrixCell = {
   display_value: number;
   zone_label?: string;
   zone_color?: string;
+  rank?: number | null;
+  tied?: boolean;
+  points?: number;
 };
 
 export type TestingDayMatrixAthlete = {
@@ -100,6 +110,8 @@ export type TestingDayMatrixAthlete = {
   gender: "M" | "F" | null;
   sport: string | null;
   cells: Record<string, TestingDayMatrixCell>;
+  sprint_points?: number;
+  total_points?: number;
 };
 
 export type TestingDayMatrix = {

@@ -1,4 +1,13 @@
+import {
+  FORTY_YD_DASH,
+  FORTY_YD_PRIMARY_COMPONENT,
+  TWENTY_YD_DASH,
+} from "./editor-metrics";
+import type { TestingDayMatrix, TestingDayMatrixColumn } from "./testing-day";
+
 export const PLACE_POINTS = [10, 8, 7, 6, 4, 3, 2, 1] as const;
+
+export const TOTAL_COLUMN_KEY = "total";
 
 export type GenderPool = "M" | "F" | "U";
 
@@ -135,4 +144,92 @@ export function compareScoredAthletes(
     a.first_name.localeCompare(b.first_name) ||
     a.athlete_id.localeCompare(b.athlete_id)
   );
+}
+
+export function scoreTestingDayMatrix(matrix: TestingDayMatrix): TestingDayMatrix {
+  const scoringColumns = matrix.columns
+    .filter((c) => (c.kind ?? "test") !== "total")
+    .map((c) => ({ ...c, kind: c.kind ?? "test" }));
+  const athletes = matrix.athletes.map((athlete) => ({
+    ...athlete,
+    cells: { ...athlete.cells },
+  }));
+
+  for (const column of scoringColumns) {
+    const marks = athletes
+      .filter((athlete) => athlete.cells[column.key])
+      .map((athlete) => ({
+        athlete_id: athlete.athlete_id,
+        gender: athlete.gender,
+        display_value: athlete.cells[column.key]!.display_value,
+      }));
+    const lowerIsBetter = (column.units ?? "").toLowerCase() === "s";
+    const ranked = rankMarksWithinGender(marks, lowerIsBetter);
+    const byId = new Map(ranked.map((row) => [row.athlete_id, row]));
+    for (const athlete of athletes) {
+      const cell = athlete.cells[column.key];
+      const row = byId.get(athlete.athlete_id);
+      if (!cell || !row) continue;
+      athlete.cells[column.key] = {
+        ...cell,
+        rank: row.rank,
+        tied: row.tied,
+        points: row.points,
+      };
+    }
+  }
+
+  const fortyKey = scoringColumns.find(
+    (c) =>
+      c.metric_key === FORTY_YD_DASH && c.component === FORTY_YD_PRIMARY_COMPONENT
+  )?.key;
+  const twentyKey = scoringColumns.find((c) => c.metric_key === TWENTY_YD_DASH)
+    ?.key;
+
+  for (const athlete of athletes) {
+    const pointsByMetric: Record<string, number> = {};
+    for (const column of scoringColumns) {
+      const points = athlete.cells[column.key]?.points;
+      if (points == null) continue;
+      pointsByMetric[column.metric_key] = points;
+    }
+    const totals = scoreAthleteTotals(pointsByMetric);
+    athlete.sprint_points = totals.sprint_points;
+    athlete.total_points = totals.total_points;
+    athlete.cells[TOTAL_COLUMN_KEY] = { display_value: totals.total_points };
+  }
+
+  athletes.sort((a, b) =>
+    compareScoredAthletes(
+      {
+        athlete_id: a.athlete_id,
+        first_name: a.first_name,
+        last_name: a.last_name,
+        total_points: a.total_points ?? 0,
+        rank_40: fortyKey ? (a.cells[fortyKey]?.rank ?? null) : null,
+        rank_20: twentyKey ? (a.cells[twentyKey]?.rank ?? null) : null,
+      },
+      {
+        athlete_id: b.athlete_id,
+        first_name: b.first_name,
+        last_name: b.last_name,
+        total_points: b.total_points ?? 0,
+        rank_40: fortyKey ? (b.cells[fortyKey]?.rank ?? null) : null,
+        rank_20: twentyKey ? (b.cells[twentyKey]?.rank ?? null) : null,
+      },
+      Boolean(fortyKey),
+      Boolean(twentyKey)
+    )
+  );
+
+  const totalColumn: TestingDayMatrixColumn = {
+    key: TOTAL_COLUMN_KEY,
+    metric_key: TOTAL_COLUMN_KEY,
+    display_name: "Total",
+    component: null,
+    units: "pts",
+    kind: "total",
+  };
+
+  return { columns: [...scoringColumns, totalColumn], athletes };
 }

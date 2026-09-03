@@ -6,7 +6,10 @@ import {
   pointsForPlace,
   rankMarksWithinGender,
   scoreAthleteTotals,
+  scoreTestingDayMatrix,
+  TOTAL_COLUMN_KEY,
 } from "./testing-day-rank";
+import { testingDayColumnKey, type TestingDayMatrix } from "./testing-day";
 
 describe("pointsForPlace", () => {
   it("maps 1–8 to 10-8-7-6-4-3-2-1 and 9+ to 0", () => {
@@ -101,5 +104,62 @@ describe("compareScoredAthletes", () => {
     expect(compareScoredAthletes(a, b, true, true)).toBeGreaterThan(0);
     expect(isSprintFamilyMetric("40yd_Dash")).toBe(true);
     expect(isSprintFamilyMetric("Vertical Jump")).toBe(false);
+  });
+});
+
+describe("scoreTestingDayMatrix", () => {
+  it("writes per-cell ranks and sorts by total then 40yd rank", () => {
+    const forty = testingDayColumnKey("40yd_Dash", "0-40yd");
+    const vj = testingDayColumnKey("Vertical Jump", null);
+    const matrix: TestingDayMatrix = {
+      columns: [
+        {
+          key: forty,
+          metric_key: "40yd_Dash",
+          display_name: "40yd Dash",
+          component: "0-40yd",
+          units: "s",
+        },
+        {
+          key: vj,
+          metric_key: "Vertical Jump",
+          display_name: "Vertical Jump",
+          component: null,
+          units: "in",
+        },
+      ],
+      athletes: [
+        {
+          athlete_id: "slow",
+          first_name: "Sam",
+          last_name: "Slow",
+          gender: "M",
+          sport: "football",
+          cells: {
+            [forty]: { display_value: 5.2 },
+            [vj]: { display_value: 30 },
+          },
+        },
+        {
+          athlete_id: "fast",
+          first_name: "Fay",
+          last_name: "Fast",
+          gender: "M",
+          sport: "football",
+          cells: {
+            [forty]: { display_value: 4.6 },
+            [vj]: { display_value: 28 },
+          },
+        },
+      ],
+    };
+
+    const scored = scoreTestingDayMatrix(matrix);
+    expect(scored.athletes.map((a) => a.athlete_id)).toEqual(["fast", "slow"]);
+    expect(scored.athletes[0].cells[forty]?.rank).toBe(1);
+    expect(scored.athletes[0].cells[forty]?.points).toBe(10);
+    expect(scored.athletes[0].total_points).toBe(18);
+    expect(scored.columns.at(-1)?.key).toBe(TOTAL_COLUMN_KEY);
+    expect(scored.athletes[0].cells[TOTAL_COLUMN_KEY]?.display_value).toBe(18);
   });
 });
