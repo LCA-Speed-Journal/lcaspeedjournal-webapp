@@ -167,6 +167,20 @@ describe("parseThresholdSliceReplace", () => {
     });
     expect(result.ok).toBe(false);
   });
+
+  it("accepts synthetic MaxVelocity with an empty component", () => {
+    const result = parseThresholdSliceReplace({
+      population_id: "11111111-1111-4111-8111-111111111111",
+      metric_key: "MaxVelocity",
+      component: "",
+      cells: [],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.metric_key).toBe("MaxVelocity");
+      expect(result.value.component).toBeNull();
+    }
+  });
 });
 
 describe("assertCanArchivePopulation", () => {
@@ -272,5 +286,14 @@ describe("parseSportDefaultPut", () => {
       population_id: null,
     });
     expect(result.ok).toBe(false);
+  });
+
+  it("accepts synthetic MaxVelocity as a known norms metric", () => {
+    const result = parseSportDefaultPut({
+      hugo_group: "football",
+      metric_key: "MaxVelocity",
+      population_id: "22222222-2222-4222-8222-222222222222",
+    });
+    expect(result.ok).toBe(true);
   });
 });

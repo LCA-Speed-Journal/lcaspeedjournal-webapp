@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
+  cutsEditorMetrics,
   defaultCutsComponent,
+  metricLabel,
   NORMS_DEFAULTS_METRIC_KEYS,
   TWENTY_YD_COMPONENTS,
   AGILITY_5105_CUT_COMPONENTS,
@@ -13,6 +15,7 @@ describe("NORMS_DEFAULTS_METRIC_KEYS", () => {
       "Standing-Broad",
       "40yd_Dash",
       "20yd_Dash",
+      "MaxVelocity",
       "5-10-5_Agility",
       "OH-MB_Throw",
       "UH-MB_Throw",
@@ -37,6 +40,12 @@ describe("defaultCutsComponent", () => {
     expect(defaultCutsComponent("Vertical Jump")).toBe("");
     expect(defaultCutsComponent("Standing-Broad")).toBe("");
     expect(defaultCutsComponent("OH-MB_Throw")).toBe("");
+  });
+
+  it("labels MaxVelocity and keeps its cuts component empty", () => {
+    expect(metricLabel("MaxVelocity")).toBe("Max Velocity");
+    expect(defaultCutsComponent("MaxVelocity")).toBe("");
+    expect(cutsEditorMetrics().some((m) => m.key === "MaxVelocity")).toBe(true);
   });
 });
 

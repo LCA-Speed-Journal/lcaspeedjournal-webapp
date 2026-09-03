@@ -1,4 +1,5 @@
 import metricsData from "@/lib/metrics.json";
+import { getMaxVelocityKey } from "@/lib/velocity-metrics";
 
 type MetricDefLite = {
   display_name?: string;
@@ -15,6 +16,7 @@ export const NORMS_DEFAULTS_METRIC_KEYS = [
   "Standing-Broad",
   "40yd_Dash",
   "20yd_Dash",
+  "MaxVelocity",
   "5-10-5_Agility",
   "OH-MB_Throw",
   "UH-MB_Throw",
@@ -49,6 +51,7 @@ export const TWENTY_YD_COMPONENTS = [
 export const AGILITY_5105_CUT_COMPONENTS = ["L", "R"] as const;
 
 export function metricLabel(key: string): string {
+  if (key === getMaxVelocityKey()) return "Max Velocity";
   return metrics[key]?.display_name || key;
 }
 
@@ -56,6 +59,7 @@ export function metricLabel(key: string): string {
 export function defaultCutsComponent(metric: string): string {
   if (metric === FORTY_YD_DASH) return FORTY_YD_PRIMARY_COMPONENT;
   if (metric === TWENTY_YD_DASH) return TWENTY_YD_PRIMARY_COMPONENT;
+  if (metric === getMaxVelocityKey()) return "";
   return "";
 }
 
@@ -64,7 +68,7 @@ export function cutsEditorMetrics(): { key: string; label: string }[] {
   const out: { key: string; label: string }[] = [];
 
   for (const key of NORMS_DEFAULTS_METRIC_KEYS) {
-    if (!(key in metrics)) continue;
+    if (!(key in metrics) && key !== getMaxVelocityKey()) continue;
     seen.add(key);
     out.push({ key, label: metricLabel(key) });
   }

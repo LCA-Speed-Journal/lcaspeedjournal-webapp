@@ -1,4 +1,5 @@
 import { getMetricsRegistry } from "@/lib/parser";
+import { getMaxVelocityKey } from "@/lib/velocity-metrics";
 import { isHugoGroup, type HugoGroup } from "@/lib/weight-room/constants";
 import { isZoneLabel, type ZoneLabel } from "./palette";
 
@@ -44,7 +45,10 @@ function isUuidString(value: unknown): value is string {
 }
 
 export function isKnownMetricKey(value: unknown): value is string {
-  return typeof value === "string" && value in getMetricsRegistry();
+  return (
+    typeof value === "string" &&
+    (value in getMetricsRegistry() || value === getMaxVelocityKey())
+  );
 }
 
 export function normalizeComponent(value: unknown): string | null {
