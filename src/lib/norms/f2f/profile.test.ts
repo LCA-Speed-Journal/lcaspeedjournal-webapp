@@ -1,0 +1,78 @@
+import { describe, expect, it } from "vitest";
+import { buildF2fProfile } from "./profile";
+
+const male = { gender: "M" as const };
+
+describe("buildF2fProfile", () => {
+  it("uses actual 0-40yd as the reference when present", () => {
+    const profile = buildF2fProfile(
+      [
+        { metric_key: "Standing-Broad", component: null, display_value: 9 },
+        { metric_key: "40yd_Dash", component: "5-10yd", display_value: 0.625 },
+        { metric_key: "40yd_Dash", component: "20-40yd", display_value: 2.045 },
+        { metric_key: "40yd_Dash", component: "0-40yd", display_value: 5.0 },
+      ],
+      male
+    );
+    expect(profile.reference_40).toBe(5);
+    expect(profile.reference_source).toBe("actual_40");
+    expect(profile.explosion?.predicted_40).toBeCloseTo(4.64, 2);
+    expect(profile.force?.predicted_40).toBeCloseTo(4.93, 2);
+    expect(profile.form?.predicted_40).toBeCloseTo(4.9, 2);
+    expect(profile.form?.projected).toBe(false);
+    expect(profile.eligible_for_labels).toBe(true);
+  });
+
+  it("does not let a big broad jump average up a mediocre 20yd", () => {
+    const profile = buildF2fProfile(
+      [
+        { metric_key: "Standing-Broad", component: null, display_value: 10 },
+        { metric_key: "20yd_Dash", component: "0-20yd", display_value: 2.9 },
+        { metric_key: "20yd_Dash", component: "5-10yd", display_value: 0.85 },
+        { metric_key: "20yd_Dash", component: "10-20yd", display_value: 1.3 },
+      ],
+      male
+    );
+    expect(profile.reference_source).toBe("projected");
+    const explosion = profile.explosion!.predicted_40;
+    expect(profile.reference_40).toBeGreaterThan(explosion);
+    expect(profile.form?.projected).toBe(true);
+  });
+
+  it("flags qualities 3-4% slower than reference and picks the worst as primary", () => {
+    const profile = buildF2fProfile(
+      [
+        { metric_key: "Standing-Broad", component: null, display_value: 8 },
+        { metric_key: "40yd_Dash", component: "5-10yd", display_value: 1.39 },
+        { metric_key: "40yd_Dash", component: "20-40yd", display_value: 2.045 },
+        { metric_key: "40yd_Dash", component: "0-40yd", display_value: 4.7 },
+      ],
+      male
+    );
+    expect(profile.flags).toContain("force");
+    expect(profile.primary).toBe("force");
+  });
+
+  it("returns vertices without labels for girls", () => {
+    const profile = buildF2fProfile(
+      [
+        { metric_key: "Standing-Broad", component: null, display_value: 8 },
+        { metric_key: "40yd_Dash", component: "0-40yd", display_value: 5.2 },
+      ],
+      { gender: "F" }
+    );
+    expect(profile.explosion).not.toBeNull();
+    expect(profile.eligible_for_labels).toBe(false);
+    expect(profile.primary).toBeNull();
+    expect(profile.flags).toEqual([]);
+  });
+
+  it("leaves primary null when fewer than two qualities exist", () => {
+    const profile = buildF2fProfile(
+      [{ metric_key: "Standing-Broad", component: null, display_value: 9 }],
+      male
+    );
+    expect(profile.explosion).not.toBeNull();
+    expect(profile.primary).toBeNull();
+  });
+});
