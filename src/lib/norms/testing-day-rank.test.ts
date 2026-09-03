@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   compareScoredAthletes,
+  fmtPoints,
   formatPlace,
   isSprintFamilyMetric,
   pointsForPlace,
@@ -58,6 +59,14 @@ describe("formatPlace", () => {
     expect(formatPlace(2, true)).toBe("T-2nd");
     expect(formatPlace(3, false)).toBe("3rd");
     expect(formatPlace(11, false)).toBe("11th");
+  });
+});
+
+describe("fmtPoints", () => {
+  it("keeps integers whole and shows one decimal otherwise", () => {
+    expect(fmtPoints(18)).toBe("18");
+    expect(fmtPoints(15.3)).toBe("15.3");
+    expect(fmtPoints(8)).toBe("8");
   });
 });
 

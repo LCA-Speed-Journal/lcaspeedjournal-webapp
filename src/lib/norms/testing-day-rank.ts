@@ -87,6 +87,10 @@ export function formatPlace(place: number, tied: boolean): string {
   return `${tied ? "T-" : ""}${place}${suffix}`;
 }
 
+export function fmtPoints(value: number): string {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
 export const SPRINT_FAMILY_METRIC_KEYS = [
   "40yd_Dash",
   "20yd_Dash",

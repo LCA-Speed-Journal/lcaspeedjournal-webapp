@@ -14,6 +14,7 @@ import {
   type TestingDayMatrixColumn,
 } from "@/lib/norms/testing-day";
 import { ZONE_COLORS, isZoneLabel, type ZoneLabel } from "@/lib/norms/palette";
+import { formatPlace, fmtPoints } from "@/lib/norms/testing-day-rank";
 import {
   HUGO_GROUP_META,
   isHugoGroup,
@@ -272,23 +273,29 @@ function TestingDayMatrixTable({
             >
               Athlete
             </th>
-            {columns.map((column) => (
-              <th
-                key={column.key}
-                scope="col"
-                className="min-w-[8.5rem] px-3 py-2 text-left font-semibold text-foreground"
-              >
-                <div>{column.display_name}</div>
-                {column.component ? (
-                  <div className="text-xs font-normal text-foreground-muted">
-                    {column.component}
-                  </div>
-                ) : null}
-                <div className="text-xs font-normal tabular-nums text-foreground-muted">
-                  Efficient+ {plusByColumn.get(column.key) ?? 0}
-                </div>
-              </th>
-            ))}
+            {columns.map((column) => {
+              const isTotal =
+                column.kind === "total" || column.key === "total";
+              return (
+                <th
+                  key={column.key}
+                  scope="col"
+                  className="min-w-[8.5rem] px-3 py-2 text-left font-semibold text-foreground"
+                >
+                  <div>{column.display_name}</div>
+                  {!isTotal && column.component ? (
+                    <div className="text-xs font-normal text-foreground-muted">
+                      {column.component}
+                    </div>
+                  ) : null}
+                  {!isTotal ? (
+                    <div className="text-xs font-normal tabular-nums text-foreground-muted">
+                      Efficient+ {plusByColumn.get(column.key) ?? 0}
+                    </div>
+                  ) : null}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -310,7 +317,15 @@ function TestingDayMatrixTable({
               </th>
               {columns.map((column) => (
                 <td key={column.key} className="px-3 py-2 align-top">
-                  <MatrixCell cell={athlete.cells[column.key]} units={column.units} />
+                  <MatrixCell
+                    cell={athlete.cells[column.key]}
+                    units={column.units}
+                    kind={
+                      column.kind === "total" || column.key === "total"
+                        ? "total"
+                        : column.kind
+                    }
+                  />
                 </td>
               ))}
             </tr>
@@ -324,12 +339,21 @@ function TestingDayMatrixTable({
 function MatrixCell({
   cell,
   units,
+  kind,
 }: {
   cell: TestingDayMatrixCell | undefined;
   units: string;
+  kind?: string;
 }) {
   if (!cell) {
     return <span className="text-foreground-muted">—</span>;
+  }
+  if (kind === "total") {
+    return (
+      <span className="font-mono font-semibold tabular-nums text-foreground">
+        {fmtPoints(cell.display_value)}
+      </span>
+    );
   }
   const label = cell.zone_label;
   const showBadge = Boolean(label && isZoneLabel(label));
@@ -342,6 +366,11 @@ function MatrixCell({
       <span className="font-mono tabular-nums text-foreground">
         {fmtMark(cell.display_value, units)}
       </span>
+      {cell.rank != null ? (
+        <span className="text-xs tabular-nums text-foreground-muted">
+          {formatPlace(cell.rank, Boolean(cell.tied))}
+        </span>
+      ) : null}
       {showBadge && color ? <ZoneMark label={label!} color={color} /> : null}
     </div>
   );
