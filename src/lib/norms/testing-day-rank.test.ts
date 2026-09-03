@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
+  compareScoredAthletes,
   formatPlace,
+  isSprintFamilyMetric,
   pointsForPlace,
   rankMarksWithinGender,
+  scoreAthleteTotals,
 } from "./testing-day-rank";
 
 describe("pointsForPlace", () => {
@@ -52,5 +55,51 @@ describe("formatPlace", () => {
     expect(formatPlace(2, true)).toBe("T-2nd");
     expect(formatPlace(3, false)).toBe("3rd");
     expect(formatPlace(11, false)).toBe("11th");
+  });
+});
+
+describe("scoreAthleteTotals", () => {
+  it("averages sprint-family points and adds other tests", () => {
+    const totals = scoreAthleteTotals({
+      "40yd_Dash": 10,
+      "20yd_Dash": 8,
+      MaxVelocity: 6,
+      "Vertical Jump": 7,
+    });
+    expect(totals.sprint_points).toBeCloseTo(8);
+    expect(totals.total_points).toBeCloseTo(15);
+  });
+
+  it("omits missing sprint factors instead of treating them as 0", () => {
+    const totals = scoreAthleteTotals({
+      "40yd_Dash": 10,
+      "Vertical Jump": 8,
+    });
+    expect(totals.sprint_points).toBe(10);
+    expect(totals.total_points).toBe(18);
+  });
+});
+
+describe("compareScoredAthletes", () => {
+  it("sorts by total, then 40 rank, then 20 rank, then name", () => {
+    const a = {
+      athlete_id: "a",
+      first_name: "Ann",
+      last_name: "Zed",
+      total_points: 18,
+      rank_40: 2,
+      rank_20: 1,
+    };
+    const b = {
+      athlete_id: "b",
+      first_name: "Bea",
+      last_name: "Aye",
+      total_points: 18,
+      rank_40: 1,
+      rank_20: 3,
+    };
+    expect(compareScoredAthletes(a, b, true, true)).toBeGreaterThan(0);
+    expect(isSprintFamilyMetric("40yd_Dash")).toBe(true);
+    expect(isSprintFamilyMetric("Vertical Jump")).toBe(false);
   });
 });

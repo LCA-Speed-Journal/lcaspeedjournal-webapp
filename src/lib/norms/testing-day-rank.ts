@@ -77,3 +77,62 @@ export function formatPlace(place: number, tied: boolean): string {
   else if (j === 3 && k !== 13) suffix = "rd";
   return `${tied ? "T-" : ""}${place}${suffix}`;
 }
+
+export const SPRINT_FAMILY_METRIC_KEYS = [
+  "40yd_Dash",
+  "20yd_Dash",
+  "MaxVelocity",
+] as const;
+
+export function isSprintFamilyMetric(metricKey: string): boolean {
+  return (SPRINT_FAMILY_METRIC_KEYS as readonly string[]).includes(metricKey);
+}
+
+export function scoreAthleteTotals(
+  pointsByMetric: Record<string, number>
+): { sprint_points: number; total_points: number } {
+  const sprint: number[] = [];
+  let other = 0;
+  for (const [key, points] of Object.entries(pointsByMetric)) {
+    if (isSprintFamilyMetric(key)) sprint.push(points);
+    else other += points;
+  }
+  const sprint_points =
+    sprint.length === 0
+      ? 0
+      : sprint.reduce((sum, n) => sum + n, 0) / sprint.length;
+  return { sprint_points, total_points: sprint_points + other };
+}
+
+export type ScoredSortRow = {
+  athlete_id: string;
+  first_name: string;
+  last_name: string;
+  total_points: number;
+  rank_40: number | null;
+  rank_20: number | null;
+};
+
+export function compareScoredAthletes(
+  a: ScoredSortRow,
+  b: ScoredSortRow,
+  has40: boolean,
+  has20: boolean
+): number {
+  if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+  if (has40) {
+    const ar = a.rank_40 ?? Number.POSITIVE_INFINITY;
+    const br = b.rank_40 ?? Number.POSITIVE_INFINITY;
+    if (ar !== br) return ar - br;
+  }
+  if (has20) {
+    const ar = a.rank_20 ?? Number.POSITIVE_INFINITY;
+    const br = b.rank_20 ?? Number.POSITIVE_INFINITY;
+    if (ar !== br) return ar - br;
+  }
+  return (
+    a.last_name.localeCompare(b.last_name) ||
+    a.first_name.localeCompare(b.first_name) ||
+    a.athlete_id.localeCompare(b.athlete_id)
+  );
+}
