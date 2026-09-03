@@ -31,6 +31,13 @@ import {
   type TestingDayBoardData,
   type TestingDayMatrixColumn,
 } from "@/lib/norms/testing-day";
+import { mergeDerivedSprintColumns } from "@/lib/norms/testing-day-derived";
+import { scoreTestingDayMatrix } from "@/lib/norms/testing-day-rank";
+import {
+  TWENTY_YD_DASH,
+  TWENTY_YD_PRIMARY_COMPONENT,
+} from "@/lib/norms/editor-metrics";
+import { getMaxVelocityKey } from "@/lib/velocity-metrics";
 
 function sessionDateString(raw: string | Date): string {
   if (typeof raw === "string") return raw.slice(0, 10);
@@ -388,6 +395,9 @@ async function getTestingDayBoard(request: NextRequest, session_id: string) {
   }
 
   const athleteIds = Array.from(new Set(rawEntries.map((row) => row.athlete_id)));
+  const queryMetricKeys = Array.from(
+    new Set([...metricKeys, TWENTY_YD_DASH, getMaxVelocityKey()])
+  );
   const [memResult, defResult, thrResult] = await Promise.all([
     sql`
       SELECT athlete_id, hugo_group, is_primary
@@ -397,12 +407,12 @@ async function getTestingDayBoard(request: NextRequest, session_id: string) {
     sql`
       SELECT hugo_group, metric_key, population_id
       FROM norm_sport_defaults
-      WHERE metric_key = ANY(${metricKeys as unknown as string}::text[])
+      WHERE metric_key = ANY(${queryMetricKeys as unknown as string}::text[])
     `,
     sql`
       SELECT population_id, metric_key, gender, component, label, threshold
       FROM norm_thresholds
-      WHERE metric_key = ANY(${metricKeys as unknown as string}::text[])
+      WHERE metric_key = ANY(${queryMetricKeys as unknown as string}::text[])
     `,
   ]);
 
@@ -486,12 +496,100 @@ async function getTestingDayBoard(request: NextRequest, session_id: string) {
     });
   }
 
+  const mappedEntries = rawEntries.map((row) => ({
+    athlete_id: row.athlete_id,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    gender: row.gender,
+    metric_key: row.metric_key,
+    component: row.component,
+    display_value: Number(row.display_value),
+  }));
+  const merged = mergeDerivedSprintColumns({
+    columns,
+    hitsByColumn,
+    rawEntries: mappedEntries,
+  });
+  const boardColumns = merged.columns;
+  let boardHits = merged.hitsByColumn;
+
+  const upsertTest = (column: TestingDayMatrixColumn) => {
+    const entry = {
+      column_key: column.key,
+      metric: column.metric_key,
+      metric_display_name: column.display_name,
+      component: column.component,
+      units: column.units,
+      groups: summarizeTestingDay({
+        rows: boardHits[column.key] ?? [],
+        memberships,
+        defaults,
+        metricKey: column.metric_key,
+        overridePopulationId: parsedPopulation.populationId,
+      }),
+    };
+    const idx = tests.findIndex(
+      (t) => t.column_key === column.key || t.metric === column.metric_key
+    );
+    if (idx >= 0) tests[idx] = entry;
+    else tests.push(entry);
+  };
+
+  const twentyCol = boardColumns.find((c) => c.metric_key === TWENTY_YD_DASH);
+  if (twentyCol) {
+    boardHits = {
+      ...boardHits,
+      [twentyCol.key]: applyLeaderboardZones({
+        rows: boardHits[twentyCol.key] ?? [],
+        memberships,
+        defaults,
+        thresholds: mapThresholdRows(
+          thresholdRows.filter((row) => row.metric_key === TWENTY_YD_DASH)
+        ),
+        populations,
+        metricKey: TWENTY_YD_DASH,
+        component: TWENTY_YD_PRIMARY_COMPONENT,
+        lowerIsBetter: true,
+        overridePopulationId: parsedPopulation.populationId,
+      }).rows,
+    };
+    upsertTest(twentyCol);
+  }
+
+  const maxVKey = getMaxVelocityKey();
+  const maxVCol = boardColumns.find((c) => c.metric_key === maxVKey);
+  if (maxVCol) {
+    boardHits = {
+      ...boardHits,
+      [maxVCol.key]: applyLeaderboardZones({
+        rows: boardHits[maxVCol.key] ?? [],
+        memberships,
+        defaults,
+        thresholds: mapThresholdRows(
+          thresholdRows.filter((row) => row.metric_key === maxVKey)
+        ),
+        populations,
+        metricKey: maxVKey,
+        component: null,
+        lowerIsBetter: false,
+        overridePopulationId: parsedPopulation.populationId,
+      }).rows,
+    };
+    upsertTest(maxVCol);
+  }
+
   const data: TestingDayBoardData = {
     session_id,
     session_date: sessionDateString(sessionRow.session_date),
     phase: sessionRow.phase,
     selected_population_id: parsedPopulation.populationId,
-    matrix: buildTestingDayMatrix({ columns, hitsByColumn, memberships }),
+    matrix: scoreTestingDayMatrix(
+      buildTestingDayMatrix({
+        columns: boardColumns,
+        hitsByColumn: boardHits,
+        memberships,
+      })
+    ),
     tests,
   };
 
