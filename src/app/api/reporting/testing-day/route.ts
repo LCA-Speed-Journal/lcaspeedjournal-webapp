@@ -21,23 +21,10 @@ import type {
 import {
   summarizeTestingDay,
   resolveTestingDayComponent,
-  sortTestingDayMetricKeys,
-  entryMatchesTestingDayComponent,
-  pickBestTestingDayHits,
-  testingDayColumnKey,
-  buildTestingDayMatrix,
   type TestingDayHit,
   type TestingDaySummaryData,
-  type TestingDayBoardData,
-  type TestingDayMatrixColumn,
 } from "@/lib/norms/testing-day";
-import { mergeDerivedSprintColumns } from "@/lib/norms/testing-day-derived";
-import { scoreTestingDayMatrix } from "@/lib/norms/testing-day-rank";
-import {
-  TWENTY_YD_DASH,
-  TWENTY_YD_PRIMARY_COMPONENT,
-} from "@/lib/norms/editor-metrics";
-import { getMaxVelocityKey } from "@/lib/velocity-metrics";
+import { buildTestingDayBoard } from "@/lib/norms/testing-day-board";
 
 function sessionDateString(raw: string | Date): string {
   if (typeof raw === "string") return raw.slice(0, 10);
@@ -65,7 +52,26 @@ export async function GET(request: NextRequest) {
     }
 
     if (!metric) {
-      return getTestingDayBoard(request, session_id);
+      const parsedPopulation = parsePopulationIdParam(
+        searchParams.get("population_id")
+      );
+      if (!parsedPopulation.ok) {
+        return NextResponse.json(
+          { error: parsedPopulation.error },
+          { status: 400 }
+        );
+      }
+      const result = await buildTestingDayBoard(
+        session_id,
+        parsedPopulation.populationId
+      );
+      if (!result.ok) {
+        return NextResponse.json(
+          { error: result.error },
+          { status: result.status }
+        );
+      }
+      return NextResponse.json({ data: result.data });
     }
 
     const parsedPopulation = parsePopulationIdParam(searchParams.get("population_id"));
@@ -298,300 +304,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-type BoardEntryRow = {
-  athlete_id: string;
-  first_name: string;
-  last_name: string;
-  gender: string | null;
-  metric_key: string;
-  component: string | null;
-  interval_index: number | null;
-  display_value: string | number;
-  units: string | null;
-};
-
-type ThresholdWithMetric = RawThresholdRow & { metric_key: string };
-
-async function getTestingDayBoard(request: NextRequest, session_id: string) {
-  const { searchParams } = new URL(request.url);
-  const parsedPopulation = parsePopulationIdParam(searchParams.get("population_id"));
-  if (!parsedPopulation.ok) {
-    return NextResponse.json(
-      { error: parsedPopulation.error },
-      { status: 400 }
-    );
-  }
-
-  const registry = getMetricsRegistry();
-
-  const [sessionRows, popResult, entryResult] = await Promise.all([
-    sql`
-      SELECT id, session_date, phase
-      FROM sessions
-      WHERE id = ${session_id}
-      LIMIT 1
-    `,
-    sql`
-      SELECT id, name
-      FROM norm_populations
-      WHERE archived_at IS NULL
-      ORDER BY name ASC
-    `,
-    sql`
-      SELECT
-        e.athlete_id,
-        a.first_name,
-        a.last_name,
-        a.gender,
-        e.metric_key,
-        e.component,
-        e.interval_index,
-        e.display_value,
-        e.units
-      FROM entries e
-      INNER JOIN athletes a ON a.id = e.athlete_id
-      WHERE e.session_id = ${session_id}
-    `,
-  ]);
-
-  if (!sessionRows.rows.length) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
-  }
-
-  const sessionRow = sessionRows.rows[0] as {
-    id: string;
-    session_date: string | Date;
-    phase: string | null;
-  };
-  const populations = popResult.rows as AttachZonesPopulation[];
-  const resolved = resolveSelectedPopulation(
-    parsedPopulation.populationId,
-    populations
-  );
-  if (!resolved.ok) {
-    return NextResponse.json({ error: resolved.error }, { status: 400 });
-  }
-
-  const rawEntries = entryResult.rows as BoardEntryRow[];
-  const metricKeys = sortTestingDayMetricKeys(
-    rawEntries
-      .map((row) => row.metric_key)
-      .filter((key) => Boolean(registry[key]))
-  );
-
-  const empty: TestingDayBoardData = {
-    session_id,
-    session_date: sessionDateString(sessionRow.session_date),
-    phase: sessionRow.phase,
-    selected_population_id: parsedPopulation.populationId,
-    matrix: { columns: [], athletes: [] },
-    tests: [],
-  };
-
-  if (metricKeys.length === 0) {
-    return NextResponse.json({ data: empty });
-  }
-
-  const athleteIds = Array.from(new Set(rawEntries.map((row) => row.athlete_id)));
-  const queryMetricKeys = Array.from(
-    new Set([...metricKeys, TWENTY_YD_DASH, getMaxVelocityKey()])
-  );
-  const [memResult, defResult, thrResult] = await Promise.all([
-    sql`
-      SELECT athlete_id, hugo_group, is_primary
-      FROM athlete_hugo_memberships
-      WHERE athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
-    `,
-    sql`
-      SELECT hugo_group, metric_key, population_id
-      FROM norm_sport_defaults
-      WHERE metric_key = ANY(${queryMetricKeys as unknown as string}::text[])
-    `,
-    sql`
-      SELECT population_id, metric_key, gender, component, label, threshold
-      FROM norm_thresholds
-      WHERE metric_key = ANY(${queryMetricKeys as unknown as string}::text[])
-    `,
-  ]);
-
-  const memberships = (memResult.rows as AttachZonesMembership[]).map((m) => ({
-    athlete_id: m.athlete_id,
-    hugo_group: m.hugo_group,
-    is_primary: Boolean(m.is_primary),
-  }));
-  const defaults = defResult.rows as AttachZonesDefault[];
-  const thresholdRows = thrResult.rows as ThresholdWithMetric[];
-
-  const columns: TestingDayMatrixColumn[] = [];
-  const hitsByColumn: Record<string, TestingDayHit[]> = {};
-  const tests: TestingDayBoardData["tests"] = [];
-
-  for (const metricKey of metricKeys) {
-    const metricDef = registry[metricKey];
-    if (!metricDef) continue;
-    const component = resolveTestingDayComponent(metricKey, null);
-    const matching = rawEntries.filter((row) =>
-      row.metric_key === metricKey &&
-      entryMatchesTestingDayComponent(row, component, metricKey)
-    );
-    if (matching.length === 0) continue;
-
-    let units = metricDef.display_units ?? "";
-    const probed = matching.find(
-      (row) => typeof row.units === "string" && row.units.trim() !== ""
-    )?.units;
-    if (typeof probed === "string" && probed.trim() !== "") {
-      units = probed;
-    }
-    const lowerIsBetter = units.toLowerCase() === "s";
-    const best = pickBestTestingDayHits(
-      matching.map((row) => ({
-        athlete_id: row.athlete_id,
-        first_name: row.first_name,
-        last_name: row.last_name,
-        gender: row.gender,
-        display_value: Number(row.display_value),
-      })),
-      lowerIsBetter
-    );
-
-    const applied = applyLeaderboardZones({
-      rows: best,
-      memberships,
-      defaults,
-      thresholds: mapThresholdRows(
-        thresholdRows.filter((row) => row.metric_key === metricKey)
-      ),
-      populations,
-      metricKey,
-      component,
-      lowerIsBetter,
-      overridePopulationId: parsedPopulation.populationId,
-    });
-
-    const column: TestingDayMatrixColumn = {
-      key: testingDayColumnKey(metricKey, component),
-      metric_key: metricKey,
-      display_name: metricDef.display_name ?? metricKey,
-      component,
-      units,
-    };
-    columns.push(column);
-    hitsByColumn[column.key] = applied.rows;
-    tests.push({
-      column_key: column.key,
-      metric: metricKey,
-      metric_display_name: column.display_name,
-      component,
-      units,
-      groups: summarizeTestingDay({
-        rows: applied.rows,
-        memberships,
-        defaults,
-        metricKey,
-        overridePopulationId: parsedPopulation.populationId,
-      }),
-    });
-  }
-
-  const mappedEntries = rawEntries.map((row) => ({
-    athlete_id: row.athlete_id,
-    first_name: row.first_name,
-    last_name: row.last_name,
-    gender: row.gender,
-    metric_key: row.metric_key,
-    component: row.component,
-    display_value: Number(row.display_value),
-  }));
-  const merged = mergeDerivedSprintColumns({
-    columns,
-    hitsByColumn,
-    rawEntries: mappedEntries,
-  });
-  const boardColumns = merged.columns;
-  let boardHits = merged.hitsByColumn;
-
-  const upsertTest = (column: TestingDayMatrixColumn) => {
-    const entry = {
-      column_key: column.key,
-      metric: column.metric_key,
-      metric_display_name: column.display_name,
-      component: column.component,
-      units: column.units,
-      groups: summarizeTestingDay({
-        rows: boardHits[column.key] ?? [],
-        memberships,
-        defaults,
-        metricKey: column.metric_key,
-        overridePopulationId: parsedPopulation.populationId,
-      }),
-    };
-    const idx = tests.findIndex(
-      (t) => t.column_key === column.key || t.metric === column.metric_key
-    );
-    if (idx >= 0) tests[idx] = entry;
-    else tests.push(entry);
-  };
-
-  const twentyCol = boardColumns.find((c) => c.metric_key === TWENTY_YD_DASH);
-  if (twentyCol) {
-    boardHits = {
-      ...boardHits,
-      [twentyCol.key]: applyLeaderboardZones({
-        rows: boardHits[twentyCol.key] ?? [],
-        memberships,
-        defaults,
-        thresholds: mapThresholdRows(
-          thresholdRows.filter((row) => row.metric_key === TWENTY_YD_DASH)
-        ),
-        populations,
-        metricKey: TWENTY_YD_DASH,
-        component: TWENTY_YD_PRIMARY_COMPONENT,
-        lowerIsBetter: true,
-        overridePopulationId: parsedPopulation.populationId,
-      }).rows,
-    };
-    upsertTest(twentyCol);
-  }
-
-  const maxVKey = getMaxVelocityKey();
-  const maxVCol = boardColumns.find((c) => c.metric_key === maxVKey);
-  if (maxVCol) {
-    boardHits = {
-      ...boardHits,
-      [maxVCol.key]: applyLeaderboardZones({
-        rows: boardHits[maxVCol.key] ?? [],
-        memberships,
-        defaults,
-        thresholds: mapThresholdRows(
-          thresholdRows.filter((row) => row.metric_key === maxVKey)
-        ),
-        populations,
-        metricKey: maxVKey,
-        component: null,
-        lowerIsBetter: false,
-        overridePopulationId: parsedPopulation.populationId,
-      }).rows,
-    };
-    upsertTest(maxVCol);
-  }
-
-  const data: TestingDayBoardData = {
-    session_id,
-    session_date: sessionDateString(sessionRow.session_date),
-    phase: sessionRow.phase,
-    selected_population_id: parsedPopulation.populationId,
-    matrix: scoreTestingDayMatrix(
-      buildTestingDayMatrix({
-        columns: boardColumns,
-        hitsByColumn: boardHits,
-        memberships,
-      })
-    ),
-    tests,
-  };
-
-  return NextResponse.json({ data });
 }
