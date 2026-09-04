@@ -25,6 +25,8 @@ import {
 } from "@/lib/norms/testing-day";
 import { mergeDerivedSprintColumns } from "@/lib/norms/testing-day-derived";
 import { scoreTestingDayMatrix } from "@/lib/norms/testing-day-rank";
+import { attachF2fToAthletes } from "@/lib/norms/f2f/board";
+import type { F2fEntry } from "@/lib/norms/f2f/types";
 import {
   TWENTY_YD_DASH,
   TWENTY_YD_PRIMARY_COMPONENT,
@@ -324,6 +326,24 @@ export async function buildTestingDayBoard(
     ),
     tests,
   };
+
+  try {
+    const entriesByAthlete = new Map<string, F2fEntry[]>();
+    for (const row of rawEntries) {
+      const list = entriesByAthlete.get(row.athlete_id) ?? [];
+      list.push({
+        metric_key: row.metric_key,
+        component: row.component,
+        display_value: Number(row.display_value),
+      });
+      entriesByAthlete.set(row.athlete_id, list);
+    }
+    const attached = attachF2fToAthletes(data.matrix.athletes, entriesByAthlete);
+    data.matrix = { ...data.matrix, athletes: attached.athletes };
+    data.f2f_themes = attached.f2f_themes;
+  } catch {
+    // Omit f2f / f2f_themes; scored board still returns.
+  }
 
   return { ok: true, data };
 }

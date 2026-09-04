@@ -14,6 +14,8 @@ import {
   isPrimaryResultComponent,
 } from "../metric-utils";
 import { isZoneLabel, zoneRank, type ZoneLabel } from "./palette";
+import type { F2fProfile } from "./f2f/types";
+import type { F2fThemes } from "./f2f/themes";
 
 export const FORTY_YARD_COMPONENTS = [
   "0-10yd",
@@ -112,6 +114,7 @@ export type TestingDayMatrixAthlete = {
   cells: Record<string, TestingDayMatrixCell>;
   sprint_points?: number;
   total_points?: number;
+  f2f?: F2fProfile;
 };
 
 export type TestingDayMatrix = {
@@ -133,6 +136,7 @@ export type TestingDayBoardData = {
     units: string;
     groups: TestingDayGroup[];
   }>;
+  f2f_themes?: F2fThemes;
 };
 
 /** Leaderboard-style gender: m/male → M, f/female → F. */
