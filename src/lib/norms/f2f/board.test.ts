@@ -121,4 +121,37 @@ describe("attachF2fToAthletes", () => {
     expect(result.athletes[1].f2f?.eligible_for_labels).toBe(false);
     expect(result.f2f_themes.session.eligible_count).toBe(0);
   });
+
+  it("passes noteOverrides through to f2f_themes", () => {
+    const male = athlete({
+      athlete_id: "m1",
+      first_name: "Max",
+      last_name: "Male",
+      gender: "M",
+    });
+    const entries = entriesByAthlete([[male.athlete_id, BATTERY]]);
+    const noteOverrides = {
+      session: "Session takeaway",
+      "soccer|M": "the gap is Force, not speed",
+    };
+
+    const result = attachF2fToAthletes([male], entries, { noteOverrides });
+
+    const themeAthletes = result.athletes
+      .filter((row) => row.f2f)
+      .map((row) => ({
+        id: row.athlete_id,
+        first_name: row.first_name,
+        last_name: row.last_name,
+        sport: row.sport,
+        gender: row.gender,
+        eligible_for_labels: row.f2f!.eligible_for_labels,
+        primary: row.f2f!.primary,
+        reference_40: row.f2f!.reference_40,
+      }));
+    expect(result.f2f_themes).toEqual(buildF2fThemes(themeAthletes, noteOverrides));
+    expect(result.f2f_themes.session.note).toBe("Session takeaway");
+    expect(result.f2f_themes.groups[0]?.note).toBe("the gap is Force, not speed");
+  });
 });
+

@@ -10,6 +10,7 @@ export type AttachF2fProfileBuilder = (
 
 export type AttachF2fToAthletesOptions = {
   buildProfile?: AttachF2fProfileBuilder;
+  noteOverrides?: Record<string, string>;
 };
 
 export type AttachF2fToAthletesResult = {
@@ -54,6 +55,6 @@ export function attachF2fToAthletes(
 
   return {
     athletes: next,
-    f2f_themes: buildF2fThemes(themeAthletes, {}),
+    f2f_themes: buildF2fThemes(themeAthletes, options.noteOverrides ?? {}),
   };
 }

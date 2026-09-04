@@ -36,7 +36,7 @@ export type F2fThemes = {
   groups: F2fThemeSummary[];
 };
 
-const SESSION_NOTE_KEY = "session";
+export const SESSION_NOTE_KEY = "session";
 
 const PRIMARY_ORDER: F2fThemePrimary[] = [
   "force",
