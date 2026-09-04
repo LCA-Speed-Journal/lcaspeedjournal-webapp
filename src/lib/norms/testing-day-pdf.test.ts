@@ -203,6 +203,17 @@ describe("renderTestingDayPdf", () => {
     expect(buf.subarray(0, 4).toString()).toBe("%PDF");
   });
 
+  it("uses portrait section headers and no footer", async () => {
+    const buf = await renderTestingDayPdf({ board: poorBoard, audience: "coach" });
+    const text = pdfVisibleText(buf).replace(/\u0097/g, "\u2014");
+    const raw = buf.toString("latin1");
+    expect(text).toContain("Testing Day: Girls Volleyball");
+    expect(text).toContain("September 2nd, 2026 — 1 Athlete");
+    expect(text).not.toContain("Testing-day summary");
+    expect(text).not.toContain("LCA Speed Journal — testing-day report");
+    expect(raw).toContain("/MediaBox [0 0 612 792]"); // portrait letter
+  });
+
   it("includes Force-to-Form notes and predicted 40s for coaches", async () => {
     const buf = await renderTestingDayPdf({
       board: poorBoard,
@@ -210,7 +221,6 @@ describe("renderTestingDayPdf", () => {
     });
     const text = pdfVisibleText(buf);
     expect(text).toContain("Force-to-Form");
-    expect(text).toContain("the gap is Force, not speed");
     expect(text).toContain("Volleyball takeaway");
     expect(text).toContain("Ann Aye");
     expect(text).toContain("5.12");
@@ -228,8 +238,6 @@ describe("renderTestingDayPdf", () => {
     });
     const text = pdfVisibleText(buf);
     expect(text).not.toContain("Force-to-Form");
-    expect(text).not.toContain("the gap is Force, not speed");
-    expect(text).not.toContain("Force-deficient");
     expect(text).not.toContain("Volleyball takeaway");
     expect(text).not.toContain("4.90*");
   });

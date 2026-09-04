@@ -21,7 +21,14 @@ import type {
 } from "@/lib/norms/testing-day";
 import type { F2fProfile, F2fVertex } from "@/lib/norms/f2f/types";
 import { f2fChipLabel } from "@/lib/norms/f2f/labels";
-import { themeMixLines } from "@/lib/norms/f2f/themes";
+import { themeGroupKey, themeMixLines } from "@/lib/norms/f2f/themes";
+import {
+  formatPdfDate,
+  groupAthletesBySection,
+  sectionHeading,
+  sectionSubhead,
+  type TestingDayPdfSection,
+} from "@/lib/norms/testing-day-pdf-layout";
 import {
   HUGO_GROUP_META,
   isHugoGroup,
@@ -32,7 +39,7 @@ export type TestingDayPdfAudience = "coach" | "athlete";
 const styles = StyleSheet.create({
   page: {
     paddingTop: 28,
-    paddingBottom: 36,
+    paddingBottom: 28,
     paddingHorizontal: 28,
     fontSize: 8,
     fontFamily: "Helvetica",
@@ -107,14 +114,6 @@ const styles = StyleSheet.create({
   groupLine: {
     marginBottom: 2,
     fontSize: 8,
-  },
-  footer: {
-    position: "absolute",
-    bottom: 16,
-    left: 28,
-    right: 28,
-    fontSize: 8,
-    color: "#666666",
   },
   f2fBlock: {
     marginTop: 10,
@@ -262,29 +261,41 @@ function MatrixCellText({
   );
 }
 
-function CoachSummaries({ board }: { board: TestingDayBoardData }) {
+function CoachSummaries({
+  board,
+  section,
+}: {
+  board: TestingDayBoardData;
+  section: TestingDayPdfSection;
+}) {
   if (board.tests.length === 0) return null;
+  const sectionKey = themeGroupKey(section.sport, section.gender);
   return (
     <View>
-      {board.tests.map((test) => (
-        <View key={test.column_key} style={styles.testBlock} wrap={false}>
-          <Text style={styles.testTitle}>
-            {test.metric_display_name}
-            {test.component ? ` · ${test.component}` : ""}
-          </Text>
-          {test.groups.length === 0 ? (
-            <Text style={styles.groupLine}>No groups</Text>
-          ) : (
-            test.groups.map((group, i) => (
-              <CoachGroupLine
-                key={`${test.column_key}-${group.sport}-${group.gender}-${i}`}
-                group={group}
-                units={test.units}
-              />
-            ))
-          )}
-        </View>
-      ))}
+      {board.tests.map((test) => {
+        const groups = test.groups.filter(
+          (group) => themeGroupKey(group.sport, group.gender) === sectionKey
+        );
+        return (
+          <View key={test.column_key} style={styles.testBlock} wrap={false}>
+            <Text style={styles.testTitle}>
+              {test.metric_display_name}
+              {test.component ? ` · ${test.component}` : ""}
+            </Text>
+            {groups.length === 0 ? (
+              <Text style={styles.groupLine}>No groups</Text>
+            ) : (
+              groups.map((group, i) => (
+                <CoachGroupLine
+                  key={`${test.column_key}-${group.sport}-${group.gender}-${i}`}
+                  group={group}
+                  units={test.units}
+                />
+              ))
+            )}
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -328,17 +339,25 @@ function CoachF2fMixLines({ theme }: { theme: Parameters<typeof themeMixLines>[0
   );
 }
 
-function CoachF2fBlock({ board }: { board: TestingDayBoardData }) {
+function CoachF2fBlock({
+  board,
+  section,
+}: {
+  board: TestingDayBoardData;
+  section: TestingDayPdfSection;
+}) {
   const themes = board.f2f_themes;
   if (!themes) return null;
+  const sectionKey = themeGroupKey(section.sport, section.gender);
+  const groups = themes.groups.filter(
+    (group) => themeGroupKey(group.sport, group.gender) === sectionKey
+  );
 
   return (
     <View style={styles.f2fBlock}>
       <Text style={styles.f2fTitle}>Force-to-Form</Text>
-      <Text style={styles.f2fNote}>Session · {themes.session.note}</Text>
-      <CoachF2fMixLines theme={themes.session} />
-      {themes.groups.map((group) => (
-        <View key={`${group.sport ?? ""}|${group.gender ?? ""}`}>
+      {groups.map((group) => (
+        <View key={themeGroupKey(group.sport, group.gender)}>
           <Text style={styles.f2fNote}>
             {sportLabel(group.sport)} · {genderLabel(group.gender)} · {group.note}
           </Text>
@@ -355,7 +374,7 @@ function CoachF2fBlock({ board }: { board: TestingDayBoardData }) {
           <Text style={styles.f2fNumCol}>Force</Text>
           <Text style={styles.f2fNumCol}>Form</Text>
         </View>
-        {board.matrix.athletes.map((athlete) => (
+        {section.athletes.map((athlete) => (
           <View key={athlete.athlete_id} style={styles.row} wrap={false}>
             <Text style={styles.f2fNameCol}>{athleteDisplayName(athlete)}</Text>
             <Text style={styles.f2fPrimaryCol}>
@@ -381,6 +400,52 @@ function CoachF2fBlock({ board }: { board: TestingDayBoardData }) {
   );
 }
 
+function SectionMatrix({
+  board,
+  section,
+}: {
+  board: TestingDayBoardData;
+  section: TestingDayPdfSection;
+}) {
+  const columns = board.matrix.columns;
+  const colWidth = cellWidth(columns.length);
+  return (
+    <View style={styles.table}>
+      <View style={[styles.row, styles.th]}>
+        <Text style={styles.athleteCol}>Athlete</Text>
+        {columns.map((column) => (
+          <Text key={column.key} style={[styles.cellCol, { width: colWidth }]}>
+            {column.display_name}
+          </Text>
+        ))}
+      </View>
+      {section.athletes.map((athlete) => (
+        <View key={athlete.athlete_id} style={styles.row} wrap={false}>
+          <View style={styles.athleteCol}>
+            <Text style={styles.athleteName}>
+              {athleteDisplayName(athlete)}
+            </Text>
+            <Text style={styles.athleteMeta}>
+              {sportLabel(athlete.sport)} · {genderLabel(athlete.gender)}
+            </Text>
+          </View>
+          {columns.map((column) => (
+            <View
+              key={column.key}
+              style={[styles.cellCol, { width: colWidth }]}
+            >
+              <MatrixCellText
+                cell={athlete.cells[column.key]}
+                column={column}
+              />
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function TestingDayReportDocument({
   board,
   audience,
@@ -388,64 +453,43 @@ export function TestingDayReportDocument({
   board: TestingDayBoardData;
   audience: TestingDayPdfAudience;
 }) {
-  const empty = board.matrix.athletes.length === 0;
-  const columns = board.matrix.columns;
-  const colWidth = cellWidth(columns.length);
-  const audienceLabel = audience === "coach" ? "Coach" : "Athlete";
+  const sections = groupAthletesBySection(board.matrix.athletes);
+
+  if (sections.length === 0) {
+    return (
+      <Document>
+        <Page size="LETTER" style={styles.page} wrap>
+          <Text style={styles.h1}>Testing Day: {formatPdfDate(board.session_date)}</Text>
+          <Text style={styles.empty}>No entries for this session.</Text>
+        </Page>
+      </Document>
+    );
+  }
 
   return (
     <Document>
-      <Page size="LETTER" orientation="landscape" style={styles.page} wrap>
-        <Text style={styles.h1}>Testing-day summary</Text>
-        <Text style={styles.muted}>{board.session_date}</Text>
-        {board.phase ? <Text style={styles.muted}>{board.phase}</Text> : null}
-        <Text style={styles.muted}>{audienceLabel}</Text>
-        {empty ? (
-          <Text style={styles.empty}>No entries for this session.</Text>
-        ) : (
-          <View style={styles.table}>
-            <View style={[styles.row, styles.th]}>
-              <Text style={styles.athleteCol}>Athlete</Text>
-              {columns.map((column) => (
-                <Text
-                  key={column.key}
-                  style={[styles.cellCol, { width: colWidth }]}
-                >
-                  {column.display_name}
-                </Text>
-              ))}
-            </View>
-            {board.matrix.athletes.map((athlete) => (
-              <View key={athlete.athlete_id} style={styles.row} wrap={false}>
-                <View style={styles.athleteCol}>
-                  <Text style={styles.athleteName}>
-                    {athleteDisplayName(athlete)}
-                  </Text>
-                  <Text style={styles.athleteMeta}>
-                    {sportLabel(athlete.sport)} · {genderLabel(athlete.gender)}
-                  </Text>
-                </View>
-                {columns.map((column) => (
-                  <View
-                    key={column.key}
-                    style={[styles.cellCol, { width: colWidth }]}
-                  >
-                    <MatrixCellText
-                      cell={athlete.cells[column.key]}
-                      column={column}
-                    />
-                  </View>
-                ))}
-              </View>
-            ))}
-          </View>
-        )}
-        {audience === "coach" ? <CoachSummaries board={board} /> : null}
-        {audience === "coach" ? <CoachF2fBlock board={board} /> : null}
-        <Text style={styles.footer}>
-          LCA Speed Journal — testing-day report
-        </Text>
-      </Page>
+      {sections.map((section) => (
+        <Page
+          key={themeGroupKey(section.sport, section.gender)}
+          size="LETTER"
+          style={styles.page}
+          wrap
+        >
+          <Text style={styles.h1}>
+            {sectionHeading(section.sport, section.gender)}
+          </Text>
+          <Text style={styles.muted}>
+            {sectionSubhead(board.session_date, section.athletes.length)}
+          </Text>
+          <SectionMatrix board={board} section={section} />
+          {audience === "coach" ? (
+            <CoachSummaries board={board} section={section} />
+          ) : null}
+          {audience === "coach" ? (
+            <CoachF2fBlock board={board} section={section} />
+          ) : null}
+        </Page>
+      ))}
     </Document>
   );
 }
