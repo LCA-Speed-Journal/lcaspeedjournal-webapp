@@ -33,6 +33,13 @@ export function forceMphPoints(): LookupPoint[] {
   return mphPoints(fly515.rows as FlyRow[]);
 }
 
+export function forceTimePoints(): LookupPoint[] {
+  return (fly515.rows as FlyRow[]).map((row) => ({
+    x: row.time_s,
+    y: row.predicted_40,
+  }));
+}
+
 export function formMphPoints(split?: FormSplit): LookupPoint[] {
   if (split) return mphPoints(FORM_TABLES[split].rows);
   const byMph = new Map<number, LookupPoint>();

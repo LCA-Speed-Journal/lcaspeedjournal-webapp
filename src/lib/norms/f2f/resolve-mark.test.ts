@@ -23,6 +23,15 @@ describe("resolveForce", () => {
     const fromMph = resolveForce({ mph: mph! });
     expect(fromTime?.predicted_40).toBeCloseTo(fromMph!.predicted_40, 4);
   });
+
+  it("looks up a 5-15 fly on time_s, not 5-10 mph", () => {
+    const byTime = resolveForce({ timeS: 1.25, yards: 10, lookup: "time" });
+    const byMph = resolveForce({ timeS: 1.25, yards: 10, lookup: "mph" });
+    const byTimeIgnoreYards = resolveForce({ timeS: 1.25, yards: 5, lookup: "time" });
+    expect(byTime?.predicted_40).toBeCloseTo(4.93, 2);
+    expect(byMph?.predicted_40).toBeCloseTo(byTime!.predicted_40, 2);
+    expect(byTimeIgnoreYards?.predicted_40).toBeCloseTo(4.93, 2);
+  });
 });
 
 describe("resolveForm", () => {

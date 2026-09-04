@@ -1,11 +1,12 @@
 import { mphFromYardSplit, yardsInFortyComponent } from "../forty-yd";
 import { interpolatePredicted40, type LookupHit } from "./lookup";
-import { formMphPoints, forceMphPoints, broadPoints, type FormSplit } from "./tables";
+import { formMphPoints, forceMphPoints, forceTimePoints, broadPoints, type FormSplit } from "./tables";
 
 export type ForceMark = {
   timeS?: number;
   yards?: number;
   mph?: number;
+  lookup?: "time" | "mph";
 };
 
 export type FormMark = {
@@ -37,6 +38,10 @@ export function resolveExplosion(feet: number): LookupHit | null {
 }
 
 export function resolveForce(mark: ForceMark): LookupHit | null {
+  if (mark.lookup === "time") {
+    if (mark.timeS == null || !Number.isFinite(mark.timeS)) return null;
+    return interpolatePredicted40(forceTimePoints(), mark.timeS);
+  }
   const mph = markMph(mark);
   if (mph == null) return null;
   return interpolatePredicted40(forceMphPoints(), mph);
