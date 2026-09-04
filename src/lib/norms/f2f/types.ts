@@ -26,6 +26,7 @@ export type F2fVertex = {
   projected: boolean;
   input?: F2fVertexInput;
   session_date?: string;
+  mph?: number;
 };
 
 export type F2fProfile = {

@@ -1,6 +1,8 @@
 import { FORTY_YD_DASH, TWENTY_YD_DASH } from "../editor-metrics";
+import { mphFromYardSplit } from "../forty-yd";
 import { DEFICIENCY_BAND, STANDING_BROAD } from "./constants";
 import { isForceStandIn } from "./force-stand-in";
+import { reconstructFiveFifteen } from "./reconstruct-515";
 import { resolveExplosion, resolveForce, resolveForm } from "./resolve-mark";
 import type {
   F2fAthlete,
@@ -9,11 +11,6 @@ import type {
   F2fQuality,
   F2fVertex,
 } from "./types";
-
-const FORCE_PREFERRED: { component: string; yards: number }[] = [
-  { component: "5-15yd", yards: 10 },
-  { component: "5-10yd", yards: 5 },
-];
 
 const FORM_EXACT: { component: string; yards: number }[] = [
   { component: "20-40yd", yards: 20 },
@@ -52,22 +49,25 @@ function pickBestJump(entries: F2fEntry[]): F2fEntry | null {
 
 function vertexFromHit(
   hit: { predicted_40: number; extrapolated: boolean } | null,
-  projected: boolean
+  projected: boolean,
+  mph?: number | null
 ): F2fVertex | null {
   if (!hit || !Number.isFinite(hit.predicted_40)) return null;
   return {
     predicted_40: hit.predicted_40,
     extrapolated: hit.extrapolated,
     projected,
+    ...(mph != null && Number.isFinite(mph) ? { mph } : {}),
   };
 }
 
 function vertexFromEntry(
   entry: F2fEntry,
   hit: { predicted_40: number; extrapolated: boolean } | null,
-  projected: boolean
+  projected: boolean,
+  mph?: number | null
 ): F2fVertex | null {
-  const vertex = vertexFromHit(hit, projected);
+  const vertex = vertexFromHit(hit, projected, mph);
   if (!vertex) return null;
   return {
     ...vertex,
@@ -88,21 +88,74 @@ function pickExplosion(entries: F2fEntry[]): F2fVertex | null {
   return best ? vertexFromEntry(best, resolveExplosion(best.display_value), false) : null;
 }
 
+function pickSprintSplit(entries: F2fEntry[], component: string): F2fEntry | null {
+  return pickBestTime(
+    finiteEntries(
+      entries,
+      (entry) => isSprintMetric(entry.metric_key) && entry.component === component
+    )
+  );
+}
+
 function pickForce(entries: F2fEntry[]): F2fVertex | null {
-  for (const { component, yards } of FORCE_PREFERRED) {
-    const best = pickBestTime(
-      finiteEntries(
-        entries,
-        (entry) => isSprintMetric(entry.metric_key) && entry.component === component
-      )
+  const timed515 = pickSprintSplit(entries, "5-15yd");
+  if (timed515) {
+    return vertexFromEntry(
+      timed515,
+      resolveForce({
+        timeS: timed515.display_value,
+        yards: 10,
+        lookup: "time",
+      }),
+      false,
+      mphFromYardSplit(timed515.display_value, 10)
     );
-    if (best) {
-      return vertexFromEntry(
-        best,
-        resolveForce({ timeS: best.display_value, yards }),
-        false
+  }
+
+  const fiveTen = pickSprintSplit(entries, "5-10yd");
+  const tenTwenty = pickSprintSplit(entries, "10-20yd");
+  if (fiveTen && tenTwenty) {
+    const reconstructed = reconstructFiveFifteen(
+      fiveTen.display_value,
+      tenTwenty.display_value
+    );
+    if (reconstructed) {
+      const vertex = vertexFromHit(
+        resolveForce({
+          timeS: reconstructed.timeS,
+          yards: 10,
+          lookup: "time",
+        }),
+        true,
+        reconstructed.mph
       );
+      if (vertex) {
+        const sameDate =
+          fiveTen.session_date &&
+          fiveTen.session_date === tenTwenty.session_date
+            ? fiveTen.session_date
+            : undefined;
+        return {
+          ...vertex,
+          input: {
+            metric_key: fiveTen.metric_key,
+            component: "5-15yd",
+            value: reconstructed.timeS,
+            units: "s",
+          },
+          ...(sameDate ? { session_date: sameDate } : {}),
+        };
+      }
     }
+  }
+
+  if (fiveTen) {
+    return vertexFromEntry(
+      fiveTen,
+      resolveForce({ timeS: fiveTen.display_value, yards: 5 }),
+      false,
+      mphFromYardSplit(fiveTen.display_value, 5)
+    );
   }
 
   const standIn = pickBestTime(finiteEntries(entries, isForceStandIn));
@@ -110,7 +163,8 @@ function pickForce(entries: F2fEntry[]): F2fVertex | null {
   return vertexFromEntry(
     standIn,
     resolveForce({ timeS: standIn.display_value, yards: 20 }),
-    false
+    false,
+    mphFromYardSplit(standIn.display_value, 20)
   );
 }
 
