@@ -4,6 +4,7 @@ import {
   Path,
   Svg,
   Text,
+  TextInput,
   View,
   StyleSheet,
   renderToBuffer,
@@ -216,6 +217,12 @@ const styles = StyleSheet.create({
     fontSize: 7,
     color: "#333333",
     marginTop: 1,
+  },
+  notesLabel: {
+    marginTop: 12,
+    marginBottom: 4,
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
   },
 });
 
@@ -523,6 +530,28 @@ function CoachF2fCard({ athlete }: { athlete: TestingDayMatrixAthlete }) {
   );
 }
 
+function SectionNotes({
+  audience,
+  section,
+}: {
+  audience: TestingDayPdfAudience;
+  section: TestingDayPdfSection;
+}) {
+  return (
+    <View>
+      <Text style={styles.notesLabel}>
+        {audience === "coach" ? "Coach notes" : "Team notes"}
+      </Text>
+      <TextInput
+        name={`notes-${audience}-${themeGroupKey(section.sport, section.gender)}`}
+        multiline
+        fontSize={10}
+        style={{ height: 84, borderWidth: 1, borderColor: "#999999", padding: 4 }}
+      />
+    </View>
+  );
+}
+
 function CoachF2fPage({
   board,
   section,
@@ -552,6 +581,7 @@ function CoachF2fPage({
           ))}
         </View>
       ))}
+      <SectionNotes audience="coach" section={section} />
     </View>
   );
 }
@@ -687,7 +717,9 @@ export function TestingDayReportDocument({
             />
             {audience === "coach" ? (
               <CoachSummaries board={board} section={section} />
-            ) : null}
+            ) : (
+              <SectionNotes audience={audience} section={section} />
+            )}
           </Page>,
         ];
         if (audience === "coach") {

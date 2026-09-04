@@ -342,4 +342,16 @@ describe("renderTestingDayPdf", () => {
     expect(text).not.toContain("4.90*");
     expect(text).not.toContain("Explosion");
   });
+
+  it("embeds a fillable notes field", async () => {
+    const coach = await renderTestingDayPdf({ board: poorBoard, audience: "coach" });
+    const athlete = await renderTestingDayPdf({
+      board: poorBoard,
+      audience: "athlete",
+    });
+    expect(coach.toString("latin1")).toContain("/AcroForm");
+    expect(athlete.toString("latin1")).toContain("/AcroForm");
+    expect(pdfVisibleText(coach)).toContain("Coach notes");
+    expect(pdfVisibleText(athlete)).toContain("Team notes");
+  });
 });
