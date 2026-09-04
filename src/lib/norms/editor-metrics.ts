@@ -14,6 +14,7 @@ const metrics = metricsData as Record<string, MetricDefLite>;
 export const NORMS_DEFAULTS_METRIC_KEYS = [
   "Vertical Jump",
   "Standing-Broad",
+  "10-5_RSI",
   "40yd_Dash",
   "20yd_Dash",
   "MaxVelocity",

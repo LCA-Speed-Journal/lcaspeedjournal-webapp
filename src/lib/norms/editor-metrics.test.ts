@@ -9,10 +9,11 @@ import {
 } from "./editor-metrics";
 
 describe("NORMS_DEFAULTS_METRIC_KEYS", () => {
-  it("includes 20yd_Dash and 5-10-5_Agility next to the existing intake tests", () => {
+  it("includes 10-5_RSI with the existing intake tests", () => {
     expect(NORMS_DEFAULTS_METRIC_KEYS).toEqual([
       "Vertical Jump",
       "Standing-Broad",
+      "10-5_RSI",
       "40yd_Dash",
       "20yd_Dash",
       "MaxVelocity",
