@@ -536,9 +536,6 @@ function CoachF2fPage({
   return (
     <View>
       <Text style={styles.f2fTitle}>Force-to-Form</Text>
-      {group?.generated_note ? (
-        <Text style={styles.f2fNote}>{group.generated_note}</Text>
-      ) : null}
       {group?.note ? <Text style={styles.f2fNote}>{group.note}</Text> : null}
       {emptyLabels ? (
         <Text style={styles.f2fNote}>No Force-to-Form labels yet.</Text>
@@ -597,9 +594,7 @@ function SectionMatrix({
         const grade = formatPdfGrade(athlete.graduating_class ?? null, now);
         const paints = athlete.f2f ? f2fStrengthDeficiency(athlete.f2f) : null;
         const badge =
-          audience === "athlete" && athlete.gender === "M"
-            ? f2fFocusBadge(athlete.f2f)
-            : null;
+          audience === "athlete" ? f2fFocusBadge(athlete.f2f) : null;
         return (
           <View key={athlete.athlete_id} style={styles.row} wrap={false}>
             <View style={styles.athleteCol}>

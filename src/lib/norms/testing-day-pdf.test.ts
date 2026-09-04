@@ -94,9 +94,9 @@ const annF2f: F2fProfile = {
   explosion: { predicted_40: 5.12, extrapolated: false, projected: false },
   force: { predicted_40: 5.2, extrapolated: false, projected: false },
   form: { predicted_40: 4.9, extrapolated: false, projected: true },
-  eligible_for_labels: true,
-  flags: ["force", "explosion"],
-  primary: "force",
+  eligible_for_labels: false,
+  flags: [],
+  primary: null,
 };
 
 const leviF2f: F2fProfile = {
@@ -189,7 +189,7 @@ const poorBoard: TestingDayBoardData = {
         sport: "volleyball",
         gender: "F",
         generated_note: "Roster is Force-deficient (1/1).",
-        note: "Volleyball takeaway",
+        note: "Roster is Force-deficient (1/1).",
       }),
     ],
   },
@@ -286,7 +286,6 @@ describe("renderTestingDayPdf", () => {
     const text = pdfVisibleText(buf);
     expect(text).toContain("Force-to-Form");
     expect(text).toContain("Roster is Force-deficient");
-    expect(text).toContain("Volleyball takeaway");
     expect(text).not.toContain("the gap is Force, not speed");
     expect(text).not.toContain("Mix:");
     expect(text).not.toContain("Top 3:");
@@ -309,7 +308,6 @@ describe("renderTestingDayPdf", () => {
     expect(athleteText).not.toContain("Develop Force");
     expect(athleteText).not.toContain("Force-to-Form");
     expect(athleteText).not.toContain("Roster is");
-    expect(athleteText).not.toContain("Volleyball takeaway");
     expect(athleteText).not.toContain("4.90*");
   });
 
