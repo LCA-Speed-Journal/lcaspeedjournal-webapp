@@ -20,11 +20,6 @@ export type F2fPickedMarks = {
   entries: DatedF2fEntry[];
 };
 
-const FORCE_PREFERRED: { component: string }[] = [
-  { component: "5-15yd" },
-  { component: "5-10yd" },
-];
-
 const FORM_EXACT: { component: string; yards: number }[] = [
   { component: "20-40yd", yards: 20 },
   { component: "30-40yd", yards: 10 },
@@ -91,18 +86,37 @@ function pickExplosion(entries: DatedF2fEntry[]): DatedF2fEntry | null {
   );
 }
 
-function pickForce(entries: DatedF2fEntry[]): DatedF2fEntry | null {
-  for (const { component } of FORCE_PREFERRED) {
-    const best = pickBestTime(
-      finiteWhere(
-        entries,
-        (entry) =>
-          isSprintMetric(entry.metric_key) && entry.component === component
-      )
-    );
-    if (best) return best;
-  }
-  return pickBestTime(finiteWhere(entries, isForceStandIn));
+function sprintSplits(
+  entries: DatedF2fEntry[],
+  component: string
+): DatedF2fEntry[] {
+  return finiteWhere(
+    entries,
+    (entry) => isSprintMetric(entry.metric_key) && entry.component === component
+  );
+}
+
+function pickOne(
+  entries: DatedF2fEntry[],
+  mode: "best" | "latest"
+): DatedF2fEntry | null {
+  return mode === "latest" ? pickLatest(entries) : pickBestTime(entries);
+}
+
+function pickForceBundle(
+  entries: DatedF2fEntry[],
+  mode: "best" | "latest"
+): DatedF2fEntry[] {
+  const timed515 = pickOne(sprintSplits(entries, "5-15yd"), mode);
+  if (timed515) return [timed515];
+
+  const fiveTen = pickOne(sprintSplits(entries, "5-10yd"), mode);
+  const tenTwenty = pickOne(sprintSplits(entries, "10-20yd"), mode);
+  if (fiveTen && tenTwenty) return [fiveTen, tenTwenty];
+  if (fiveTen) return [fiveTen];
+
+  const standIn = pickOne(finiteWhere(entries, isForceStandIn), mode);
+  return standIn ? [standIn] : [];
 }
 
 function pickForm(entries: DatedF2fEntry[]): DatedF2fEntry | null {
@@ -304,7 +318,7 @@ export function pickF2fMarks(
   if (options.mode === "best") {
     const picked = compactPicked([
       pickExplosion(windowed),
-      pickForce(windowed),
+      ...pickForceBundle(windowed, "best"),
       pickForm(windowed),
       pickActual40(windowed),
     ]);
@@ -318,7 +332,7 @@ export function pickF2fMarks(
 
   const picked = compactPicked([
     pickLatest(windowed.filter(isExplosionMark)),
-    pickLatest(windowed.filter(isForceMark)),
+    ...pickForceBundle(windowed, "latest"),
     pickLatest(windowed.filter(isFormMark)),
     pickLatest(windowed.filter(isActual40Mark)),
   ]);

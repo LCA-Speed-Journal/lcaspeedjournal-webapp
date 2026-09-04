@@ -154,6 +154,37 @@ describe("pickF2fMarks best", () => {
     });
     expect(picked.composed).toBe(false);
   });
+
+  it("includes 5-10 and 10-20 in best picks when there is no timed 5-15", () => {
+    const fiveTen = dated({
+      metric_key: "40yd_Dash",
+      component: "5-10yd",
+      display_value: 0.7,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const tenTwenty = dated({
+      metric_key: "40yd_Dash",
+      component: "10-20yd",
+      display_value: 1.3,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const twentyForty = dated({
+      metric_key: "40yd_Dash",
+      component: "20-40yd",
+      display_value: 2.0,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const picked = pickF2fMarks([fiveTen, tenTwenty, twentyForty], {
+      mode: "best",
+      ...WINDOW,
+    });
+    expect(picked.entries.some((e) => e.component === "5-10yd")).toBe(true);
+    expect(picked.entries.some((e) => e.component === "10-20yd")).toBe(true);
+    expect(picked.entries.some((e) => e.component === "20-40yd")).toBe(true);
+  });
 });
 
 describe("pickF2fMarks full-test", () => {
@@ -267,5 +298,53 @@ describe("pickF2fMarks latest", () => {
       ...WINDOW,
     });
     expect(picked.composed).toBe(false);
+  });
+
+  it("includes later 5-10 and later 10-20 even when 20-40 is the Form mark", () => {
+    const earlyFiveTen = dated({
+      metric_key: "40yd_Dash",
+      component: "5-10yd",
+      display_value: 0.65,
+      session_id: "jan",
+      session_date: JAN,
+    });
+    const laterFiveTen = dated({
+      metric_key: "40yd_Dash",
+      component: "5-10yd",
+      display_value: 0.7,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const earlyTenTwenty = dated({
+      metric_key: "40yd_Dash",
+      component: "10-20yd",
+      display_value: 1.2,
+      session_id: "jan",
+      session_date: JAN,
+    });
+    const laterTenTwenty = dated({
+      metric_key: "40yd_Dash",
+      component: "10-20yd",
+      display_value: 1.3,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const twentyForty = dated({
+      metric_key: "40yd_Dash",
+      component: "20-40yd",
+      display_value: 2.0,
+      session_id: "may",
+      session_date: MAY,
+    });
+    const picked = pickF2fMarks(
+      [earlyFiveTen, laterFiveTen, earlyTenTwenty, laterTenTwenty, twentyForty],
+      { mode: "latest", ...WINDOW }
+    );
+    const fiveTen = picked.entries.find((e) => e.component === "5-10yd");
+    const tenTwenty = picked.entries.find((e) => e.component === "10-20yd");
+    const form = picked.entries.find((e) => e.component === "20-40yd");
+    expect(fiveTen?.session_date).toBe(APR);
+    expect(tenTwenty?.session_date).toBe(APR);
+    expect(form?.session_date).toBe(MAY);
   });
 });
