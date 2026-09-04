@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { TestingDayMatrixAthlete } from "./testing-day";
 import {
+  athleteSubline,
   formatPdfDate,
   formatPdfGrade,
   groupAthletesBySection,
   sectionHeading,
+  sectionRanks,
   sectionSubhead,
 } from "./testing-day-pdf-layout";
 
@@ -72,5 +74,41 @@ describe("groupAthletesBySection", () => {
       "volleyball|F",
     ]);
     expect(sections[0].athletes.map((a) => a.athlete_id)).toEqual(["b"]);
+  });
+});
+
+describe("sectionRanks", () => {
+  it("re-ranks inside the section and marks sort ties", () => {
+    const athletes = [
+      athlete({
+        athlete_id: "a",
+        first_name: "Ann",
+        last_name: "Aye",
+        total_points: 20,
+      }),
+      athlete({
+        athlete_id: "b",
+        first_name: "Bea",
+        last_name: "Bee",
+        total_points: 20,
+      }),
+      athlete({
+        athlete_id: "c",
+        first_name: "Cal",
+        last_name: "Coe",
+        total_points: 10,
+      }),
+    ];
+    const ranks = sectionRanks(athletes, false, false);
+    expect(ranks.get("a")).toEqual({ rank: 1, tied: true });
+    expect(ranks.get("b")).toEqual({ rank: 1, tied: true });
+    expect(ranks.get("c")).toEqual({ rank: 3, tied: false });
+  });
+});
+
+describe("athleteSubline", () => {
+  it("joins place and grade, omitting a missing grade", () => {
+    expect(athleteSubline({ rank: 1, tied: false }, "12th")).toBe("1st — 12th");
+    expect(athleteSubline({ rank: 2, tied: true }, null)).toBe("T-2nd");
   });
 });
