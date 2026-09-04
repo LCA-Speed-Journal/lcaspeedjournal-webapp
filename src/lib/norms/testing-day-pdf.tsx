@@ -19,6 +19,7 @@ import type {
   TestingDayMatrixCell,
   TestingDayMatrixColumn,
 } from "@/lib/norms/testing-day";
+import type { F2fProfile, F2fQuality, F2fVertex } from "@/lib/norms/f2f/types";
 import {
   HUGO_GROUP_META,
   isHugoGroup,
@@ -113,7 +114,45 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: "#666666",
   },
+  f2fBlock: {
+    marginTop: 10,
+  },
+  f2fTitle: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 3,
+  },
+  f2fNote: {
+    marginBottom: 2,
+    fontSize: 8,
+  },
+  f2fTable: {
+    marginTop: 4,
+  },
+  f2fNameCol: {
+    width: "20%",
+    paddingRight: 2,
+  },
+  f2fPrimaryCol: {
+    width: "12%",
+    paddingHorizontal: 1,
+  },
+  f2fFlagsCol: {
+    width: "16%",
+    paddingHorizontal: 1,
+  },
+  f2fNumCol: {
+    width: "13%",
+    paddingHorizontal: 1,
+  },
 });
+
+const QUALITY_LABEL: Record<F2fQuality | "balanced", string> = {
+  explosion: "Explosion",
+  force: "Force",
+  form: "Form",
+  balanced: "Balanced",
+};
 
 function fmtMark(value: number, units: string): string {
   const n = Number.isInteger(value) ? String(value) : value.toFixed(2);
@@ -126,7 +165,7 @@ function sportLabel(sport: string | null): string {
   return sport;
 }
 
-function genderLabel(gender: "M" | "F" | null): string {
+function genderLabel(gender: string | null): string {
   if (gender === "M") return "M";
   if (gender === "F") return "F";
   return "Unknown";
@@ -146,6 +185,29 @@ function cellWidth(columnCount: number): string {
   return `${80 / columnCount}%`;
 }
 
+function fmtForty(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return value.toFixed(2);
+}
+
+function fmtPredictedForty(vertex: F2fVertex | null | undefined): string {
+  if (!vertex) return "—";
+  const mark = fmtForty(vertex.predicted_40);
+  return vertex.projected ? `${mark}*` : mark;
+}
+
+function f2fPrimaryLabel(profile: F2fProfile | undefined): string {
+  if (!profile?.eligible_for_labels || profile.primary == null) return "—";
+  return QUALITY_LABEL[profile.primary];
+}
+
+function f2fFlagsLabel(profile: F2fProfile | undefined): string {
+  if (!profile?.eligible_for_labels) return "—";
+  const flags = profile.flags.filter((flag) => flag !== profile.primary);
+  if (flags.length === 0) return "—";
+  return flags.map((flag) => QUALITY_LABEL[flag]).join(" · ");
+}
+
 export function boardForAudience(
   board: TestingDayBoardData,
   audience: TestingDayPdfAudience
@@ -154,10 +216,12 @@ export function boardForAudience(
   return {
     ...board,
     tests: [],
+    f2f_themes: undefined,
     matrix: {
       ...board.matrix,
       athletes: board.matrix.athletes.map((athlete) => ({
         ...athlete,
+        f2f: undefined,
         cells: Object.fromEntries(
           Object.entries(athlete.cells).map(([key, cell]) => [
             key,
@@ -258,6 +322,58 @@ function CoachGroupLine({
   );
 }
 
+function CoachF2fBlock({ board }: { board: TestingDayBoardData }) {
+  const themes = board.f2f_themes;
+  if (!themes) return null;
+
+  return (
+    <View style={styles.f2fBlock}>
+      <Text style={styles.f2fTitle}>Force-to-Form</Text>
+      <Text style={styles.f2fNote}>Session · {themes.session.note}</Text>
+      {themes.groups.map((group) => (
+        <Text
+          key={`${group.sport ?? ""}|${group.gender ?? ""}`}
+          style={styles.f2fNote}
+        >
+          {sportLabel(group.sport)} · {genderLabel(group.gender)} · {group.note}
+        </Text>
+      ))}
+      <View style={styles.f2fTable}>
+        <View style={[styles.row, styles.th]}>
+          <Text style={styles.f2fNameCol}>Name</Text>
+          <Text style={styles.f2fPrimaryCol}>Primary</Text>
+          <Text style={styles.f2fFlagsCol}>Flags</Text>
+          <Text style={styles.f2fNumCol}>Ref 40</Text>
+          <Text style={styles.f2fNumCol}>Explosion</Text>
+          <Text style={styles.f2fNumCol}>Force</Text>
+          <Text style={styles.f2fNumCol}>Form</Text>
+        </View>
+        {board.matrix.athletes.map((athlete) => (
+          <View key={athlete.athlete_id} style={styles.row} wrap={false}>
+            <Text style={styles.f2fNameCol}>{athleteDisplayName(athlete)}</Text>
+            <Text style={styles.f2fPrimaryCol}>
+              {f2fPrimaryLabel(athlete.f2f)}
+            </Text>
+            <Text style={styles.f2fFlagsCol}>{f2fFlagsLabel(athlete.f2f)}</Text>
+            <Text style={styles.f2fNumCol}>
+              {fmtForty(athlete.f2f?.reference_40)}
+            </Text>
+            <Text style={styles.f2fNumCol}>
+              {fmtPredictedForty(athlete.f2f?.explosion)}
+            </Text>
+            <Text style={styles.f2fNumCol}>
+              {fmtPredictedForty(athlete.f2f?.force)}
+            </Text>
+            <Text style={styles.f2fNumCol}>
+              {fmtPredictedForty(athlete.f2f?.form)}
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export function TestingDayReportDocument({
   board,
   audience,
@@ -318,6 +434,7 @@ export function TestingDayReportDocument({
           </View>
         )}
         {audience === "coach" ? <CoachSummaries board={board} /> : null}
+        {audience === "coach" ? <CoachF2fBlock board={board} /> : null}
         <Text style={styles.footer}>
           LCA Speed Journal — testing-day report
         </Text>
