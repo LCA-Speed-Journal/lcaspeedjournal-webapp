@@ -164,6 +164,39 @@ const poorBoard: TestingDayBoardData = {
   },
 };
 
+const PDF_NOW = new Date("2026-09-04T12:00:00");
+
+const tableBoard: TestingDayBoardData = {
+  ...poorBoard,
+  tests: [],
+  f2f_themes: undefined,
+  matrix: {
+    columns: poorBoard.matrix.columns,
+    athletes: [
+      poorBoard.matrix.athletes[0],
+      {
+        athlete_id: "b",
+        first_name: "Ben",
+        last_name: "Bee",
+        gender: "M",
+        sport: "soccer",
+        graduating_class: 2027,
+        cells: {
+          "Vertical Jump\0": {
+            display_value: 28,
+            zone_label: "efficient",
+            zone_color: "#ca8a04",
+            rank: 1,
+            tied: false,
+            points: 7,
+          },
+        },
+        total_points: 7,
+      },
+    ],
+  },
+};
+
 describe("boardForAudience", () => {
   it("strips poor badges and summaries for athletes", () => {
     const athlete = boardForAudience(poorBoard, "athlete");
@@ -240,5 +273,37 @@ describe("renderTestingDayPdf", () => {
     expect(text).not.toContain("Force-to-Form");
     expect(text).not.toContain("Volleyball takeaway");
     expect(text).not.toContain("4.90*");
+  });
+
+  it("renders name subline, live zone badges, and coach F2F columns", async () => {
+    const buf = await renderTestingDayPdf({
+      board: tableBoard,
+      audience: "coach",
+      now: PDF_NOW,
+    });
+    const text = pdfVisibleText(buf).replace(/\u0097/g, "\u2014");
+    expect(text).toContain("1st — 12th");
+    expect(text).toContain("efficient");
+    expect(text).not.toMatch(/soccer · M|volleyball · F/i);
+    expect(text).toContain("Explosion");
+    expect(text).toContain("Force");
+    expect(text).toContain("Form");
+    expect(text).toContain("4.90*");
+    expect(text).toContain("5.20");
+    expect(text).toContain("5.12");
+  });
+
+  it("keeps athlete PDFs free of main-table Force-to-Form numbers", async () => {
+    const buf = await renderTestingDayPdf({
+      board: tableBoard,
+      audience: "athlete",
+      now: PDF_NOW,
+    });
+    const text = pdfVisibleText(buf).replace(/\u0097/g, "\u2014");
+    expect(text).toContain("1st — 12th");
+    expect(text).toContain("efficient");
+    expect(text).not.toMatch(/soccer · M|volleyball · F/i);
+    expect(text).not.toContain("4.90*");
+    expect(text).not.toContain("Explosion");
   });
 });

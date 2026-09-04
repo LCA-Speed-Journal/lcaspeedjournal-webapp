@@ -6,7 +6,13 @@ import {
   StyleSheet,
   renderToBuffer,
 } from "@react-pdf/renderer";
+import {
+  FORTY_YD_DASH,
+  FORTY_YD_PRIMARY_COMPONENT,
+  TWENTY_YD_DASH,
+} from "@/lib/norms/editor-metrics";
 import { forPublicLeaderboard } from "@/lib/norms/leaderboard-zones";
+import { isLiveLeaderboardZone } from "@/lib/norms/palette";
 import {
   formatPlace,
   fmtPoints,
@@ -19,20 +25,37 @@ import type {
   TestingDayMatrixCell,
   TestingDayMatrixColumn,
 } from "@/lib/norms/testing-day";
-import type { F2fProfile, F2fVertex } from "@/lib/norms/f2f/types";
+import type { F2fProfile, F2fQuality, F2fVertex } from "@/lib/norms/f2f/types";
 import { f2fChipLabel } from "@/lib/norms/f2f/labels";
 import { themeGroupKey, themeMixLines } from "@/lib/norms/f2f/themes";
 import {
+  athleteSubline,
   formatPdfDate,
+  formatPdfGrade,
   groupAthletesBySection,
   sectionHeading,
+  sectionRanks,
   sectionSubhead,
   type TestingDayPdfSection,
 } from "@/lib/norms/testing-day-pdf-layout";
 import {
+  F2F_DEFICIENCY_BG,
+  F2F_STRENGTH_BG,
+  f2fStrengthDeficiency,
+  type F2fPaint,
+} from "@/lib/norms/testing-day-pdf-f2f";
+import {
   HUGO_GROUP_META,
   isHugoGroup,
 } from "@/lib/weight-room/constants";
+
+const F2F_TABLE_QUALITIES: F2fQuality[] = ["explosion", "force", "form"];
+
+const F2F_TABLE_LABELS: Record<F2fQuality, string> = {
+  explosion: "Explosion",
+  force: "Force",
+  form: "Form",
+};
 
 export type TestingDayPdfAudience = "coach" | "athlete";
 
@@ -102,6 +125,17 @@ const styles = StyleSheet.create({
   athleteMeta: {
     color: "#555555",
     fontSize: 7,
+  },
+  zoneBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 3,
+    paddingVertical: 1,
+    marginTop: 1,
+    borderRadius: 2,
+  },
+  zoneBadgeText: {
+    color: "#ffffff",
+    fontSize: 6,
   },
   testBlock: {
     marginTop: 10,
@@ -179,6 +213,27 @@ function cellWidth(columnCount: number): string {
   return `${80 / columnCount}%`;
 }
 
+function boardSprintFlags(columns: TestingDayMatrixColumn[]): {
+  has40: boolean;
+  has20: boolean;
+} {
+  const scoring = columns.filter((column) => (column.kind ?? "test") !== "total");
+  return {
+    has40: scoring.some(
+      (column) =>
+        column.metric_key === FORTY_YD_DASH &&
+        column.component === FORTY_YD_PRIMARY_COMPONENT
+    ),
+    has20: scoring.some((column) => column.metric_key === TWENTY_YD_DASH),
+  };
+}
+
+function f2fPaintBackground(paint: F2fPaint): string | undefined {
+  if (paint === "strength") return F2F_STRENGTH_BG;
+  if (paint === "deficiency") return F2F_DEFICIENCY_BG;
+  return undefined;
+}
+
 function fmtForty(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return "—";
   return value.toFixed(2);
@@ -254,9 +309,47 @@ function MatrixCellText({
           {formatPlace(cell.rank, Boolean(cell.tied))}
         </Text>
       ) : null}
-      {cell.zone_label ? (
-        <Text style={styles.cellZone}>{cell.zone_label}</Text>
-      ) : null}
+      <ZoneLabelText cell={cell} />
+    </View>
+  );
+}
+
+function ZoneLabelText({ cell }: { cell: TestingDayMatrixCell }) {
+  if (!cell.zone_label) return null;
+  if (isLiveLeaderboardZone(cell.zone_label)) {
+    return (
+      <View
+        style={[
+          styles.zoneBadge,
+          cell.zone_color ? { backgroundColor: cell.zone_color } : null,
+        ]}
+      >
+        <Text style={styles.zoneBadgeText}>{cell.zone_label}</Text>
+      </View>
+    );
+  }
+  return <Text style={styles.cellZone}>{cell.zone_label}</Text>;
+}
+
+function F2fMainCell({
+  vertex,
+  paint,
+  width,
+}: {
+  vertex: F2fVertex | null | undefined;
+  paint: F2fPaint;
+  width: string;
+}) {
+  const backgroundColor = f2fPaintBackground(paint);
+  return (
+    <View
+      style={[
+        styles.cellCol,
+        { width },
+        backgroundColor ? { backgroundColor } : null,
+      ]}
+    >
+      <Text style={styles.cellMark}>{fmtPredictedForty(vertex)}</Text>
     </View>
   );
 }
@@ -403,12 +496,19 @@ function CoachF2fBlock({
 function SectionMatrix({
   board,
   section,
+  audience,
+  now,
 }: {
   board: TestingDayBoardData;
   section: TestingDayPdfSection;
+  audience: TestingDayPdfAudience;
+  now: Date;
 }) {
   const columns = board.matrix.columns;
-  const colWidth = cellWidth(columns.length);
+  const showF2f = audience === "coach";
+  const colWidth = cellWidth(columns.length + (showF2f ? F2F_TABLE_QUALITIES.length : 0));
+  const { has40, has20 } = boardSprintFlags(columns);
+  const ranks = sectionRanks(section.athletes, has40, has20);
   return (
     <View style={styles.table}>
       <View style={[styles.row, styles.th]}>
@@ -418,30 +518,54 @@ function SectionMatrix({
             {column.display_name}
           </Text>
         ))}
+        {showF2f
+          ? F2F_TABLE_QUALITIES.map((quality) => (
+              <Text key={quality} style={[styles.cellCol, { width: colWidth }]}>
+                {F2F_TABLE_LABELS[quality]}
+              </Text>
+            ))
+          : null}
       </View>
-      {section.athletes.map((athlete) => (
-        <View key={athlete.athlete_id} style={styles.row} wrap={false}>
-          <View style={styles.athleteCol}>
-            <Text style={styles.athleteName}>
-              {athleteDisplayName(athlete)}
-            </Text>
-            <Text style={styles.athleteMeta}>
-              {sportLabel(athlete.sport)} · {genderLabel(athlete.gender)}
-            </Text>
-          </View>
-          {columns.map((column) => (
-            <View
-              key={column.key}
-              style={[styles.cellCol, { width: colWidth }]}
-            >
-              <MatrixCellText
-                cell={athlete.cells[column.key]}
-                column={column}
-              />
+      {section.athletes.map((athlete) => {
+        const place = ranks.get(athlete.athlete_id);
+        const grade = formatPdfGrade(athlete.graduating_class ?? null, now);
+        const paints = athlete.f2f ? f2fStrengthDeficiency(athlete.f2f) : null;
+        return (
+          <View key={athlete.athlete_id} style={styles.row} wrap={false}>
+            <View style={styles.athleteCol}>
+              <Text style={styles.athleteName}>
+                {athleteDisplayName(athlete)}
+              </Text>
+              {place ? (
+                <Text style={styles.athleteMeta}>
+                  {athleteSubline(place, grade)}
+                </Text>
+              ) : null}
             </View>
-          ))}
-        </View>
-      ))}
+            {columns.map((column) => (
+              <View
+                key={column.key}
+                style={[styles.cellCol, { width: colWidth }]}
+              >
+                <MatrixCellText
+                  cell={athlete.cells[column.key]}
+                  column={column}
+                />
+              </View>
+            ))}
+            {showF2f
+              ? F2F_TABLE_QUALITIES.map((quality) => (
+                  <F2fMainCell
+                    key={quality}
+                    vertex={athlete.f2f?.[quality]}
+                    paint={paints?.[quality] ?? null}
+                    width={colWidth}
+                  />
+                ))
+              : null}
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -449,9 +573,11 @@ function SectionMatrix({
 export function TestingDayReportDocument({
   board,
   audience,
+  now = new Date(),
 }: {
   board: TestingDayBoardData;
   audience: TestingDayPdfAudience;
+  now?: Date;
 }) {
   const sections = groupAthletesBySection(board.matrix.athletes);
 
@@ -481,7 +607,12 @@ export function TestingDayReportDocument({
           <Text style={styles.muted}>
             {sectionSubhead(board.session_date, section.athletes.length)}
           </Text>
-          <SectionMatrix board={board} section={section} />
+          <SectionMatrix
+            board={board}
+            section={section}
+            audience={audience}
+            now={now}
+          />
           {audience === "coach" ? (
             <CoachSummaries board={board} section={section} />
           ) : null}
@@ -497,10 +628,15 @@ export function TestingDayReportDocument({
 export async function renderTestingDayPdf(opts: {
   board: TestingDayBoardData;
   audience: TestingDayPdfAudience;
+  now?: Date;
 }): Promise<Buffer> {
   const board = boardForAudience(opts.board, opts.audience);
   const element = (
-    <TestingDayReportDocument board={board} audience={opts.audience} />
+    <TestingDayReportDocument
+      board={board}
+      audience={opts.audience}
+      now={opts.now}
+    />
   );
   return renderToBuffer(
     element as unknown as Parameters<typeof renderToBuffer>[0]
