@@ -111,7 +111,7 @@ describe("GET /api/athletes/[id]/f2f", () => {
     const body = await jsonOf(res);
     expect(body.data).toEqual({
       mode: "best",
-      composed: true,
+      composed: false,
       as_of: null,
       f2f: null,
     });

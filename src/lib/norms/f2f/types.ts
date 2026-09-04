@@ -2,6 +2,7 @@ export type F2fEntry = {
   metric_key: string;
   component: string | null;
   display_value: number;
+  session_date?: string;
 };
 
 export type F2fAthlete = {
@@ -12,10 +13,19 @@ export type F2fQuality = "explosion" | "force" | "form";
 
 export type F2fReferenceSource = "actual_40" | "projected";
 
+export type F2fVertexInput = {
+  metric_key: string;
+  component: string | null;
+  value: number;
+  units: string;
+};
+
 export type F2fVertex = {
   predicted_40: number;
   extrapolated: boolean;
   projected: boolean;
+  input?: F2fVertexInput;
+  session_date?: string;
 };
 
 export type F2fProfile = {

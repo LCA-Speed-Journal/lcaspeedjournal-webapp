@@ -11,6 +11,7 @@ function dated(
 const JAN = "2026-01-15";
 const MAR = "2026-03-10";
 const APR = "2026-04-20";
+const MAY = "2026-05-12";
 const WINDOW = { from: "2025-08-01", to: "2026-07-31" };
 
 const januaryBroad = dated({
@@ -126,6 +127,33 @@ describe("pickF2fMarks best", () => {
         ?.display_value
     ).toBe(10);
   });
+
+  it("treats 40yd 0-20 as Force when no 5-10 exists", () => {
+    const fortyTwenty = dated({
+      metric_key: "40yd_Dash",
+      component: "0-20yd",
+      display_value: 2.9,
+      session_id: "apr",
+      session_date: APR,
+    });
+
+    const picked = pickF2fMarks([januaryBroad, fortyTwenty], {
+      mode: "best",
+      ...WINDOW,
+    });
+
+    const force = picked.entries.find((entry) => entry.component === "0-20yd");
+    expect(force?.metric_key).toBe("40yd_Dash");
+    expect(force?.display_value).toBe(2.9);
+  });
+
+  it("is not composed when best marks share one session_date", () => {
+    const picked = pickF2fMarks([aprilForty, aprilFiveTen], {
+      mode: "best",
+      ...WINDOW,
+    });
+    expect(picked.composed).toBe(false);
+  });
 });
 
 describe("pickF2fMarks full-test", () => {
@@ -148,6 +176,32 @@ describe("pickF2fMarks full-test", () => {
     expect(picked.entries.map((entry) => entry.session_date)).toEqual([
       APR,
       APR,
+    ]);
+  });
+
+  it("prefers the latest session with 2+ F2F buckets over a later jump-only day", () => {
+    const mayBroad = dated({
+      metric_key: "Standing-Broad",
+      display_value: 9.5,
+      session_id: "may",
+      session_date: MAY,
+    });
+
+    const picked = pickF2fMarks(
+      [januaryBroad, aprilForty, aprilFiveTen, mayBroad],
+      { mode: "full-test", ...WINDOW }
+    );
+
+    expect(picked.as_of).toBe(APR);
+    expect(picked.entries.every((entry) => entry.session_id === "apr")).toBe(
+      true
+    );
+    expect(
+      picked.entries.some((entry) => entry.metric_key === "Standing-Broad")
+    ).toBe(false);
+    expect(picked.entries.map((entry) => entry.component).sort()).toEqual([
+      "0-40yd",
+      "5-10yd",
     ]);
   });
 });
@@ -205,5 +259,13 @@ describe("pickF2fMarks latest", () => {
     expect(picked.entries).toHaveLength(1);
     expect(picked.entries[0].display_value).toBe(9);
     expect(picked.entries[0].session_id).toBe("b");
+  });
+
+  it("is not composed when latest marks share one session_date", () => {
+    const picked = pickF2fMarks([aprilForty, aprilFiveTen], {
+      mode: "latest",
+      ...WINDOW,
+    });
+    expect(picked.composed).toBe(false);
   });
 });

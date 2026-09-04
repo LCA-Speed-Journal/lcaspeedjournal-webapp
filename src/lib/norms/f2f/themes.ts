@@ -27,6 +27,7 @@ export type F2fThemeSummary = {
   mix: F2fThemeMix;
   top3_mix: F2fThemeMix;
   top5_mix: F2fThemeMix;
+  rest_mix: F2fThemeMix;
   generated_note: string;
   note: string;
 };
@@ -86,6 +87,44 @@ function displayPrimary(primary: F2fThemePrimary): string {
   return primary.charAt(0).toUpperCase() + primary.slice(1);
 }
 
+const MIX_ORDER: F2fThemePrimary[] = ["force", "explosion", "form", "balanced"];
+
+export function formatMixCounts(mix: F2fThemeMix): string {
+  return MIX_ORDER.filter((key) => mix[key] > 0)
+    .map((key) => `${displayPrimary(key)} ${mix[key]}`)
+    .join(" · ");
+}
+
+export function themeMixLines(
+  theme: F2fThemeSummary
+): { label: string; text: string }[] {
+  const rows: { label: string; mix: F2fThemeMix }[] = [
+    { label: "Mix", mix: theme.mix },
+    { label: "Top 3", mix: theme.top3_mix },
+    { label: "Top 5", mix: theme.top5_mix },
+    { label: "Rest", mix: theme.rest_mix },
+  ];
+  const lines: { label: string; text: string }[] = [];
+  for (const row of rows) {
+    const text = formatMixCounts(row.mix);
+    if (!text) continue;
+    lines.push({ label: row.label, text });
+  }
+  return lines;
+}
+
+function rosterClause(
+  roster: F2fThemePrimary,
+  mix: F2fThemeMix,
+  eligibleCount: number
+): string {
+  const n = mix[roster];
+  if (roster === "balanced") {
+    return `Roster is Balanced (${n}/${eligibleCount}).`;
+  }
+  return `Roster is ${displayPrimary(roster)}-deficient (${n}/${eligibleCount}).`;
+}
+
 function generateNote(
   mix: F2fThemeMix,
   top5Mix: F2fThemeMix,
@@ -95,10 +134,13 @@ function generateNote(
   if (!roster || eligibleCount === 0) {
     return "No Force-to-Form labels yet.";
   }
+  const rosterText = rosterClause(roster, mix, eligibleCount);
+  if (eligibleCount <= 5) return rosterText;
   const top5 = majorityPrimary(top5Mix);
-  const rosterClause = `Roster is ${displayPrimary(roster)}-deficient (${mix[roster]}/${eligibleCount}).`;
-  if (!top5) return rosterClause;
-  return `${rosterClause} Top 5 are ${displayPrimary(top5)}-strong.`;
+  if (!top5) return rosterText;
+  if (top5 === "balanced") return `${rosterText} Top 5 are balanced.`;
+  if (top5 === roster) return rosterText;
+  return `${rosterText} Top 5 are ${displayPrimary(top5)}-deficient.`;
 }
 
 function rankByForty(athletes: F2fThemeAthlete[]): F2fThemeAthlete[] {
@@ -128,6 +170,7 @@ function summarizeBucket(
   const mix = countMix(ranked);
   const top3Mix = countMix(ranked.slice(0, 3));
   const top5Mix = countMix(ranked.slice(0, 5));
+  const restMix = countMix(ranked.slice(5));
   const generated_note = generateNote(mix, top5Mix, ranked.length);
   return {
     sport,
@@ -136,6 +179,7 @@ function summarizeBucket(
     mix,
     top3_mix: top3Mix,
     top5_mix: top5Mix,
+    rest_mix: restMix,
     generated_note,
     note: resolveNote(generated_note, override),
   };

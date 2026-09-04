@@ -19,7 +19,9 @@ import type {
   TestingDayMatrixCell,
   TestingDayMatrixColumn,
 } from "@/lib/norms/testing-day";
-import type { F2fProfile, F2fQuality, F2fVertex } from "@/lib/norms/f2f/types";
+import type { F2fProfile, F2fVertex } from "@/lib/norms/f2f/types";
+import { f2fChipLabel } from "@/lib/norms/f2f/labels";
+import { themeMixLines } from "@/lib/norms/f2f/themes";
 import {
   HUGO_GROUP_META,
   isHugoGroup,
@@ -147,13 +149,6 @@ const styles = StyleSheet.create({
   },
 });
 
-const QUALITY_LABEL: Record<F2fQuality | "balanced", string> = {
-  explosion: "Explosion",
-  force: "Force",
-  form: "Form",
-  balanced: "Balanced",
-};
-
 function fmtMark(value: number, units: string): string {
   const n = Number.isInteger(value) ? String(value) : value.toFixed(2);
   return units ? `${n} ${units}` : n;
@@ -198,14 +193,14 @@ function fmtPredictedForty(vertex: F2fVertex | null | undefined): string {
 
 function f2fPrimaryLabel(profile: F2fProfile | undefined): string {
   if (!profile?.eligible_for_labels || profile.primary == null) return "—";
-  return QUALITY_LABEL[profile.primary];
+  return f2fChipLabel(profile.primary);
 }
 
 function f2fFlagsLabel(profile: F2fProfile | undefined): string {
   if (!profile?.eligible_for_labels) return "—";
   const flags = profile.flags.filter((flag) => flag !== profile.primary);
   if (flags.length === 0) return "—";
-  return flags.map((flag) => QUALITY_LABEL[flag]).join(" · ");
+  return flags.map((flag) => f2fChipLabel(flag)).join(" · ");
 }
 
 export function boardForAudience(
@@ -322,6 +317,18 @@ function CoachGroupLine({
   );
 }
 
+function CoachF2fMixLines({ theme }: { theme: Parameters<typeof themeMixLines>[0] }) {
+  return (
+    <>
+      {themeMixLines(theme).map((line) => (
+        <Text key={line.label} style={styles.f2fNote}>
+          {line.label}: {line.text}
+        </Text>
+      ))}
+    </>
+  );
+}
+
 function CoachF2fBlock({ board }: { board: TestingDayBoardData }) {
   const themes = board.f2f_themes;
   if (!themes) return null;
@@ -330,13 +337,14 @@ function CoachF2fBlock({ board }: { board: TestingDayBoardData }) {
     <View style={styles.f2fBlock}>
       <Text style={styles.f2fTitle}>Force-to-Form</Text>
       <Text style={styles.f2fNote}>Session · {themes.session.note}</Text>
+      <CoachF2fMixLines theme={themes.session} />
       {themes.groups.map((group) => (
-        <Text
-          key={`${group.sport ?? ""}|${group.gender ?? ""}`}
-          style={styles.f2fNote}
-        >
-          {sportLabel(group.sport)} · {genderLabel(group.gender)} · {group.note}
-        </Text>
+        <View key={`${group.sport ?? ""}|${group.gender ?? ""}`}>
+          <Text style={styles.f2fNote}>
+            {sportLabel(group.sport)} · {genderLabel(group.gender)} · {group.note}
+          </Text>
+          <CoachF2fMixLines theme={group} />
+        </View>
       ))}
       <View style={styles.f2fTable}>
         <View style={[styles.row, styles.th]}>

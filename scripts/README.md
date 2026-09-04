@@ -4,6 +4,10 @@
 
 Run `scripts/migrate-normative-data.sql` against the app Postgres the same way as other SQL files: paste the file into the Vercel Postgres dashboard query editor, or run `psql $POSTGRES_URL -f scripts/migrate-normative-data.sql` locally. It is safe to re-run. It widens Hugo group CHECKs for football, adds primary-membership / weight-room dual-write columns, creates the `norm_*` tables, and seeds population names plus sport defaults only (no threshold numbers). There is no npm script for this file.
 
+## Force-to-Form theme notes
+
+Run `scripts/migrate-f2f-theme-notes.sql` (safe to re-run, `IF NOT EXISTS`) to add `sessions.f2f_theme_notes`. Without it, testing-day still loads but theme-note PATCH returns 500 and overrides will not persist.
+
 ## Canonical cumulative backfill
 
 This migration rewrites existing `entries` rows so 0-start cumulative marks are

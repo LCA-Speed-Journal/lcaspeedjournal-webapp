@@ -1,5 +1,6 @@
 import { FORTY_YD_DASH, TWENTY_YD_DASH } from "../editor-metrics";
 import { DEFICIENCY_BAND, STANDING_BROAD } from "./constants";
+import { isForceStandIn } from "./force-stand-in";
 import { resolveExplosion, resolveForce, resolveForm } from "./resolve-mark";
 import type {
   F2fAthlete,
@@ -61,11 +62,30 @@ function vertexFromHit(
   };
 }
 
+function vertexFromEntry(
+  entry: F2fEntry,
+  hit: { predicted_40: number; extrapolated: boolean } | null,
+  projected: boolean
+): F2fVertex | null {
+  const vertex = vertexFromHit(hit, projected);
+  if (!vertex) return null;
+  return {
+    ...vertex,
+    input: {
+      metric_key: entry.metric_key,
+      component: entry.component,
+      value: entry.display_value,
+      units: entry.metric_key === STANDING_BROAD ? "ft" : "s",
+    },
+    ...(entry.session_date ? { session_date: entry.session_date } : {}),
+  };
+}
+
 function pickExplosion(entries: F2fEntry[]): F2fVertex | null {
   const best = pickBestJump(
     finiteEntries(entries, (entry) => entry.metric_key === STANDING_BROAD)
   );
-  return best ? vertexFromHit(resolveExplosion(best.display_value), false) : null;
+  return best ? vertexFromEntry(best, resolveExplosion(best.display_value), false) : null;
 }
 
 function pickForce(entries: F2fEntry[]): F2fVertex | null {
@@ -77,22 +97,18 @@ function pickForce(entries: F2fEntry[]): F2fVertex | null {
       )
     );
     if (best) {
-      return vertexFromHit(
+      return vertexFromEntry(
+        best,
         resolveForce({ timeS: best.display_value, yards }),
         false
       );
     }
   }
 
-  const standIn = pickBestTime(
-    finiteEntries(
-      entries,
-      (entry) =>
-        entry.metric_key === TWENTY_YD_DASH && entry.component === "0-20yd"
-    )
-  );
+  const standIn = pickBestTime(finiteEntries(entries, isForceStandIn));
   if (!standIn) return null;
-  return vertexFromHit(
+  return vertexFromEntry(
+    standIn,
     resolveForce({ timeS: standIn.display_value, yards: 20 }),
     false
   );
@@ -107,7 +123,8 @@ function pickForm(entries: F2fEntry[]): F2fVertex | null {
     );
     const best = pickBestTime(matches);
     if (!best) continue;
-    const vertex = vertexFromHit(
+    const vertex = vertexFromEntry(
+      best,
       resolveForm({
         component,
         timeS: best.display_value,
@@ -131,7 +148,8 @@ function pickForm(entries: F2fEntry[]): F2fVertex | null {
     )
   );
   if (!proxy) return null;
-  return vertexFromHit(
+  return vertexFromEntry(
+    proxy,
     resolveForm({
       component: "10-20yd",
       timeS: proxy.display_value,
@@ -177,6 +195,14 @@ function classify(
   return { flags: flagged.map((item) => item.quality), primary: worst.quality };
 }
 
+function projectedForm(reference40: number): F2fVertex {
+  return {
+    predicted_40: reference40,
+    extrapolated: false,
+    projected: true,
+  };
+}
+
 export function buildF2fProfile(
   entries: F2fEntry[],
   athlete: F2fAthlete
@@ -196,15 +222,14 @@ export function buildF2fProfile(
   if (actual40 != null) {
     reference_40 = actual40;
     reference_source = "actual_40";
+    if (!form && force && Number.isFinite(reference_40)) {
+      form = projectedForm(reference_40);
+    }
   } else if (sprintPredicted.length > 0) {
     reference_40 = median(sprintPredicted);
     reference_source = "projected";
     if (!form && Number.isFinite(reference_40)) {
-      form = {
-        predicted_40: reference_40,
-        extrapolated: false,
-        projected: true,
-      };
+      form = projectedForm(reference_40);
     }
   }
 

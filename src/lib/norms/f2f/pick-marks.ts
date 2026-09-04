@@ -1,6 +1,7 @@
 import { schoolYearEnd } from "../../quick-athlete";
 import { FORTY_YD_DASH, TWENTY_YD_DASH } from "../editor-metrics";
 import { STANDING_BROAD } from "./constants";
+import { isForceStandIn } from "./force-stand-in";
 import { resolveForm } from "./resolve-mark";
 import type { F2fEntry } from "./types";
 
@@ -101,13 +102,7 @@ function pickForce(entries: DatedF2fEntry[]): DatedF2fEntry | null {
     );
     if (best) return best;
   }
-  return pickBestTime(
-    finiteWhere(
-      entries,
-      (entry) =>
-        entry.metric_key === TWENTY_YD_DASH && entry.component === "0-20yd"
-    )
-  );
+  return pickBestTime(finiteWhere(entries, isForceStandIn));
 }
 
 function pickForm(entries: DatedF2fEntry[]): DatedF2fEntry | null {
@@ -160,7 +155,7 @@ function isExplosionMark(entry: DatedF2fEntry): boolean {
 function isForceMark(entry: DatedF2fEntry): boolean {
   if (!isSprintMetric(entry.metric_key)) return false;
   if (entry.component === "5-15yd" || entry.component === "5-10yd") return true;
-  return entry.metric_key === TWENTY_YD_DASH && entry.component === "0-20yd";
+  return isForceStandIn(entry);
 }
 
 function isFormMark(entry: DatedF2fEntry): boolean {
@@ -212,52 +207,77 @@ function compactPicked(
   return out;
 }
 
+function sessionBucketCount(entries: DatedF2fEntry[]): number {
+  const buckets = new Set<string>();
+  for (const entry of entries) {
+    if (!isFiniteEntry(entry)) continue;
+    if (isExplosionMark(entry)) buckets.add("explosion");
+    if (isForceMark(entry)) buckets.add("force");
+    if (isFormMark(entry)) buckets.add("form");
+    if (isActual40Mark(entry)) buckets.add("actual40");
+  }
+  return buckets.size;
+}
+
+type SessionRecency = {
+  session_id: string;
+  session_date: string;
+  latestCreated: string;
+  bucketCount: number;
+};
+
+function isNewerSession(a: SessionRecency, b: SessionRecency): boolean {
+  if (a.session_date !== b.session_date) return a.session_date > b.session_date;
+  if (a.latestCreated !== b.latestCreated) return a.latestCreated > b.latestCreated;
+  return a.session_id > b.session_id;
+}
+
+function latestSession(pool: SessionRecency[]): SessionRecency | null {
+  let best: SessionRecency | null = null;
+  for (const session of pool) {
+    if (!best || isNewerSession(session, best)) best = session;
+  }
+  return best;
+}
+
 function lastTestingSession(
   entries: DatedF2fEntry[]
 ): { session_id: string; session_date: string } | null {
-  const bySession = new Map<
-    string,
-    { session_date: string; latestCreated: string }
-  >();
+  const bySession = new Map<string, DatedF2fEntry[]>();
   for (const entry of entries) {
     if (!isF2fRelevant(entry)) continue;
-    const created = entry.created_at ?? "";
-    const prev = bySession.get(entry.session_id);
-    if (!prev) {
-      bySession.set(entry.session_id, {
-        session_date: entry.session_date,
-        latestCreated: created,
-      });
-      continue;
-    }
-    if (created > prev.latestCreated) prev.latestCreated = created;
+    const list = bySession.get(entry.session_id);
+    if (list) list.push(entry);
+    else bySession.set(entry.session_id, [entry]);
   }
 
-  let best: {
-    session_id: string;
-    session_date: string;
-    latestCreated: string;
-  } | null = null;
-  for (const [session_id, info] of bySession) {
-    if (!best) {
-      best = { session_id, ...info };
-      continue;
+  const sessions: SessionRecency[] = [];
+  for (const [session_id, list] of bySession) {
+    let session_date = list[0].session_date;
+    let latestCreated = "";
+    for (const entry of list) {
+      if (entry.session_date > session_date) session_date = entry.session_date;
+      const created = entry.created_at ?? "";
+      if (created > latestCreated) latestCreated = created;
     }
-    if (info.session_date > best.session_date) {
-      best = { session_id, ...info };
-      continue;
-    }
-    if (info.session_date < best.session_date) continue;
-    if (
-      info.latestCreated > best.latestCreated ||
-      (info.latestCreated === best.latestCreated && session_id > best.session_id)
-    ) {
-      best = { session_id, ...info };
-    }
+    sessions.push({
+      session_id,
+      session_date,
+      latestCreated,
+      bucketCount: sessionBucketCount(list),
+    });
   }
+
+  const multi = sessions.filter((session) => session.bucketCount >= 2);
+  const best = latestSession(multi.length > 0 ? multi : sessions);
   return best
     ? { session_id: best.session_id, session_date: best.session_date }
     : null;
+}
+
+function marksAreComposed(entries: DatedF2fEntry[]): boolean {
+  const dates = new Set(entries.map((entry) => entry.session_date));
+  return dates.size > 1;
 }
 
 export function pickF2fMarks(
@@ -282,28 +302,30 @@ export function pickF2fMarks(
   }
 
   if (options.mode === "best") {
+    const picked = compactPicked([
+      pickExplosion(windowed),
+      pickForce(windowed),
+      pickForm(windowed),
+      pickActual40(windowed),
+    ]);
     return {
       mode: options.mode,
-      composed: true,
+      composed: marksAreComposed(picked),
       as_of,
-      entries: compactPicked([
-        pickExplosion(windowed),
-        pickForce(windowed),
-        pickForm(windowed),
-        pickActual40(windowed),
-      ]),
+      entries: picked,
     };
   }
 
+  const picked = compactPicked([
+    pickLatest(windowed.filter(isExplosionMark)),
+    pickLatest(windowed.filter(isForceMark)),
+    pickLatest(windowed.filter(isFormMark)),
+    pickLatest(windowed.filter(isActual40Mark)),
+  ]);
   return {
     mode: options.mode,
-    composed: true,
+    composed: marksAreComposed(picked),
     as_of,
-    entries: compactPicked([
-      pickLatest(windowed.filter(isExplosionMark)),
-      pickLatest(windowed.filter(isForceMark)),
-      pickLatest(windowed.filter(isFormMark)),
-      pickLatest(windowed.filter(isActual40Mark)),
-    ]),
+    entries: picked,
   };
 }

@@ -79,6 +79,12 @@ const f2fTheme = (
   mix: f2fMix,
   top3_mix: f2fMix,
   top5_mix: f2fMix,
+  rest_mix: {
+    explosion: 0,
+    force: 0,
+    form: 0,
+    balanced: 0,
+  },
   ...partial,
 });
 
@@ -144,14 +150,14 @@ const poorBoard: TestingDayBoardData = {
     session: f2fTheme({
       sport: null,
       gender: null,
-      generated_note: "Roster is Force-deficient (1/1). Top 5 are Force-strong.",
+      generated_note: "Roster is Force-deficient (1/1).",
       note: "the gap is Force, not speed",
     }),
     groups: [
       f2fTheme({
         sport: "volleyball",
         gender: "F",
-        generated_note: "Roster is Force-deficient (1/1). Top 5 are Force-strong.",
+        generated_note: "Roster is Force-deficient (1/1).",
         note: "Volleyball takeaway",
       }),
     ],
@@ -210,6 +216,9 @@ describe("renderTestingDayPdf", () => {
     expect(text).toContain("5.12");
     expect(text).toContain("5.20");
     expect(text).toContain("4.90*");
+    expect(text).toContain("Force 1");
+    expect(text).toContain("Force-deficient");
+    expect(text).not.toContain("Force-strong");
   });
 
   it("omits Force-to-Form from athlete PDFs", async () => {

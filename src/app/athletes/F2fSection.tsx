@@ -3,8 +3,9 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { F2fTriangle } from "@/app/reporting/testing-day/F2fTriangle";
+import { f2fChipLabel, formatQualityMark } from "@/lib/norms/f2f/labels";
 import type { F2fPickMode } from "@/lib/norms/f2f/pick-marks";
-import type { F2fProfile, F2fQuality } from "@/lib/norms/f2f/types";
+import type { F2fProfile } from "@/lib/norms/f2f/types";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -13,13 +14,6 @@ const MODES: { value: F2fPickMode; label: string }[] = [
   { value: "best", label: "Best" },
   { value: "latest", label: "Latest" },
 ];
-
-const QUALITY_LABEL: Record<F2fQuality | "balanced", string> = {
-  explosion: "Explosion",
-  force: "Force",
-  form: "Form",
-  balanced: "Balanced",
-};
 
 type F2fPayload = {
   mode: F2fPickMode;
@@ -129,9 +123,9 @@ export function F2fSection({ athleteId }: F2fSectionProps) {
           <div className="min-w-0 space-y-2">
             {showLabels && f2f.primary ? (
               <div className="flex flex-wrap gap-1">
-                <Chip accent>{QUALITY_LABEL[f2f.primary]}</Chip>
+                <Chip accent>{f2fChipLabel(f2f.primary)}</Chip>
                 {secondaryFlags.map((flag) => (
-                  <Chip key={flag}>{QUALITY_LABEL[flag]}</Chip>
+                  <Chip key={flag}>{f2fChipLabel(flag)}</Chip>
                 ))}
               </div>
             ) : null}
@@ -147,7 +141,7 @@ export function F2fSection({ athleteId }: F2fSectionProps) {
                     : "tabular-nums text-foreground"
                 }
               >
-                Explosion {fmtForty(f2f.explosion?.predicted_40)}
+                Explosion {formatQualityMark(f2f.explosion, Boolean(payload?.composed))}
               </li>
               <li
                 className={
@@ -156,7 +150,7 @@ export function F2fSection({ athleteId }: F2fSectionProps) {
                     : "tabular-nums text-foreground"
                 }
               >
-                Force {fmtForty(f2f.force?.predicted_40)}
+                Force {formatQualityMark(f2f.force, Boolean(payload?.composed))}
               </li>
               <li
                 className={
@@ -165,7 +159,7 @@ export function F2fSection({ athleteId }: F2fSectionProps) {
                     : "tabular-nums text-foreground"
                 }
               >
-                Form {fmtForty(f2f.form?.predicted_40)}
+                Form {formatQualityMark(f2f.form, Boolean(payload?.composed))}
               </li>
             </ul>
           </div>

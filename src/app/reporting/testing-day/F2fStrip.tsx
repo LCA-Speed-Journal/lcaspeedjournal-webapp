@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { THEME_NOTE_MAX_CHARS } from "@/lib/norms/f2f/theme-notes";
+import { f2fChipLabel } from "@/lib/norms/f2f/labels";
 import {
   SESSION_NOTE_KEY,
   themeGroupKey,
+  themeMixLines,
   type F2fThemeSummary,
 } from "@/lib/norms/f2f/themes";
-import type { F2fQuality } from "@/lib/norms/f2f/types";
 import type {
   TestingDayBoardData,
   TestingDayMatrixAthlete,
@@ -17,13 +18,6 @@ import {
   isHugoGroup,
 } from "@/lib/weight-room/constants";
 import { F2fTriangle } from "./F2fTriangle";
-
-const QUALITY_LABEL: Record<F2fQuality | "balanced", string> = {
-  explosion: "Explosion",
-  force: "Force",
-  form: "Form",
-  balanced: "Balanced",
-};
 
 type StripGroup = {
   key: string;
@@ -191,6 +185,14 @@ function ThemeNoteEditor({
 
   return (
     <div className="space-y-2">
+      {themeMixLines(theme).map((line) => (
+        <p
+          key={line.label}
+          className="text-xs tabular-nums text-foreground-muted"
+        >
+          {line.label}: {line.text}
+        </p>
+      ))}
       <p className="text-sm text-foreground">{theme.note}</p>
       {theme.note !== theme.generated_note ? (
         <p className="text-xs text-foreground-muted">
@@ -237,9 +239,9 @@ function AthleteCard({ athlete }: { athlete: TestingDayMatrixAthlete }) {
           </p>
           {showLabels && f2f?.primary ? (
             <div className="flex flex-wrap gap-1">
-              <Chip accent>{QUALITY_LABEL[f2f.primary]}</Chip>
+              <Chip accent>{f2fChipLabel(f2f.primary)}</Chip>
               {secondaryFlags.map((flag) => (
-                <Chip key={flag}>{QUALITY_LABEL[flag]}</Chip>
+                <Chip key={flag}>{f2fChipLabel(flag)}</Chip>
               ))}
             </div>
           ) : null}
