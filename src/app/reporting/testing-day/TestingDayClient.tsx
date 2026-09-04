@@ -19,6 +19,7 @@ import {
   HUGO_GROUP_META,
   isHugoGroup,
 } from "@/lib/weight-room/constants";
+import { F2fStrip } from "./F2fStrip";
 import "./testing-day-print.css";
 
 type SessionItem = {
@@ -160,7 +161,7 @@ export default function TestingDayClient() {
     return `/api/reporting/testing-day?${params.toString()}`;
   }, [sessionId, populationId]);
 
-  const { data, error, isLoading } = useSWR<{ data: TestingDayBoardData }>(
+  const { data, error, isLoading, mutate } = useSWR<{ data: TestingDayBoardData }>(
     boardUrl,
     jsonFetcher
   );
@@ -323,6 +324,11 @@ export default function TestingDayClient() {
                     columns={board.matrix.columns}
                     athletes={board.matrix.athletes}
                     tests={board.tests}
+                  />
+                  <F2fStrip
+                    board={board}
+                    sessionId={sessionId}
+                    onNotesSaved={mutate}
                   />
                   {board.tests.map((test) => (
                     <div key={test.column_key} className="space-y-4">
