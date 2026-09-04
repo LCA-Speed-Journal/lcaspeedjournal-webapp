@@ -8,6 +8,7 @@ import {
   sectionHeading,
   sectionRanks,
   sectionSubhead,
+  stampGraduatingClass,
 } from "./testing-day-pdf-layout";
 
 function athlete(
@@ -110,5 +111,19 @@ describe("athleteSubline", () => {
   it("joins place and grade, omitting a missing grade", () => {
     expect(athleteSubline({ rank: 1, tied: false }, "12th")).toBe("1st — 12th");
     expect(athleteSubline({ rank: 2, tied: true }, null)).toBe("T-2nd");
+  });
+});
+
+describe("stampGraduatingClass", () => {
+  it("stamps map values onto athletes and nulls unknown ids", () => {
+    const stamped = stampGraduatingClass(
+      [
+        { athlete_id: "known", first_name: "Ann" },
+        { athlete_id: "missing", first_name: "Bea" },
+      ],
+      new Map<string, number | null>([["known", 2027]])
+    );
+    expect(stamped[0].graduating_class).toBe(2027);
+    expect(stamped[1].graduating_class).toBeNull();
   });
 });

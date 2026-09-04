@@ -115,6 +115,7 @@ export type TestingDayMatrixAthlete = {
   sprint_points?: number;
   total_points?: number;
   f2f?: F2fProfile;
+  graduating_class?: number | null;
 };
 
 export type TestingDayMatrix = {

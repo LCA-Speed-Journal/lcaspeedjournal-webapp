@@ -216,7 +216,6 @@ export function boardForAudience(
       ...board.matrix,
       athletes: board.matrix.athletes.map((athlete) => ({
         ...athlete,
-        f2f: undefined,
         cells: Object.fromEntries(
           Object.entries(athlete.cells).map(([key, cell]) => [
             key,

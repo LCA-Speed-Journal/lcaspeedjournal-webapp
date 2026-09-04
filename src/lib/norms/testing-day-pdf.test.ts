@@ -170,7 +170,7 @@ describe("boardForAudience", () => {
     expect(athlete.tests).toEqual([]);
     expect(athlete.matrix.athletes[0].cells["Vertical Jump\0"].zone_label).toBeUndefined();
     expect(athlete.f2f_themes).toBeUndefined();
-    expect(athlete.matrix.athletes[0].f2f).toBeUndefined();
+    expect(athlete.matrix.athletes[0].f2f).toEqual(annF2f);
     expect(boardForAudience(poorBoard, "coach").tests).toHaveLength(1);
     expect(boardForAudience(poorBoard, "coach").f2f_themes).toEqual(
       poorBoard.f2f_themes

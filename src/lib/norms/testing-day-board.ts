@@ -28,6 +28,7 @@ import { scoreTestingDayMatrix } from "@/lib/norms/testing-day-rank";
 import { attachF2fToAthletes } from "@/lib/norms/f2f/board";
 import { coerceThemeNotes } from "@/lib/norms/f2f/theme-notes";
 import type { F2fEntry } from "@/lib/norms/f2f/types";
+import { stampGraduatingClass } from "@/lib/norms/testing-day-pdf-layout";
 import {
   TWENTY_YD_DASH,
   TWENTY_YD_PRIMARY_COMPONENT,
@@ -39,6 +40,7 @@ type BoardEntryRow = {
   first_name: string;
   last_name: string;
   gender: string | null;
+  graduating_class: number | null;
   metric_key: string;
   component: string | null;
   interval_index: number | null;
@@ -105,6 +107,7 @@ export async function buildTestingDayBoard(
         a.first_name,
         a.last_name,
         a.gender,
+        a.graduating_class,
         e.metric_key,
         e.component,
         e.interval_index,
@@ -371,6 +374,17 @@ export async function buildTestingDayBoard(
   } catch {
     // Omit f2f / f2f_themes; scored board still returns.
   }
+
+  const classByAthlete = new Map<string, number | null>();
+  for (const row of rawEntries) {
+    if (!classByAthlete.has(row.athlete_id)) {
+      classByAthlete.set(row.athlete_id, row.graduating_class ?? null);
+    }
+  }
+  data.matrix = {
+    ...data.matrix,
+    athletes: stampGraduatingClass(data.matrix.athletes, classByAthlete),
+  };
 
   return { ok: true, data };
 }

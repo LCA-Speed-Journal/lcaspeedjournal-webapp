@@ -170,3 +170,12 @@ export function athleteSubline(
   const placeText = formatPlace(place.rank, place.tied);
   return grade ? `${placeText} — ${grade}` : placeText;
 }
+
+export function stampGraduatingClass<
+  T extends { athlete_id: string; graduating_class?: number | null },
+>(athletes: T[], byId: Map<string, number | null>): T[] {
+  return athletes.map((athlete) => ({
+    ...athlete,
+    graduating_class: byId.get(athlete.athlete_id) ?? null,
+  }));
+}
