@@ -1,6 +1,8 @@
 import {
   Document,
   Page,
+  Path,
+  Svg,
   Text,
   View,
   StyleSheet,
@@ -25,9 +27,9 @@ import type {
   TestingDayMatrixCell,
   TestingDayMatrixColumn,
 } from "@/lib/norms/testing-day";
-import type { F2fProfile, F2fQuality, F2fVertex } from "@/lib/norms/f2f/types";
+import type { F2fQuality, F2fVertex } from "@/lib/norms/f2f/types";
 import { f2fChipLabel } from "@/lib/norms/f2f/labels";
-import { themeGroupKey, themeMixLines } from "@/lib/norms/f2f/themes";
+import { themeGroupKey, type F2fThemeSummary } from "@/lib/norms/f2f/themes";
 import {
   athleteSubline,
   formatPdfDate,
@@ -40,10 +42,16 @@ import {
 } from "@/lib/norms/testing-day-pdf-layout";
 import {
   F2F_DEFICIENCY_BG,
+  F2F_FOCUS_COLORS,
+  F2F_PIE_COLORS,
   F2F_STRENGTH_BG,
+  f2fFocusBadge,
+  f2fPieSlices,
   f2fStrengthDeficiency,
+  pieSlicePath,
   type F2fPaint,
 } from "@/lib/norms/testing-day-pdf-f2f";
+import { PdfF2fTriangle } from "@/lib/norms/testing-day-pdf-triangle";
 import {
   HUGO_GROUP_META,
   isHugoGroup,
@@ -137,6 +145,17 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 6,
   },
+  focusBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 3,
+    paddingVertical: 1,
+    marginTop: 1,
+    borderRadius: 2,
+  },
+  focusBadgeText: {
+    color: "#ffffff",
+    fontSize: 6,
+  },
   testBlock: {
     marginTop: 10,
   },
@@ -149,36 +168,54 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     fontSize: 8,
   },
-  f2fBlock: {
-    marginTop: 10,
-  },
   f2fTitle: {
-    fontSize: 9,
+    fontSize: 12,
     fontFamily: "Helvetica-Bold",
-    marginBottom: 3,
+    marginBottom: 6,
   },
   f2fNote: {
-    marginBottom: 2,
+    marginBottom: 3,
+    fontSize: 9,
+  },
+  f2fPieRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  f2fLegend: {
+    marginLeft: 12,
+  },
+  f2fLegendLine: {
     fontSize: 8,
+    marginBottom: 3,
   },
-  f2fTable: {
-    marginTop: 4,
+  f2fCardRow: {
+    flexDirection: "row",
+    marginTop: 8,
   },
-  f2fNameCol: {
-    width: "20%",
-    paddingRight: 2,
+  f2fCard: {
+    width: "32%",
+    marginRight: "2%",
+    borderWidth: 0.5,
+    borderColor: "#cccccc",
+    padding: 6,
+    borderRadius: 3,
   },
-  f2fPrimaryCol: {
-    width: "12%",
-    paddingHorizontal: 1,
+  f2fCardName: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 8,
+    marginBottom: 2,
   },
-  f2fFlagsCol: {
-    width: "16%",
-    paddingHorizontal: 1,
+  f2fCardChip: {
+    fontSize: 7,
+    color: "#333333",
+    marginBottom: 3,
   },
-  f2fNumCol: {
-    width: "13%",
-    paddingHorizontal: 1,
+  f2fCardStat: {
+    fontSize: 7,
+    color: "#333333",
+    marginTop: 1,
   },
 });
 
@@ -245,16 +282,22 @@ function fmtPredictedForty(vertex: F2fVertex | null | undefined): string {
   return vertex.projected ? `${mark}*` : mark;
 }
 
-function f2fPrimaryLabel(profile: F2fProfile | undefined): string {
-  if (!profile?.eligible_for_labels || profile.primary == null) return "—";
-  return f2fChipLabel(profile.primary);
+function chunkAthletes<T>(items: T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    rows.push(items.slice(i, i + size));
+  }
+  return rows;
 }
 
-function f2fFlagsLabel(profile: F2fProfile | undefined): string {
-  if (!profile?.eligible_for_labels) return "—";
-  const flags = profile.flags.filter((flag) => flag !== profile.primary);
-  if (flags.length === 0) return "—";
-  return flags.map((flag) => f2fChipLabel(flag)).join(" · ");
+function matchingThemeGroup(
+  board: TestingDayBoardData,
+  section: TestingDayPdfSection
+): F2fThemeSummary | undefined {
+  const sectionKey = themeGroupKey(section.sport, section.gender);
+  return board.f2f_themes?.groups.find(
+    (group) => themeGroupKey(group.sport, group.gender) === sectionKey
+  );
 }
 
 export function boardForAudience(
@@ -420,75 +463,98 @@ function CoachGroupLine({
   );
 }
 
-function CoachF2fMixLines({ theme }: { theme: Parameters<typeof themeMixLines>[0] }) {
+const PIE_CX = 40;
+const PIE_CY = 40;
+const PIE_R = 32;
+
+function CoachF2fPie({ group }: { group: F2fThemeSummary }) {
+  const slices = f2fPieSlices(group.mix, group.eligible_count);
+  if (slices.length === 0) return null;
+  let cursor = 0;
   return (
-    <>
-      {themeMixLines(theme).map((line) => (
-        <Text key={line.label} style={styles.f2fNote}>
-          {line.label}: {line.text}
-        </Text>
-      ))}
-    </>
+    <View style={styles.f2fPieRow}>
+      <Svg width={80} height={80} viewBox="0 0 80 80">
+        {slices.map((slice) => {
+          const startFrac = cursor / group.eligible_count;
+          cursor += slice.count;
+          const endFrac = cursor / group.eligible_count;
+          return (
+            <Path
+              key={slice.key}
+              d={pieSlicePath(PIE_CX, PIE_CY, PIE_R, startFrac, endFrac)}
+              fill={F2F_PIE_COLORS[slice.key]}
+            />
+          );
+        })}
+      </Svg>
+      <View style={styles.f2fLegend}>
+        {slices.map((slice) => (
+          <Text key={slice.key} style={styles.f2fLegendLine}>
+            {slice.label} {slice.count} ({slice.percent}%)
+          </Text>
+        ))}
+      </View>
+    </View>
   );
 }
 
-function CoachF2fBlock({
+function CoachF2fCard({ athlete }: { athlete: TestingDayMatrixAthlete }) {
+  const profile = athlete.f2f;
+  const chip =
+    profile?.eligible_for_labels && profile.primary != null
+      ? f2fChipLabel(profile.primary)
+      : null;
+  return (
+    <View style={styles.f2fCard} wrap={false}>
+      <Text style={styles.f2fCardName}>{athleteDisplayName(athlete)}</Text>
+      {chip ? <Text style={styles.f2fCardChip}>{chip}</Text> : null}
+      {profile ? <PdfF2fTriangle profile={profile} /> : null}
+      <Text style={styles.f2fCardStat}>Ref 40 {fmtForty(profile?.reference_40)}</Text>
+      <Text style={styles.f2fCardStat}>
+        Explosion {fmtPredictedForty(profile?.explosion)}
+      </Text>
+      <Text style={styles.f2fCardStat}>
+        Force {fmtPredictedForty(profile?.force)}
+      </Text>
+      <Text style={styles.f2fCardStat}>
+        Form {fmtPredictedForty(profile?.form)}
+      </Text>
+    </View>
+  );
+}
+
+function CoachF2fPage({
   board,
   section,
 }: {
   board: TestingDayBoardData;
   section: TestingDayPdfSection;
 }) {
-  const themes = board.f2f_themes;
-  if (!themes) return null;
-  const sectionKey = themeGroupKey(section.sport, section.gender);
-  const groups = themes.groups.filter(
-    (group) => themeGroupKey(group.sport, group.gender) === sectionKey
-  );
-
+  const group = matchingThemeGroup(board, section);
+  const cards = chunkAthletes(section.athletes.slice(0, 6), 3);
+  const emptyLabels = !group || group.eligible_count === 0;
   return (
-    <View style={styles.f2fBlock}>
+    <View>
       <Text style={styles.f2fTitle}>Force-to-Form</Text>
-      {groups.map((group) => (
-        <View key={themeGroupKey(group.sport, group.gender)}>
-          <Text style={styles.f2fNote}>
-            {sportLabel(group.sport)} · {genderLabel(group.gender)} · {group.note}
-          </Text>
-          <CoachF2fMixLines theme={group} />
+      {group?.generated_note ? (
+        <Text style={styles.f2fNote}>{group.generated_note}</Text>
+      ) : null}
+      {group?.note ? <Text style={styles.f2fNote}>{group.note}</Text> : null}
+      {emptyLabels ? (
+        <Text style={styles.f2fNote}>No Force-to-Form labels yet.</Text>
+      ) : (
+        <CoachF2fPie group={group} />
+      )}
+      {cards.map((row) => (
+        <View
+          key={row.map((athlete) => athlete.athlete_id).join("-")}
+          style={styles.f2fCardRow}
+        >
+          {row.map((athlete) => (
+            <CoachF2fCard key={athlete.athlete_id} athlete={athlete} />
+          ))}
         </View>
       ))}
-      <View style={styles.f2fTable}>
-        <View style={[styles.row, styles.th]}>
-          <Text style={styles.f2fNameCol}>Name</Text>
-          <Text style={styles.f2fPrimaryCol}>Primary</Text>
-          <Text style={styles.f2fFlagsCol}>Flags</Text>
-          <Text style={styles.f2fNumCol}>Ref 40</Text>
-          <Text style={styles.f2fNumCol}>Explosion</Text>
-          <Text style={styles.f2fNumCol}>Force</Text>
-          <Text style={styles.f2fNumCol}>Form</Text>
-        </View>
-        {section.athletes.map((athlete) => (
-          <View key={athlete.athlete_id} style={styles.row} wrap={false}>
-            <Text style={styles.f2fNameCol}>{athleteDisplayName(athlete)}</Text>
-            <Text style={styles.f2fPrimaryCol}>
-              {f2fPrimaryLabel(athlete.f2f)}
-            </Text>
-            <Text style={styles.f2fFlagsCol}>{f2fFlagsLabel(athlete.f2f)}</Text>
-            <Text style={styles.f2fNumCol}>
-              {fmtForty(athlete.f2f?.reference_40)}
-            </Text>
-            <Text style={styles.f2fNumCol}>
-              {fmtPredictedForty(athlete.f2f?.explosion)}
-            </Text>
-            <Text style={styles.f2fNumCol}>
-              {fmtPredictedForty(athlete.f2f?.force)}
-            </Text>
-            <Text style={styles.f2fNumCol}>
-              {fmtPredictedForty(athlete.f2f?.form)}
-            </Text>
-          </View>
-        ))}
-      </View>
     </View>
   );
 }
@@ -530,6 +596,10 @@ function SectionMatrix({
         const place = ranks.get(athlete.athlete_id);
         const grade = formatPdfGrade(athlete.graduating_class ?? null, now);
         const paints = athlete.f2f ? f2fStrengthDeficiency(athlete.f2f) : null;
+        const badge =
+          audience === "athlete" && athlete.gender === "M"
+            ? f2fFocusBadge(athlete.f2f)
+            : null;
         return (
           <View key={athlete.athlete_id} style={styles.row} wrap={false}>
             <View style={styles.athleteCol}>
@@ -540,6 +610,16 @@ function SectionMatrix({
                 <Text style={styles.athleteMeta}>
                   {athleteSubline(place, grade)}
                 </Text>
+              ) : null}
+              {badge ? (
+                <View
+                  style={[
+                    styles.focusBadge,
+                    { backgroundColor: F2F_FOCUS_COLORS[badge.tone] },
+                  ]}
+                >
+                  <Text style={styles.focusBadgeText}>{badge.text}</Text>
+                </View>
               ) : null}
             </View>
             {columns.map((column) => (
@@ -594,33 +674,36 @@ export function TestingDayReportDocument({
 
   return (
     <Document>
-      {sections.map((section) => (
-        <Page
-          key={themeGroupKey(section.sport, section.gender)}
-          size="LETTER"
-          style={styles.page}
-          wrap
-        >
-          <Text style={styles.h1}>
-            {sectionHeading(section.sport, section.gender)}
-          </Text>
-          <Text style={styles.muted}>
-            {sectionSubhead(board.session_date, section.athletes.length)}
-          </Text>
-          <SectionMatrix
-            board={board}
-            section={section}
-            audience={audience}
-            now={now}
-          />
-          {audience === "coach" ? (
-            <CoachSummaries board={board} section={section} />
-          ) : null}
-          {audience === "coach" ? (
-            <CoachF2fBlock board={board} section={section} />
-          ) : null}
-        </Page>
-      ))}
+      {sections.flatMap((section) => {
+        const key = themeGroupKey(section.sport, section.gender);
+        const pages = [
+          <Page key={key} size="LETTER" style={styles.page} wrap>
+            <Text style={styles.h1}>
+              {sectionHeading(section.sport, section.gender)}
+            </Text>
+            <Text style={styles.muted}>
+              {sectionSubhead(board.session_date, section.athletes.length)}
+            </Text>
+            <SectionMatrix
+              board={board}
+              section={section}
+              audience={audience}
+              now={now}
+            />
+            {audience === "coach" ? (
+              <CoachSummaries board={board} section={section} />
+            ) : null}
+          </Page>,
+        ];
+        if (audience === "coach") {
+          pages.push(
+            <Page key={`${key}-f2f`} size="LETTER" style={styles.page} wrap>
+              <CoachF2fPage board={board} section={section} />
+            </Page>
+          );
+        }
+        return pages;
+      })}
     </Document>
   );
 }

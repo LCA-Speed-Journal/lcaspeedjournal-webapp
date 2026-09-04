@@ -5,6 +5,7 @@ import {
   f2fFocusBadge,
   f2fPieSlices,
   f2fStrengthDeficiency,
+  pieSlicePath,
 } from "./testing-day-pdf-f2f";
 
 const vertex = (predicted_40: number) => ({
@@ -107,5 +108,13 @@ describe("f2fPieSlices", () => {
       { key: "force", label: "Force-deficient", count: 12, percent: 48 },
     ]);
     expect(f2fPieSlices(mix, 0)).toEqual([]);
+  });
+});
+
+describe("pieSlicePath", () => {
+  it("starts with M and contains an arc", () => {
+    const d = pieSlicePath(50, 50, 40, 0, 0.25);
+    expect(d.startsWith("M")).toBe(true);
+    expect(d).toContain("A");
   });
 });

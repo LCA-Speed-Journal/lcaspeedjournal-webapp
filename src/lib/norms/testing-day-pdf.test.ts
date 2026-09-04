@@ -99,6 +99,17 @@ const annF2f: F2fProfile = {
   primary: "force",
 };
 
+const leviF2f: F2fProfile = {
+  reference_40: 4.8,
+  reference_source: "actual_40",
+  explosion: { predicted_40: 4.7, extrapolated: false, projected: false },
+  force: { predicted_40: 4.75, extrapolated: false, projected: false },
+  form: { predicted_40: 5.1, extrapolated: false, projected: false },
+  eligible_for_labels: true,
+  flags: ["form"],
+  primary: "form",
+};
+
 const poorBoard: TestingDayBoardData = {
   session_id: "s1",
   session_date: "2026-09-02",
@@ -133,6 +144,26 @@ const poorBoard: TestingDayBoardData = {
         },
         total_points: 10,
         f2f: annF2f,
+      },
+      {
+        athlete_id: "l",
+        first_name: "Levi",
+        last_name: "Lee",
+        gender: "M",
+        sport: "football",
+        graduating_class: 2028,
+        cells: {
+          "Vertical Jump\0": {
+            display_value: 24,
+            zone_label: "efficient",
+            zone_color: "#ca8a04",
+            rank: 1,
+            tied: false,
+            points: 7,
+          },
+        },
+        total_points: 7,
+        f2f: leviF2f,
       },
     ],
   },
@@ -254,13 +285,17 @@ describe("renderTestingDayPdf", () => {
     });
     const text = pdfVisibleText(buf);
     expect(text).toContain("Force-to-Form");
+    expect(text).toContain("Roster is Force-deficient");
     expect(text).toContain("Volleyball takeaway");
+    expect(text).not.toContain("the gap is Force, not speed");
+    expect(text).not.toContain("Mix:");
+    expect(text).not.toContain("Top 3:");
+    expect(text).toContain("Force-deficient 1 (100%)");
+    expect(text).toContain("Ref 40");
     expect(text).toContain("Ann Aye");
     expect(text).toContain("5.12");
     expect(text).toContain("5.20");
     expect(text).toContain("4.90*");
-    expect(text).toContain("Force 1");
-    expect(text).toContain("Force-deficient");
     expect(text).not.toContain("Force-strong");
   });
 
@@ -269,10 +304,13 @@ describe("renderTestingDayPdf", () => {
       board: poorBoard,
       audience: "athlete",
     });
-    const text = pdfVisibleText(buf);
-    expect(text).not.toContain("Force-to-Form");
-    expect(text).not.toContain("Volleyball takeaway");
-    expect(text).not.toContain("4.90*");
+    const athleteText = pdfVisibleText(buf);
+    expect(athleteText).toContain("Develop Top-End");
+    expect(athleteText).not.toContain("Develop Force");
+    expect(athleteText).not.toContain("Force-to-Form");
+    expect(athleteText).not.toContain("Roster is");
+    expect(athleteText).not.toContain("Volleyball takeaway");
+    expect(athleteText).not.toContain("4.90*");
   });
 
   it("renders name subline, live zone badges, and coach F2F columns", async () => {

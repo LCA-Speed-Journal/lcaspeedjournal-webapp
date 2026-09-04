@@ -107,3 +107,38 @@ export function f2fPieSlices(
   }
   return slices;
 }
+
+function piePoint(
+  cx: number,
+  cy: number,
+  r: number,
+  frac: number
+): { x: number; y: number } {
+  const angle = frac * 2 * Math.PI - Math.PI / 2;
+  return { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+}
+
+function fmtPieCoord(value: number): string {
+  return value.toFixed(4);
+}
+
+export function pieSlicePath(
+  cx: number,
+  cy: number,
+  r: number,
+  startFrac: number,
+  endFrac: number
+): string {
+  const start = piePoint(cx, cy, r, startFrac);
+  const sweep = endFrac - startFrac;
+  const move = `M ${fmtPieCoord(cx)} ${fmtPieCoord(cy)} L ${fmtPieCoord(start.x)} ${fmtPieCoord(start.y)}`;
+
+  if (sweep >= 1 - 1e-9) {
+    const mid = piePoint(cx, cy, r, startFrac + 0.5);
+    return `${move} A ${fmtPieCoord(r)} ${fmtPieCoord(r)} 0 1 1 ${fmtPieCoord(mid.x)} ${fmtPieCoord(mid.y)} A ${fmtPieCoord(r)} ${fmtPieCoord(r)} 0 1 1 ${fmtPieCoord(start.x)} ${fmtPieCoord(start.y)} Z`;
+  }
+
+  const end = piePoint(cx, cy, r, endFrac);
+  const largeArc = sweep > 0.5 ? 1 : 0;
+  return `${move} A ${fmtPieCoord(r)} ${fmtPieCoord(r)} 0 ${largeArc} 1 ${fmtPieCoord(end.x)} ${fmtPieCoord(end.y)} Z`;
+}
