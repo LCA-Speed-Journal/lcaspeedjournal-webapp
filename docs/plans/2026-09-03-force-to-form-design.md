@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-03  
 **Status:** Validated  
-**Companion:** [2026-09-03-force-to-form-implementation.md](./2026-09-03-force-to-form-implementation.md)
+**Companion:** [2026-09-03-force-to-form-implementation.md](./2026-09-03-force-to-form-implementation.md) · [2026-09-04-f2f-force-515-reconstruction-design.md](./2026-09-04-f2f-force-515-reconstruction-design.md)
 
 **Goal:** Profile each male athlete’s 40yd qualities — Explosion (standing broad jump), Force (early-acceleration fly), Form (top-end fly) — against Tony Villani / XPE Game-Speed lookup tables, draw a Force-to-Form triangle, and surface team themes so sport coaches know what to train. Primary surface is testing-day reporting; the athlete page keeps the same profile in view through the season.
 
@@ -17,7 +17,7 @@ Locked in brainstorming (2026-09-03):
 | Topic | Decision |
 |--------|----------|
 | Stick | XPE lookup tables (one per assessed metric), versioned JSON — not the `/norms` cuts editor |
-| Split gaps | Exact table match first; otherwise mph → predicted-40 curve from that quality’s table(s) |
+| Split gaps | Exact table match first. Force 5–15 is looked up on **time**; when only a 5–10 exists, mph-bridge. Form still mph-bridges unmatched flies. See [5–15 reconstruction](./2026-09-04-f2f-force-515-reconstruction-design.md). |
 | Reference 40 | Actual `0-40yd` when present; otherwise a **sprint-anchored** projection |
 | Partial battery | Two qualities are enough. Missing Form / 40 are projected and flagged |
 | Court-sport case | Broad = Explosion; 5–10 (or 20yd) = Force; 10–20yd mph keeps Form and predicted 40 **realistic**. A big jump does not average up a mediocre 20yd |
@@ -91,7 +91,7 @@ At module load, fit mph → predicted-40 curves per quality from the fly tables 
 ### Mark → predicted 40
 
 1. Exact table + exact split: interpolate neighboring rows.
-2. Same quality, different split (5–10 vs 5–15; 10–20 vs 20–30/20–40): convert to mph, read that quality’s curve.
+2. Force: timed `5-15yd`, else reconstruct 5–15 from 5–10+10–20 (constant *a* 5–20, Villani by time), else 5–10 mph, else 0–20 stand-in. Form unmatched flies: mph → Form curve.
 3. Broad jump: distance → predicted 40, interpolate; light regression only between rows.
 4. Outside table range: clamp and mark `extrapolated`.
 5. Missing / non-finite mark: that vertex is absent (or projected — see below). Never throw.
@@ -101,7 +101,7 @@ At module load, fit mph → predicted-40 curves per quality from the fly tables 
 | Quality | Preferred | Fallback |
 |---------|-----------|----------|
 | Explosion | `Standing-Broad` | — |
-| Force | `40yd_Dash` / `20yd_Dash` `5-15yd` or `5-10yd` | 20yd (`0-20yd`) as Force stand-in |
+| Force | Timed `5-15yd`, else reconstructed 5–15 from `5-10yd`+`10-20yd`, else `5-10yd` mph | 20yd (`0-20yd`) as Force stand-in |
 | Form | `20-40yd`, `30-40yd`, or `20-30yd` | 10–20yd mph as Form proxy |
 | Reference 40 | Actual `0-40yd` | Sprint-anchored projection |
 
