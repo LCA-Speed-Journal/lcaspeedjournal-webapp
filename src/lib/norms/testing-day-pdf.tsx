@@ -13,9 +13,9 @@ import {
   FORTY_YD_DASH,
   FORTY_YD_PRIMARY_COMPONENT,
   TWENTY_YD_DASH,
+  TWENTY_YD_PRIMARY_COMPONENT,
 } from "@/lib/norms/editor-metrics";
 import { forPublicLeaderboard } from "@/lib/norms/leaderboard-zones";
-import { isLiveLeaderboardZone } from "@/lib/norms/palette";
 import {
   formatPlace,
   fmtPoints,
@@ -47,7 +47,10 @@ import {
   F2F_STRENGTH_BG,
   PDF_F2F_QUALITY_LABELS,
   ZONE_ABBREV_LEGEND,
+  coachF2fPdfNote,
   f2fCardHeading,
+  f2fCardSprintSubline,
+  fmtPdfTableMark,
   f2fFocusBadge,
   f2fPieSlices,
   f2fStrengthDeficiency,
@@ -94,7 +97,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderBottomWidth: 0.5,
     borderBottomColor: "#cccccc",
-    paddingVertical: 3,
+    paddingVertical: 1.5,
     alignItems: "flex-start",
   },
   th: {
@@ -134,17 +137,6 @@ const styles = StyleSheet.create({
     color: "#555555",
     fontSize: 7,
   },
-  zoneBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 3,
-    paddingVertical: 1,
-    marginTop: 1,
-    borderRadius: 2,
-  },
-  zoneBadgeText: {
-    color: "#ffffff",
-    fontSize: 6,
-  },
   f2fTitle: {
     fontSize: 12,
     fontFamily: "Helvetica-Bold",
@@ -180,24 +172,62 @@ const styles = StyleSheet.create({
     padding: 5,
     borderRadius: 3,
   },
+  f2fCardCompact: {
+    width: "18%",
+    marginRight: "2%",
+    borderWidth: 0.5,
+    borderColor: "#cccccc",
+    paddingTop: 3,
+    paddingHorizontal: 3,
+    paddingBottom: 2,
+    borderRadius: 3,
+  },
   f2fCardBody: {
     flexDirection: "row",
     alignItems: "flex-start",
+  },
+  f2fCardBodyCompact: {
+    flexDirection: "column",
+    alignItems: "center",
   },
   f2fCardText: {
     flexGrow: 1,
     flexShrink: 1,
     paddingRight: 4,
   },
+  f2fCardTextCompact: {
+    alignItems: "center",
+    width: "100%",
+    paddingRight: 0,
+    marginBottom: 1,
+  },
   f2fCardName: {
     fontFamily: "Helvetica-Bold",
     fontSize: 7,
     marginBottom: 1,
   },
+  f2fCardNameCompact: {
+    fontFamily: "Helvetica-Bold",
+    fontSize: 7,
+    marginBottom: 1,
+    textAlign: "center",
+  },
+  f2fCardSprint: {
+    fontSize: 6,
+    color: "#333333",
+    marginBottom: 1,
+    textAlign: "center",
+  },
   f2fCardChip: {
     fontSize: 6,
     color: "#333333",
     marginBottom: 2,
+  },
+  f2fCardChipCompact: {
+    fontSize: 6,
+    color: "#333333",
+    marginBottom: 2,
+    textAlign: "center",
   },
   f2fCardStat: {
     fontSize: 6,
@@ -213,11 +243,6 @@ const styles = StyleSheet.create({
   },
 });
 
-function fmtMark(value: number, units: string): string {
-  const n = Number.isInteger(value) ? String(value) : value.toFixed(2);
-  return units ? `${n} ${units}` : n;
-}
-
 function isTotalColumn(column: TestingDayMatrixColumn): boolean {
   return column.kind === "total" || column.key === TOTAL_COLUMN_KEY;
 }
@@ -230,6 +255,21 @@ function athleteDisplayName(athlete: TestingDayMatrixAthlete): string {
 function cellWidth(columnCount: number): string {
   if (columnCount <= 0) return "80%";
   return `${80 / columnCount}%`;
+}
+
+function athletePrimaryTwenty(
+  athlete: TestingDayMatrixAthlete,
+  columns: TestingDayMatrixColumn[]
+): number | null {
+  const column =
+    columns.find(
+      (entry) =>
+        entry.metric_key === TWENTY_YD_DASH &&
+        entry.component === TWENTY_YD_PRIMARY_COMPONENT
+    ) ?? columns.find((entry) => entry.metric_key === TWENTY_YD_DASH);
+  if (!column) return null;
+  const value = athlete.cells[column.key]?.display_value;
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function boardSprintFlags(columns: TestingDayMatrixColumn[]): {
@@ -329,13 +369,16 @@ function MatrixCellText({
   if (isTotalColumn(column)) {
     return <Text style={markStyle}>{fmtPoints(cell.display_value)}</Text>;
   }
-  const mark = fmtMark(cell.display_value, column.units);
-  const abbrev = compactZone ? zoneAbbrev(cell.zone_label) : null;
+  const mark = fmtPdfTableMark(
+    cell.display_value,
+    column.units,
+    cell.zone_label
+  );
+  const abbrev = zoneAbbrev(cell.zone_label);
   return (
     <View>
       <Text style={markStyle}>
-        {mark}
-        {abbrev ? " — " : ""}
+        {abbrev ? mark.replace(abbrev, "") : mark}
         {abbrev ? (
           <Text
             style={
@@ -351,26 +394,8 @@ function MatrixCellText({
           {formatPlace(cell.rank, Boolean(cell.tied))}
         </Text>
       ) : null}
-      {compactZone ? null : <ZoneLabelText cell={cell} />}
     </View>
   );
-}
-
-function ZoneLabelText({ cell }: { cell: TestingDayMatrixCell }) {
-  if (!cell.zone_label || cell.zone_label === "poor") return null;
-  if (isLiveLeaderboardZone(cell.zone_label)) {
-    return (
-      <View
-        style={[
-          styles.zoneBadge,
-          cell.zone_color ? { backgroundColor: cell.zone_color } : null,
-        ]}
-      >
-        <Text style={styles.zoneBadgeText}>{cell.zone_label}</Text>
-      </View>
-    );
-  }
-  return <Text style={styles.cellZone}>{cell.zone_label}</Text>;
 }
 
 function F2fTraitLine({
@@ -398,6 +423,7 @@ function F2fTraitLine({
 const PIE_CX = 40;
 const PIE_CY = 40;
 const PIE_R = 32;
+const PIE_DISPLAY = Math.round(80 * 0.85);
 
 function CoachF2fPie({ group }: { group: F2fThemeSummary }) {
   const slices = f2fPieSlices(group.mix, group.eligible_count);
@@ -405,7 +431,7 @@ function CoachF2fPie({ group }: { group: F2fThemeSummary }) {
   let cursor = 0;
   return (
     <View style={styles.f2fPieRow}>
-      <Svg width={80} height={80} viewBox="0 0 80 80">
+      <Svg width={PIE_DISPLAY} height={PIE_DISPLAY} viewBox="0 0 80 80">
         {slices.map((slice) => {
           const startFrac = cursor / group.eligible_count;
           cursor += slice.count;
@@ -430,21 +456,39 @@ function CoachF2fPie({ group }: { group: F2fThemeSummary }) {
   );
 }
 
-function CoachF2fCard({ athlete }: { athlete: TestingDayMatrixAthlete }) {
+function CoachF2fCard({
+  athlete,
+  compact,
+  twentyYd,
+}: {
+  athlete: TestingDayMatrixAthlete;
+  compact: boolean;
+  twentyYd: number | null;
+}) {
   const profile = athlete.f2f;
   const paints = profile ? f2fStrengthDeficiency(profile) : null;
   const chip =
     profile?.eligible_for_labels && profile.primary != null
       ? pdfCoachF2fCopy(f2fChipLabel(profile.primary))
       : null;
+  const sprintSubline = f2fCardSprintSubline(profile, twentyYd);
   return (
-    <View style={styles.f2fCard} wrap={false}>
-      <View style={styles.f2fCardBody}>
-        <View style={styles.f2fCardText}>
-          <Text style={styles.f2fCardName}>
+    <View style={compact ? styles.f2fCardCompact : styles.f2fCard} wrap={false}>
+      <View style={compact ? styles.f2fCardBodyCompact : styles.f2fCardBody}>
+        <View style={compact ? styles.f2fCardTextCompact : styles.f2fCardText}>
+          <Text style={compact ? styles.f2fCardNameCompact : styles.f2fCardName}>
             {f2fCardHeading(athleteDisplayName(athlete), profile)}
           </Text>
-          {chip ? <Text style={styles.f2fCardChip}>{chip}</Text> : null}
+          {sprintSubline ? (
+            <Text style={styles.f2fCardSprint}>{sprintSubline}</Text>
+          ) : null}
+          {chip ? (
+            <Text
+              style={compact ? styles.f2fCardChipCompact : styles.f2fCardChip}
+            >
+              {chip}
+            </Text>
+          ) : null}
           {f2fShowsPredicted40s(profile) ? (
             <>
               <F2fTraitLine
@@ -466,7 +510,11 @@ function CoachF2fCard({ athlete }: { athlete: TestingDayMatrixAthlete }) {
           ) : null}
         </View>
         {profile ? (
-          <PdfF2fTriangle profile={profile} size={F2F_CARD_TRIANGLE_SIZE} />
+          <PdfF2fTriangle
+            profile={profile}
+            size={F2F_CARD_TRIANGLE_SIZE}
+            compact={compact}
+          />
         ) : null}
       </View>
     </View>
@@ -489,7 +537,7 @@ function SectionNotes({
         name={`notes-${audience}-${themeGroupKey(section.sport, section.gender)}`}
         multiline
         fontSize={10}
-        style={{ height: 84, borderWidth: 1, borderColor: "#999999", padding: 4 }}
+        style={{ height: 42, borderWidth: 1, borderColor: "#999999", padding: 4 }}
       />
     </View>
   );
@@ -503,13 +551,17 @@ function CoachF2fSection({
   section: TestingDayPdfSection;
 }) {
   const group = matchingThemeGroup(board, section);
-  const cards = chunkAthletes(section.athletes, 3);
+  const themeNote = coachF2fPdfNote(board.f2f_themes?.session, group);
+  const compact = section.athletes.every(
+    (athlete) => !f2fShowsPredicted40s(athlete.f2f)
+  );
+  const cards = chunkAthletes(section.athletes, compact ? 5 : 3);
   const emptyLabels = !group || group.eligible_count === 0;
   return (
     <View>
       <Text style={styles.f2fTitle}>Force-to-Form</Text>
-      {group?.note ? (
-        <Text style={styles.f2fNote}>{pdfCoachF2fCopy(group.note)}</Text>
+      {themeNote ? (
+        <Text style={styles.f2fNote}>{pdfCoachF2fCopy(themeNote)}</Text>
       ) : null}
       {emptyLabels ? (
         <Text style={styles.f2fNote}>No Force-to-Form labels yet.</Text>
@@ -523,7 +575,12 @@ function CoachF2fSection({
           wrap={false}
         >
           {row.map((athlete) => (
-            <CoachF2fCard key={athlete.athlete_id} athlete={athlete} />
+            <CoachF2fCard
+              key={athlete.athlete_id}
+              athlete={athlete}
+              compact={compact}
+              twentyYd={athletePrimaryTwenty(athlete, board.matrix.columns)}
+            />
           ))}
         </View>
       ))}
@@ -635,9 +692,7 @@ export function TestingDayReportDocument({
             <Text style={styles.muted}>
               {sectionSubhead(board.session_date, section.athletes.length)}
             </Text>
-            {audience === "athlete" ? (
-              <Text style={styles.muted}>{ZONE_ABBREV_LEGEND}</Text>
-            ) : null}
+            <Text style={styles.muted}>{ZONE_ABBREV_LEGEND}</Text>
             <SectionMatrix
               board={board}
               section={section}

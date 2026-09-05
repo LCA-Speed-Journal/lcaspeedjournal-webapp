@@ -1,17 +1,24 @@
 import { describe, expect, it } from "vitest";
 import type { F2fProfile } from "./f2f/types";
-import type { F2fThemeMix } from "./f2f/themes";
+import type { F2fThemeMix, F2fThemeSummary } from "./f2f/themes";
 import {
   ZONE_ABBREV_LEGEND,
   PDF_F2F_QUALITY_LABELS,
+  coachF2fPdfNote,
   f2fCardHeading,
+  f2fCardSprintSubline,
   f2fFocusBadge,
   f2fPieSlices,
   f2fStrengthDeficiency,
   pdfCoachF2fCopy,
+  fmtPdfTableMark,
   pieSlicePath,
   zoneAbbrev,
 } from "./testing-day-pdf-f2f";
+import {
+  F2F_CARD_TRIANGLE_SIZE,
+  pdfTriangleLayout,
+} from "./testing-day-pdf-triangle";
 
 const vertex = (predicted_40: number) => ({
   predicted_40,
@@ -90,6 +97,26 @@ describe("f2fCardHeading", () => {
   });
 });
 
+describe("f2fCardSprintSubline", () => {
+  it("is the 20yd mark when predicted 40s are hidden", () => {
+    expect(
+      f2fCardSprintSubline(profile({ show_predicted_40s: false }), 3.33)
+    ).toBe("3.33 20yd");
+  });
+
+  it("is omitted when predicted 40s are shown or the 20yd is missing", () => {
+    expect(
+      f2fCardSprintSubline(
+        profile({ show_predicted_40s: true, reference_40: 5.2 }),
+        3.33
+      )
+    ).toBeNull();
+    expect(
+      f2fCardSprintSubline(profile({ show_predicted_40s: false }), null)
+    ).toBeNull();
+  });
+});
+
 describe("f2fFocusBadge", () => {
   it("follows eligible_for_labels and uses Develop Top-End for Form", () => {
     expect(f2fFocusBadge(profile({ primary: "form" }))).toEqual({
@@ -141,6 +168,62 @@ describe("pdfCoachF2fCopy", () => {
       "No Force-to-Form labels yet."
     );
     expect(PDF_F2F_QUALITY_LABELS.form).toBe("Top-End");
+  });
+});
+
+const theme = (
+  note: string,
+  generated_note: string
+): F2fThemeSummary => ({
+  sport: null,
+  gender: null,
+  eligible_count: 1,
+  mix: { explosion: 0, force: 1, form: 0, balanced: 0 },
+  top3_mix: { explosion: 0, force: 1, form: 0, balanced: 0 },
+  top5_mix: { explosion: 0, force: 1, form: 0, balanced: 0 },
+  rest_mix: { explosion: 0, force: 0, form: 0, balanced: 0 },
+  generated_note,
+  note,
+});
+
+describe("coachF2fPdfNote", () => {
+  const generated = "Roster is Force-deficient (1/1).";
+
+  it("uses the session override when the group note is still generated", () => {
+    expect(
+      coachF2fPdfNote(
+        theme("the gap is Force, not speed", generated),
+        theme(generated, generated)
+      )
+    ).toBe("the gap is Force, not speed");
+  });
+
+  it("prefers a group override over the session note", () => {
+    expect(
+      coachF2fPdfNote(
+        theme("Session takeaway", generated),
+        theme("Volleyball takeaway", generated)
+      )
+    ).toBe("Volleyball takeaway");
+  });
+});
+
+describe("fmtPdfTableMark", () => {
+  it("omits units and inlines zone codes", () => {
+    expect(fmtPdfTableMark(16, "in", "poor")).toBe("16");
+    expect(fmtPdfTableMark(28, "in", "efficient")).toBe("28 — EFF");
+    expect(fmtPdfTableMark(3.33, "s", undefined)).toBe("3.33");
+  });
+});
+
+describe("pdfTriangleLayout", () => {
+  it("keeps axis labels and crops empty viewBox space", () => {
+    const full = pdfTriangleLayout(F2F_CARD_TRIANGLE_SIZE, false);
+    const compact = pdfTriangleLayout(F2F_CARD_TRIANGLE_SIZE, true);
+    expect(full.height).toBeLessThan(full.width);
+    expect(compact.height).toBeLessThan(compact.width);
+    expect(compact.hideLabels).toBe(false);
+    expect(full.hideLabels).toBe(false);
   });
 });
 

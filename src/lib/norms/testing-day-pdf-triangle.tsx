@@ -2,7 +2,6 @@ import { Circle, Line, Polygon, Svg, Text } from "@react-pdf/renderer";
 import { vertexRadius } from "@/lib/norms/f2f/triangle";
 import type { F2fProfile, F2fQuality, F2fVertex } from "@/lib/norms/f2f/types";
 
-const SIZE = 120;
 const CX = 60;
 const CY = 64;
 const FRAME_R = 36;
@@ -31,13 +30,25 @@ function labelAnchor(quality: F2fQuality): "middle" | "end" | "start" {
 const DEFAULT_DISPLAY_SIZE = 72;
 export const F2F_CARD_TRIANGLE_SIZE = Math.round(DEFAULT_DISPLAY_SIZE * 1.15);
 
+export function pdfTriangleLayout(size: number, _compact: boolean) {
+  return {
+    viewBox: "0 6 120 90",
+    width: size,
+    height: Math.round((size * 90) / 120),
+    hideLabels: false,
+  };
+}
+
 export function PdfF2fTriangle({
   profile,
   size = DEFAULT_DISPLAY_SIZE,
+  compact = false,
 }: {
   profile: F2fProfile;
   size?: number;
+  compact?: boolean;
 }) {
+  const layout = pdfTriangleLayout(size, compact);
   const reference = profile.reference_40;
   const frame = AXES.map((axis) => axisPoint(axis.angle, FRAME_R));
   const plotted = AXES.map((axis) => {
@@ -55,7 +66,11 @@ export function PdfF2fTriangle({
   const pointsAttr = connected.map((point) => `${point.x},${point.y}`).join(" ");
 
   return (
-    <Svg viewBox={`0 0 ${SIZE} ${SIZE}`} width={size} height={size}>
+    <Svg
+      viewBox={layout.viewBox}
+      width={layout.width}
+      height={layout.height}
+    >
       <Polygon
         points={frame.map((point) => `${point.x},${point.y}`).join(" ")}
         fill="none"

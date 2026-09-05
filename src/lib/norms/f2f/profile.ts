@@ -4,6 +4,12 @@ import { DEFICIENCY_BAND, STANDING_BROAD } from "./constants";
 import { isForceStandIn } from "./force-stand-in";
 import { reconstructFiveFifteen } from "./reconstruct-515";
 import { resolveExplosion, resolveForce, resolveForm } from "./resolve-mark";
+import {
+  estimateTwentyThirty,
+  predict40FromTenTwenty,
+  predict40FromTwenty,
+} from "./segment-table";
+import { canonicalSprintComponent } from "./sprint-component";
 import type {
   F2fAthlete,
   F2fEntry,
@@ -73,7 +79,10 @@ function vertexFromEntry(
     ...vertex,
     input: {
       metric_key: entry.metric_key,
-      component: entry.component,
+      component:
+        entry.metric_key === STANDING_BROAD
+          ? entry.component
+          : (canonicalSprintComponent(entry.component) ?? entry.component),
       value: entry.display_value,
       units: entry.metric_key === STANDING_BROAD ? "ft" : "s",
     },
@@ -89,12 +98,68 @@ function pickExplosion(entries: F2fEntry[]): F2fVertex | null {
 }
 
 function pickSprintSplit(entries: F2fEntry[], component: string): F2fEntry | null {
+  const want = canonicalSprintComponent(component);
   return pickBestTime(
     finiteEntries(
       entries,
-      (entry) => isSprintMetric(entry.metric_key) && entry.component === component
+      (entry) =>
+        isSprintMetric(entry.metric_key) &&
+        canonicalSprintComponent(entry.component) === want
     )
   );
+}
+
+function flyFromCumulatives(
+  end: F2fEntry,
+  start: F2fEntry,
+  flyComponent: string
+): F2fEntry | null {
+  const value = end.display_value - start.display_value;
+  if (!Number.isFinite(value) || value <= 0) return null;
+  const sameDate =
+    start.session_date && start.session_date === end.session_date
+      ? start.session_date
+      : undefined;
+  return {
+    metric_key: end.metric_key,
+    component: flyComponent,
+    display_value: value,
+    ...(sameDate ? { session_date: sameDate } : {}),
+  };
+}
+
+function withDerivedSprintFlies(entries: F2fEntry[]): F2fEntry[] {
+  const extra: F2fEntry[] = [];
+  if (!pickSprintSplit(entries, "5-10yd")) {
+    const ten = pickSprintSplit(entries, "0-10yd");
+    const five = pickSprintSplit(entries, "0-5yd");
+    const derived = ten && five ? flyFromCumulatives(ten, five, "5-10yd") : null;
+    if (derived) extra.push(derived);
+  }
+  if (!pickSprintSplit(entries, "10-20yd")) {
+    const twenty = pickSprintSplit(entries, "0-20yd");
+    const ten = pickSprintSplit(entries, "0-10yd");
+    let derived =
+      twenty && ten ? flyFromCumulatives(twenty, ten, "10-20yd") : null;
+    if (!derived && twenty) {
+      const five = pickSprintSplit(entries, "0-5yd");
+      const fiveTen = pickSprintSplit([...entries, ...extra], "5-10yd");
+      if (five && fiveTen) {
+        const value =
+          twenty.display_value - five.display_value - fiveTen.display_value;
+        if (Number.isFinite(value) && value > 0) {
+          derived = {
+            metric_key: twenty.metric_key,
+            component: "10-20yd",
+            display_value: value,
+            ...(twenty.session_date ? { session_date: twenty.session_date } : {}),
+          };
+        }
+      }
+    }
+    if (derived) extra.push(derived);
+  }
+  return extra.length > 0 ? [...entries, ...extra] : entries;
 }
 
 function pickForce(entries: F2fEntry[]): F2fVertex | null {
@@ -171,9 +236,12 @@ function pickForce(entries: F2fEntry[]): F2fVertex | null {
 function pickForm(entries: F2fEntry[]): F2fVertex | null {
   let bestExact: F2fVertex | null = null;
   for (const { component, yards } of FORM_EXACT) {
+    const want = canonicalSprintComponent(component);
     const matches = finiteEntries(
       entries,
-      (entry) => isSprintMetric(entry.metric_key) && entry.component === component
+      (entry) =>
+        isSprintMetric(entry.metric_key) &&
+        canonicalSprintComponent(entry.component) === want
     );
     const best = pickBestTime(matches);
     if (!best) continue;
@@ -195,22 +263,30 @@ function pickForm(entries: F2fEntry[]): F2fVertex | null {
   }
   if (bestExact) return bestExact;
 
-  const proxy = pickBestTime(
-    finiteEntries(
-      entries,
-      (entry) => isSprintMetric(entry.metric_key) && entry.component === "10-20yd"
-    )
-  );
+  const proxy = pickSprintSplit(entries, "10-20yd");
   if (!proxy) return null;
-  return vertexFromEntry(
-    proxy,
+  const t2030 = estimateTwentyThirty(proxy.display_value);
+  if (t2030 == null) return null;
+  const vertex = vertexFromHit(
     resolveForm({
-      component: "10-20yd",
-      timeS: proxy.display_value,
+      component: "20-30yd",
+      timeS: t2030,
       yards: 10,
     }),
-    true
+    true,
+    mphFromYardSplit(t2030, 10)
   );
+  if (!vertex) return null;
+  return {
+    ...vertex,
+    input: {
+      metric_key: proxy.metric_key,
+      component: "20-30yd",
+      value: t2030,
+      units: "s",
+    },
+    ...(proxy.session_date ? { session_date: proxy.session_date } : {}),
+  };
 }
 
 function pickActual40(entries: F2fEntry[]): number | null {
@@ -218,7 +294,8 @@ function pickActual40(entries: F2fEntry[]): number | null {
     finiteEntries(
       entries,
       (entry) =>
-        entry.metric_key === FORTY_YD_DASH && entry.component === "0-40yd"
+        entry.metric_key === FORTY_YD_DASH &&
+        canonicalSprintComponent(entry.component) === "0-40yd"
     )
   );
   return best ? best.display_value : null;
@@ -261,11 +338,18 @@ export function buildF2fProfile(
   entries: F2fEntry[],
   athlete: F2fAthlete
 ): F2fProfile {
+  const sprintEntries = withDerivedSprintFlies(entries);
   const explosion = pickExplosion(entries);
-  const force = pickForce(entries);
-  let form = pickForm(entries);
+  const force = pickForce(sprintEntries);
+  let form = pickForm(sprintEntries);
 
   const actual40 = pickActual40(entries);
+  const twenty = pickSprintSplit(sprintEntries, "0-20yd");
+  const tenTwenty = pickSprintSplit(sprintEntries, "10-20yd");
+  const fromTwenty = twenty ? predict40FromTwenty(twenty.display_value) : null;
+  const fromTenTwenty = tenTwenty
+    ? predict40FromTenTwenty(tenTwenty.display_value)
+    : null;
   const sprintPredicted = [force, form]
     .filter((vertex): vertex is F2fVertex => vertex != null)
     .map((vertex) => vertex.predicted_40);
@@ -276,15 +360,19 @@ export function buildF2fProfile(
   if (actual40 != null) {
     reference_40 = actual40;
     reference_source = "actual_40";
-    if (!form && force && Number.isFinite(reference_40)) {
-      form = projectedForm(reference_40);
-    }
+  } else if (fromTwenty != null) {
+    reference_40 = fromTwenty;
+    reference_source = "projected";
+  } else if (fromTenTwenty != null) {
+    reference_40 = fromTenTwenty;
+    reference_source = "projected";
   } else if (sprintPredicted.length > 0) {
     reference_40 = median(sprintPredicted);
     reference_source = "projected";
-    if (!form && Number.isFinite(reference_40)) {
-      form = projectedForm(reference_40);
-    }
+  }
+
+  if (!form && force && reference_40 != null && Number.isFinite(reference_40)) {
+    form = projectedForm(reference_40);
   }
 
   const qualities: { quality: F2fQuality; predicted_40: number }[] = [];

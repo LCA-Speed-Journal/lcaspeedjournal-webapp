@@ -5,7 +5,7 @@ import {
   renderTestingDayPdf,
   testingDayPdfFilename,
 } from "./testing-day-pdf";
-import type { TestingDayBoardData } from "./testing-day";
+import { testingDayColumnKey, type TestingDayBoardData } from "./testing-day";
 import type { F2fProfile } from "./f2f/types";
 import type { F2fThemeSummary } from "./f2f/themes";
 
@@ -112,6 +112,8 @@ const leviF2f: F2fProfile = {
   primary: "form",
 };
 
+const twentyYdKey = testingDayColumnKey("20yd_Dash", "0-20yd");
+
 const poorBoard: TestingDayBoardData = {
   session_id: "s1",
   session_date: "2026-09-02",
@@ -126,6 +128,13 @@ const poorBoard: TestingDayBoardData = {
         component: null,
         units: "in",
       },
+      {
+        key: twentyYdKey,
+        metric_key: "20yd_Dash",
+        display_name: "20yd Dash",
+        component: "0-20yd",
+        units: "s",
+      },
     ],
     athletes: [
       {
@@ -137,6 +146,14 @@ const poorBoard: TestingDayBoardData = {
         cells: {
           "Vertical Jump\0": {
             display_value: 16,
+            zone_label: "poor",
+            zone_color: "#dc2626",
+            rank: 1,
+            tied: false,
+            points: 10,
+          },
+          [twentyYdKey]: {
+            display_value: 3.33,
             zone_label: "poor",
             zone_color: "#dc2626",
             rank: 1,
@@ -287,13 +304,15 @@ describe("renderTestingDayPdf", () => {
     });
     const text = pdfVisibleText(buf);
     expect(text).toContain("Force-to-Form");
-    expect(text).toContain("Roster is Force-deficient");
-    expect(text).not.toContain("the gap is Force, not speed");
+    expect(text).toContain("the gap is Force, not speed");
+    expect(text).not.toContain("Roster is Force-deficient");
     expect(text).not.toContain("Mix:");
     expect(text).not.toContain("Top 3:");
     expect(text).toContain("Force-deficient 1 (100%)");
     expect(text).toContain("Ann Aye");
+    expect(text).toContain("3.33 20yd");
     expect(text).not.toContain("Ann Aye: 5.00 40yd");
+    expect(text).not.toContain("Ann Aye: 3.33 20yd");
     expect(text).toContain("Levi Lee: 4.80 40yd");
     expect(text).not.toContain("5.12");
     expect(text).not.toContain("5.20");
@@ -334,10 +353,17 @@ describe("renderTestingDayPdf", () => {
     });
     const text = pdfVisibleText(buf).replace(/\u0097/g, "\u2014");
     expect(text).toContain("1st — 12th");
-    expect(text).toContain("efficient");
+    expect(text).toContain("28 — EFF");
+    expect(text).toContain("EFF Efficient");
+    expect(text).not.toContain("28 in");
     expect(text).not.toMatch(/soccer · M|volleyball · F/i);
     expect(text).toContain("Ann Aye");
+    expect(text).toContain("3.33 20yd");
+    expect(text).toContain("Explosion");
+    expect(text).toContain("Force");
+    expect(text).toContain("Top-End");
     expect(text).not.toContain("Ann Aye: 5.00 40yd");
+    expect(text).not.toContain("Ann Aye: 3.33 20yd");
     expect(text).not.toContain("4.90*");
     expect(text).not.toContain("5.20");
     expect(text).not.toContain("5.12");
@@ -354,7 +380,8 @@ describe("renderTestingDayPdf", () => {
     });
     const text = pdfVisibleText(buf).replace(/\u0097/g, "\u2014");
     expect(text).toContain("1st — 12th");
-    expect(text).toContain("28 in — EFF");
+    expect(text).toContain("28 — EFF");
+    expect(text).not.toContain("28 in");
     expect(text).toContain("EFF Efficient");
     expect(text).toContain("ADV Advanced");
     expect(text).toContain("E Elite");

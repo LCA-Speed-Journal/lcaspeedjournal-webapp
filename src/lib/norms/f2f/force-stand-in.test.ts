@@ -9,6 +9,9 @@ describe("isForceStandIn", () => {
     expect(
       isForceStandIn({ metric_key: "40yd_Dash", component: "0-20yd" })
     ).toBe(true);
+    expect(
+      isForceStandIn({ metric_key: "20yd_Dash", component: "0-20" })
+    ).toBe(true);
   });
 
   it("rejects other splits and metrics", () => {

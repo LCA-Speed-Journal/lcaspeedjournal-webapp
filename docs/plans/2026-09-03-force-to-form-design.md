@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-03  
 **Status:** Validated  
-**Companion:** [2026-09-03-force-to-form-implementation.md](./2026-09-03-force-to-form-implementation.md) · [2026-09-04-f2f-force-515-reconstruction-design.md](./2026-09-04-f2f-force-515-reconstruction-design.md)
+**Companion:** [2026-09-03-force-to-form-implementation.md](./2026-09-03-force-to-form-implementation.md) · [2026-09-04-f2f-force-515-reconstruction-design.md](./2026-09-04-f2f-force-515-reconstruction-design.md) · [2026-09-04-f2f-slow-end-extrapolation-design.md](./2026-09-04-f2f-slow-end-extrapolation-design.md)
 
 **Goal:** Profile each male athlete’s 40yd qualities — Explosion (standing broad jump), Force (early-acceleration fly), Form (top-end fly) — against Tony Villani / XPE Game-Speed lookup tables, draw a Force-to-Form triangle, and surface team themes so sport coaches know what to train. Primary surface is testing-day reporting; the athlete page keeps the same profile in view through the season.
 
@@ -22,7 +22,7 @@ Locked in brainstorming (2026-09-03):
 | Partial battery | Two qualities are enough. Missing Form / 40 are projected and flagged |
 | Court-sport case | Broad = Explosion; 5–10 (or 20yd) = Force; 10–20yd mph keeps Form and predicted 40 **realistic**. A big jump does not average up a mediocre 20yd |
 | Labels | Qualities **3–4% slower** than reference are deficient. One **primary** label (largest gap) plus secondary flags |
-| Gender | Males: full labels. Girls: triangle only, no deficiency words, excluded from theme counts |
+| Gender | **Superseded 2026-09-04:** women get deficiency labels from shape; per-quality predicted 40s (and Ref 40) are male-only. See [slow-end extrapolation](./2026-09-04-f2f-slow-end-extrapolation-design.md). |
 | Testing-day | Session snapshot only. Triangle strip + themes. Coach PDF includes F2F; athlete PDF does not lecture |
 | Athlete page | Same engine. Toggle: **Full-test** / **Best** / **Latest**. Best and Latest are labeled *composed* |
 | Team themes | Whole-group mix, then top 3 / top 5 vs the rest, by sport · gender. “Best” = actual 40, else predicted 40 (not combine points) |
@@ -33,14 +33,14 @@ Locked in brainstorming (2026-09-03):
 
 - A testing-day 40 with 5–10 and 20–40 plus a broad jump produces a labeled triangle and a primary quality.
 - A court athlete with only 20yd + broad jump still gets Explosion, Force, projected Form, and a projected 40 that tracks the 20yd / 10–20, not the jump.
-- Girls show a shape without “Force-deficient.”
+- Girls show a labeled shape (no per-quality predicted 40s). See [slow-end extrapolation](./2026-09-04-f2f-slow-end-extrapolation-design.md).
 - Coach can rewrite “the gap is Force, not speed” and see that wording on reload and on the coach PDF.
 - Athlete page Full-test matches the last testing-day profile; Best / Latest are visibly composed.
 
 **Out of scope (v1)**
 
 - Coach-editable XPE rows in `/norms` (tables are a published stick)
-- Female XPE table and girls’ deficiency labels
+- Female XPE table (women use the same stick + slow-end OLS; labels come from shape)
 - Mixing F2F into live leaderboard cards or zone palette
 - Historical effective-dating of tables (current JSON is the stick)
 - Weight-room lift PDFs gaining an F2F appendix
@@ -102,8 +102,8 @@ At module load, fit mph → predicted-40 curves per quality from the fly tables 
 |---------|-----------|----------|
 | Explosion | `Standing-Broad` | — |
 | Force | Timed `5-15yd`, else reconstructed 5–15 from `5-10yd`+`10-20yd`, else `5-10yd` mph | 20yd (`0-20yd`) as Force stand-in |
-| Form | `20-40yd`, `30-40yd`, or `20-30yd` | 10–20yd mph as Form proxy |
-| Reference 40 | Actual `0-40yd` | Sprint-anchored projection |
+| Form | `20-40yd`, `30-40yd`, or `20-30yd` | 10–20 → `t − 0.10` on Villani 20–30 ([2026-09-04](./2026-09-04-f2f-20yd-form-and-reference-design.md)) |
+| Reference 40 | Actual `0-40yd` | 0–20 OLS, else 10–20 identity, else Force/Form median |
 
 **Sprint-anchored projection:** a large Explosion predicted-40 does **not** average with a slower 20yd. Predicted 40 and missing Form stay tied to the sprint (20yd time and 10–20yd as the realism check). The jump still plots as Explosion and may show as a strength.
 
@@ -121,8 +121,8 @@ Band: predicted 40 **3–4% slower** than reference (~0.15–0.20s on a 5.00). I
 
 ### Triangle scale
 
-- Center (origin): **10% slower** than reference 40.
-- Outer bound: **10% faster** than reference 40.
+- Center (origin): **12.5% slower** than reference 40.
+- Outer bound: **12.5% faster** than reference 40.
 - Each vertex is that quality’s predicted 40 mapped onto its axis.
 - Projected vertices: dashed / hollow.
 
@@ -207,8 +207,8 @@ Sprint-anchored rules still apply when composing. Girls: triangle, no labels. No
 | One quality | Show that vertex + predicted 40; `primary` null |
 | Two qualities | Project missing Form/40; dashed vertices; males may classify |
 | No actual 40 | `reference_source: "projected"`; classify against it |
-| Girls / unlabeled | Shape only; excluded from themes |
-| Outside table range | Clamp + `extrapolated` |
+| Girls / unlabeled | Labels from shape; no per-quality 40s; counted in themes. Unknown gender: shape only |
+| Outside table range | Fast end: clamp + `extrapolated`. Slow end: tail OLS — [slow-end extrapolation](./2026-09-04-f2f-slow-end-extrapolation-design.md) |
 | Engine / table load fail | Omit F2F; board and athlete page still work (same as zone-query failure) |
 
 ---

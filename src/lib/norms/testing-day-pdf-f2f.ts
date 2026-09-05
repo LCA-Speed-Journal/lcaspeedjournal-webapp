@@ -1,5 +1,5 @@
 import { f2fShowsPredicted40s } from "./f2f/labels";
-import type { F2fThemeMix, F2fThemePrimary } from "./f2f/themes";
+import type { F2fThemeMix, F2fThemePrimary, F2fThemeSummary } from "./f2f/themes";
 import type { F2fProfile, F2fQuality } from "./f2f/types";
 
 export const F2F_FOCUS_COLORS = {
@@ -39,6 +39,16 @@ export function zoneAbbrev(label: string | undefined): string | null {
   return null;
 }
 
+export function fmtPdfTableMark(
+  value: number,
+  _units: string | null | undefined,
+  zoneLabel?: string
+): string {
+  const n = Number.isInteger(value) ? String(value) : value.toFixed(2);
+  const abbrev = zoneAbbrev(zoneLabel);
+  return abbrev ? `${n} \u2014 ${abbrev}` : n;
+}
+
 const QUALITIES: F2fQuality[] = ["explosion", "force", "form"];
 
 const FOCUS_TEXT: Record<F2fQuality, string> = {
@@ -65,6 +75,20 @@ export function pdfCoachF2fCopy(text: string): string {
     .replaceAll("Force-to-Form", "\u0000")
     .replace(/\bForm\b/g, "Top-End")
     .replaceAll("\u0000", "Force-to-Form");
+}
+
+export function coachF2fPdfNote(
+  session: F2fThemeSummary | undefined,
+  group: F2fThemeSummary | undefined
+): string | null {
+  const groupOverridden =
+    group != null && group.note.trim() !== group.generated_note.trim();
+  if (groupOverridden) return group.note.trim();
+  const sessionOverridden =
+    session != null && session.note.trim() !== session.generated_note.trim();
+  if (sessionOverridden) return session.note.trim();
+  const fallback = group?.note.trim() || session?.note.trim();
+  return fallback ? fallback : null;
 }
 
 export type F2fPaint = "strength" | "deficiency" | null;
@@ -124,6 +148,15 @@ export function f2fCardHeading(
     return `${name}: ${profile.reference_40.toFixed(2)} 40yd`;
   }
   return name;
+}
+
+export function f2fCardSprintSubline(
+  profile: F2fProfile | null | undefined,
+  twentyYd: number | null | undefined
+): string | null {
+  if (f2fShowsPredicted40s(profile)) return null;
+  if (twentyYd == null || !Number.isFinite(twentyYd)) return null;
+  return `${twentyYd.toFixed(2)} 20yd`;
 }
 
 export function f2fFocusBadge(

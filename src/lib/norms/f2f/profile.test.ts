@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import { mphFromYardSplit } from "../forty-yd";
 import { buildF2fProfile } from "./profile";
 import { reconstructFiveFifteen } from "./reconstruct-515";
-import { resolveForce } from "./resolve-mark";
+import { resolveForce, resolveForm } from "./resolve-mark";
+import {
+  estimateTwentyThirty,
+  predict40FromTenTwenty,
+  predict40FromTwenty,
+} from "./segment-table";
 
 const male = { gender: "M" as const };
 
@@ -50,14 +55,22 @@ describe("buildF2fProfile", () => {
     expect(profile.force?.input?.component).toBe("5-15yd");
     expect(profile.force?.predicted_40).toBeCloseTo(expectedForce!.predicted_40);
     const explosion = profile.explosion!.predicted_40;
-    const force = profile.force!.predicted_40;
-    const form = profile.form!.predicted_40;
-    const sprintMedian = (force + form) / 2;
-    const withExplosion = (explosion + force + form) / 3;
-    expect(profile.reference_40).toBeCloseTo(sprintMedian);
-    expect(profile.reference_40).not.toBeCloseTo(withExplosion);
+    const fromTwenty = predict40FromTwenty(2.9)!;
+    const t2030 = estimateTwentyThirty(1.3)!;
+    const expectedForm = resolveForm({
+      component: "20-30yd",
+      timeS: t2030,
+      yards: 10,
+    });
+    expect(profile.reference_40).toBeCloseTo(fromTwenty);
+    expect(profile.reference_40).not.toBeCloseTo(
+      (profile.force!.predicted_40 + profile.form!.predicted_40) / 2
+    );
     expect(profile.reference_40).toBeGreaterThan(explosion);
     expect(profile.form?.projected).toBe(true);
+    expect(profile.form?.input?.component).toBe("20-30yd");
+    expect(profile.form?.input?.value).toBeCloseTo(t2030);
+    expect(profile.form?.predicted_40).toBeCloseTo(expectedForm!.predicted_40);
   });
 
   it("projects reference from a 20yd Force stand-in without averaging explosion", () => {
@@ -72,7 +85,8 @@ describe("buildF2fProfile", () => {
     expect(profile.force).not.toBeNull();
     expect(profile.force?.predicted_40).toBeCloseTo(standIn!.predicted_40);
     expect(profile.reference_source).toBe("projected");
-    expect(profile.reference_40).toBeCloseTo(profile.force!.predicted_40);
+    expect(profile.reference_40).toBeCloseTo(predict40FromTwenty(2.9)!);
+    expect(profile.reference_40).not.toBeCloseTo(profile.force!.predicted_40);
     expect(profile.form?.projected).toBe(true);
     expect(profile.form?.predicted_40).toBeCloseTo(profile.reference_40!);
     expect(profile.reference_40).toBeGreaterThan(profile.explosion!.predicted_40);
@@ -147,6 +161,21 @@ describe("buildF2fProfile", () => {
     expect(profile.force?.predicted_40).toBeCloseTo(standIn!.predicted_40);
     expect(profile.form?.projected).toBe(true);
     expect(profile.form?.predicted_40).toBeCloseTo(profile.reference_40!);
+    expect(profile.reference_40).toBeCloseTo(predict40FromTwenty(2.9)!);
+  });
+
+  it("projects 40 from a 10-20 when there is no 0-20", () => {
+    const profile = buildF2fProfile(
+      [
+        { metric_key: "Standing-Broad", component: null, display_value: 9 },
+        { metric_key: "20yd_Dash", component: "10-20yd", display_value: 1.16 },
+      ],
+      male
+    );
+    expect(profile.reference_source).toBe("projected");
+    expect(profile.reference_40).toBeCloseTo(predict40FromTenTwenty(1.16)!);
+    expect(profile.form?.input?.component).toBe("20-30yd");
+    expect(profile.form?.input?.value).toBeCloseTo(1.06);
   });
 
   it("projects missing Form onto an actual 40 when Force exists", () => {
@@ -245,5 +274,46 @@ describe("buildF2fProfile", () => {
       units: "s",
     });
     expect(profile.force?.session_date).toBe("2026-04-20");
+  });
+
+  it("derives 5-10 and 10-20 from 20yd cumulatives so Form is not copied onto Force", () => {
+    const profile = buildF2fProfile(
+      [
+        { metric_key: "Standing-Broad", component: null, display_value: 6.75 },
+        { metric_key: "20yd_Dash", component: "0-5yd", display_value: 1.15 },
+        { metric_key: "20yd_Dash", component: "0-10yd", display_value: 2.05 },
+        { metric_key: "20yd_Dash", component: "0-20yd", display_value: 3.33 },
+      ],
+      { gender: "F" }
+    );
+    const reconstructed = reconstructFiveFifteen(0.9, 1.28);
+    const expectedForce = resolveForce({
+      timeS: reconstructed!.timeS,
+      yards: 10,
+      lookup: "time",
+    });
+    expect(profile.force?.input?.component).toBe("5-15yd");
+    expect(profile.force?.predicted_40).toBeCloseTo(expectedForce!.predicted_40);
+    expect(profile.form?.input?.component).toBe("20-30yd");
+    expect(profile.form?.input?.value).toBeCloseTo(1.18);
+    expect(profile.form?.predicted_40).not.toBeCloseTo(profile.force!.predicted_40);
+    expect(profile.form?.predicted_40).not.toBeCloseTo(profile.reference_40!);
+    expect(profile.primary).toBe("force");
+  });
+
+  it("reads 20yd fly splits when the yard suffix is missing", () => {
+    const profile = buildF2fProfile(
+      [
+        { metric_key: "Standing-Broad", component: null, display_value: 6.75 },
+        { metric_key: "20yd_Dash", component: "5-10", display_value: 0.9 },
+        { metric_key: "20yd_Dash", component: "10-20", display_value: 1.28 },
+        { metric_key: "20yd_Dash", component: "0-20", display_value: 3.33 },
+      ],
+      { gender: "F" }
+    );
+    expect(profile.force?.input?.component).toBe("5-15yd");
+    expect(profile.form?.input?.component).toBe("20-30yd");
+    expect(profile.form?.predicted_40).not.toBeCloseTo(profile.reference_40!);
+    expect(profile.primary).toBe("force");
   });
 });
