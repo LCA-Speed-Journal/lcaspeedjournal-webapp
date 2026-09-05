@@ -21,6 +21,7 @@ const profile = (partial: Partial<F2fProfile>): F2fProfile => ({
   force: vertex(5.2),
   form: vertex(4.9),
   eligible_for_labels: true,
+  show_predicted_40s: true,
   flags: ["force"],
   primary: "force",
   ...partial,

@@ -95,6 +95,7 @@ const annF2f: F2fProfile = {
   force: { predicted_40: 5.2, extrapolated: false, projected: false },
   form: { predicted_40: 4.9, extrapolated: false, projected: true },
   eligible_for_labels: false,
+  show_predicted_40s: false,
   flags: [],
   primary: null,
 };
@@ -106,6 +107,7 @@ const leviF2f: F2fProfile = {
   force: { predicted_40: 4.75, extrapolated: false, projected: false },
   form: { predicted_40: 5.1, extrapolated: false, projected: false },
   eligible_for_labels: true,
+  show_predicted_40s: true,
   flags: ["form"],
   primary: "form",
 };

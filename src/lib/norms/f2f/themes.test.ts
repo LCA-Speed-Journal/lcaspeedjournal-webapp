@@ -36,7 +36,13 @@ describe("buildF2fThemes", () => {
       athlete({ id: "6", primary: "force", reference_40: 5.1 }),
       athlete({ id: "7", primary: "force", reference_40: 5.2 }),
       athlete({ id: "8", primary: "force", reference_40: 5.3 }),
-      athlete({ id: "g", gender: "F", eligible_for_labels: false, primary: null, reference_40: 4.5 }),
+      athlete({
+        id: "g",
+        gender: "F",
+        eligible_for_labels: true,
+        primary: "explosion",
+        reference_40: 5.4,
+      }),
     ];
     const themes = buildF2fThemes(athletes);
     const soccerM = themes.groups.find(
@@ -52,7 +58,11 @@ describe("buildF2fThemes", () => {
     expect(soccerM?.generated_note).toMatch(
       /Top 5 are Form-deficient|Top 5's gap is Form/
     );
-    expect(themes.groups.some((g) => g.gender === "F")).toBe(false);
+    const soccerF = themes.groups.find(
+      (g) => g.sport === "soccer" && g.gender === "F"
+    );
+    expect(soccerF?.eligible_count).toBe(1);
+    expect(soccerF?.mix.explosion).toBe(1);
   });
 
   it("calls a balanced roster Balanced, not Balanced-deficient", () => {

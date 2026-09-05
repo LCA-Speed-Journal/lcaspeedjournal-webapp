@@ -24,6 +24,7 @@ describe("buildF2fProfile", () => {
     expect(profile.form?.predicted_40).toBeCloseTo(4.9, 2);
     expect(profile.form?.projected).toBe(false);
     expect(profile.eligible_for_labels).toBe(true);
+    expect(profile.show_predicted_40s).toBe(true);
     expect(profile.flags).toEqual([]);
     expect(profile.primary).toBe("balanced");
   });
@@ -91,18 +92,37 @@ describe("buildF2fProfile", () => {
     expect(profile.primary).toBe("force");
   });
 
-  it("returns vertices without labels for girls", () => {
+  it("labels women from shape and hides predicted 40s", () => {
+    const marks = [
+      { metric_key: "Standing-Broad", component: null, display_value: 8 },
+      { metric_key: "40yd_Dash", component: "5-15yd", display_value: 1.5 },
+      { metric_key: "40yd_Dash", component: "0-40yd", display_value: 5.2 },
+    ];
+    const woman = buildF2fProfile(marks, { gender: "F" });
+    expect(woman.eligible_for_labels).toBe(true);
+    expect(woman.show_predicted_40s).toBe(false);
+    expect(woman.primary).toBe("force");
+    expect(woman.flags).toContain("force");
+    expect(woman.force?.extrapolated).toBe(true);
+    expect(woman.force!.predicted_40).toBeGreaterThan(5.71);
+
+    const man = buildF2fProfile(marks, male);
+    expect(man.primary).toBe("force");
+    expect(man.show_predicted_40s).toBe(true);
+    expect(man.eligible_for_labels).toBe(true);
+  });
+
+  it("does not label unknown gender", () => {
     const profile = buildF2fProfile(
       [
         { metric_key: "Standing-Broad", component: null, display_value: 8 },
         { metric_key: "40yd_Dash", component: "0-40yd", display_value: 5.2 },
       ],
-      { gender: "F" }
+      { gender: null }
     );
-    expect(profile.explosion).not.toBeNull();
     expect(profile.eligible_for_labels).toBe(false);
+    expect(profile.show_predicted_40s).toBe(false);
     expect(profile.primary).toBeNull();
-    expect(profile.flags).toEqual([]);
   });
 
   it("leaves primary null when fewer than two qualities exist", () => {

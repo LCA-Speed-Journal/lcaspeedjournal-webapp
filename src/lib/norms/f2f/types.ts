@@ -36,6 +36,7 @@ export type F2fProfile = {
   force: F2fVertex | null;
   form: F2fVertex | null;
   eligible_for_labels: boolean;
+  show_predicted_40s: boolean;
   flags: F2fQuality[];
   primary: F2fQuality | "balanced" | null;
 };

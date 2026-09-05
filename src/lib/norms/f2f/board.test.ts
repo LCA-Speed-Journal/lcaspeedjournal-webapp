@@ -58,7 +58,9 @@ describe("attachF2fToAthletes", () => {
     expect(result.athletes[1].f2f?.explosion).not.toBeNull();
     expect(result.athletes[1].f2f?.force).not.toBeNull();
     expect(result.athletes[1].f2f?.form).not.toBeNull();
-    expect(result.athletes[1].f2f?.eligible_for_labels).toBe(false);
+    expect(result.athletes[1].f2f?.eligible_for_labels).toBe(true);
+    expect(result.athletes[1].f2f?.show_predicted_40s).toBe(false);
+    expect(result.athletes[0].f2f?.show_predicted_40s).toBe(true);
 
     const themeAthletes = result.athletes
       .filter((row) => row.f2f)
@@ -73,9 +75,9 @@ describe("attachF2fToAthletes", () => {
         reference_40: row.f2f!.reference_40,
       }));
     expect(result.f2f_themes).toEqual(buildF2fThemes(themeAthletes, {}));
-    expect(result.f2f_themes.session.eligible_count).toBe(1);
+    expect(result.f2f_themes.session.eligible_count).toBe(2);
     expect(result.f2f_themes.groups.some((group) => group.gender === "F")).toBe(
-      false
+      true
     );
   });
 
@@ -118,8 +120,8 @@ describe("attachF2fToAthletes", () => {
     expect(maleRow.sprint_points).toBe(12);
 
     expect(result.athletes[1].f2f).toBeDefined();
-    expect(result.athletes[1].f2f?.eligible_for_labels).toBe(false);
-    expect(result.f2f_themes.session.eligible_count).toBe(0);
+    expect(result.athletes[1].f2f?.eligible_for_labels).toBe(true);
+    expect(result.f2f_themes.session.eligible_count).toBe(1);
   });
 
   it("passes noteOverrides through to f2f_themes", () => {

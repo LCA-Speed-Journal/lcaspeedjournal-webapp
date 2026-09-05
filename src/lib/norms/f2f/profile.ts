@@ -292,8 +292,9 @@ export function buildF2fProfile(
   if (force) qualities.push({ quality: "force", predicted_40: force.predicted_40 });
   if (form) qualities.push({ quality: "form", predicted_40: form.predicted_40 });
 
+  const show_predicted_40s = athlete.gender === "M";
   const canLabel =
-    athlete.gender === "M" &&
+    (athlete.gender === "M" || athlete.gender === "F") &&
     qualities.length >= 2 &&
     reference_40 != null &&
     Number.isFinite(reference_40);
@@ -306,6 +307,7 @@ export function buildF2fProfile(
       force,
       form,
       eligible_for_labels: false,
+      show_predicted_40s,
       flags: [],
       primary: null,
     };
@@ -319,6 +321,7 @@ export function buildF2fProfile(
     force,
     form,
     eligible_for_labels: true,
+    show_predicted_40s,
     flags,
     primary,
   };

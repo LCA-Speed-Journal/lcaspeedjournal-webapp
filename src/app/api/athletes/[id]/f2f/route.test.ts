@@ -49,6 +49,7 @@ const stubProfile: F2fProfile = {
   force: null,
   form: null,
   eligible_for_labels: false,
+  show_predicted_40s: false,
   flags: [],
   primary: null,
 };
