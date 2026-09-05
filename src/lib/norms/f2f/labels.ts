@@ -12,6 +12,12 @@ export function f2fChipLabel(quality: F2fQuality | "balanced"): string {
   return `${QUALITY_NAME[quality]}-deficient`;
 }
 
+export function f2fShowsPredicted40s(
+  profile: { show_predicted_40s?: boolean } | null | undefined
+): boolean {
+  return Boolean(profile?.show_predicted_40s);
+}
+
 export function formatQualityMark(
   vertex: F2fVertex | null | undefined,
   composed: boolean

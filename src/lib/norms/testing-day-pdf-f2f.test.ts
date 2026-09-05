@@ -2,10 +2,15 @@ import { describe, expect, it } from "vitest";
 import type { F2fProfile } from "./f2f/types";
 import type { F2fThemeMix } from "./f2f/themes";
 import {
+  ZONE_ABBREV_LEGEND,
+  PDF_F2F_QUALITY_LABELS,
+  f2fCardHeading,
   f2fFocusBadge,
   f2fPieSlices,
   f2fStrengthDeficiency,
+  pdfCoachF2fCopy,
   pieSlicePath,
+  zoneAbbrev,
 } from "./testing-day-pdf-f2f";
 
 const vertex = (predicted_40: number) => ({
@@ -68,8 +73,25 @@ describe("f2fStrengthDeficiency", () => {
   });
 });
 
+describe("f2fCardHeading", () => {
+  it("is just the name when show_predicted_40s is false", () => {
+    expect(
+      f2fCardHeading("Ada Lovelace", profile({ show_predicted_40s: false }))
+    ).toBe("Ada Lovelace");
+  });
+
+  it("appends the reference 40 when show_predicted_40s is true", () => {
+    expect(
+      f2fCardHeading(
+        "Ada Lovelace",
+        profile({ show_predicted_40s: true, reference_40: 5.2 })
+      )
+    ).toBe("Ada Lovelace: 5.20 40yd");
+  });
+});
+
 describe("f2fFocusBadge", () => {
-  it("is male-only and uses Develop Top-End for Form", () => {
+  it("follows eligible_for_labels and uses Develop Top-End for Form", () => {
     expect(f2fFocusBadge(profile({ primary: "form" }))).toEqual({
       text: "Develop Top-End",
       tone: "form",
@@ -109,6 +131,27 @@ describe("f2fPieSlices", () => {
       { key: "force", label: "Force-deficient", count: 12, percent: 48 },
     ]);
     expect(f2fPieSlices(mix, 0)).toEqual([]);
+  });
+});
+
+describe("pdfCoachF2fCopy", () => {
+  it("says Top-End in analysis copy and keeps the Force-to-Form title", () => {
+    expect(pdfCoachF2fCopy("Form-deficient")).toBe("Top-End-deficient");
+    expect(pdfCoachF2fCopy("No Force-to-Form labels yet.")).toBe(
+      "No Force-to-Form labels yet."
+    );
+    expect(PDF_F2F_QUALITY_LABELS.form).toBe("Top-End");
+  });
+});
+
+describe("zoneAbbrev", () => {
+  it("maps live zones to compact athlete-table codes", () => {
+    expect(zoneAbbrev("efficient")).toBe("EFF");
+    expect(zoneAbbrev("advanced")).toBe("ADV");
+    expect(zoneAbbrev("elite")).toBe("E");
+    expect(zoneAbbrev("world-class")).toBe("WC");
+    expect(zoneAbbrev("poor")).toBeNull();
+    expect(ZONE_ABBREV_LEGEND).toContain("EFF Efficient");
   });
 });
 

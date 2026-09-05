@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { THEME_NOTE_MAX_CHARS } from "@/lib/norms/f2f/theme-notes";
-import { f2fChipLabel } from "@/lib/norms/f2f/labels";
+import { f2fChipLabel, f2fShowsPredicted40s } from "@/lib/norms/f2f/labels";
 import {
   SESSION_NOTE_KEY,
   themeGroupKey,
@@ -245,26 +245,30 @@ function AthleteCard({ athlete }: { athlete: TestingDayMatrixAthlete }) {
               ))}
             </div>
           ) : null}
-          <p className="tabular-nums text-foreground-muted">
-            Ref 40 {fmtForty(f2f?.reference_40)}
-          </p>
-          <ul className="space-y-0.5">
-            <PredictedForty
-              label="Explosion"
-              predicted={f2f?.explosion?.predicted_40}
-              projected={f2f?.explosion?.projected}
-            />
-            <PredictedForty
-              label="Force"
-              predicted={f2f?.force?.predicted_40}
-              projected={f2f?.force?.projected}
-            />
-            <PredictedForty
-              label="Form"
-              predicted={f2f?.form?.predicted_40}
-              projected={f2f?.form?.projected}
-            />
-          </ul>
+          {f2fShowsPredicted40s(f2f) ? (
+            <p className="tabular-nums text-foreground-muted">
+              Ref 40 {fmtForty(f2f?.reference_40)}
+            </p>
+          ) : null}
+          {f2fShowsPredicted40s(f2f) ? (
+            <ul className="space-y-0.5">
+              <PredictedForty
+                label="Explosion"
+                predicted={f2f?.explosion?.predicted_40}
+                projected={f2f?.explosion?.projected}
+              />
+              <PredictedForty
+                label="Force"
+                predicted={f2f?.force?.predicted_40}
+                projected={f2f?.force?.projected}
+              />
+              <PredictedForty
+                label="Form"
+                predicted={f2f?.form?.predicted_40}
+                projected={f2f?.form?.projected}
+              />
+            </ul>
+          ) : null}
         </div>
         {hasShape && f2f ? (
           <F2fTriangle profile={f2f} />

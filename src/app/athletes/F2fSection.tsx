@@ -3,7 +3,11 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { F2fTriangle } from "@/app/reporting/testing-day/F2fTriangle";
-import { f2fChipLabel, formatQualityMark } from "@/lib/norms/f2f/labels";
+import {
+  f2fChipLabel,
+  f2fShowsPredicted40s,
+  formatQualityMark,
+} from "@/lib/norms/f2f/labels";
 import type { F2fPickMode } from "@/lib/norms/f2f/pick-marks";
 import type { F2fProfile } from "@/lib/norms/f2f/types";
 
@@ -129,39 +133,44 @@ export function F2fSection({ athleteId }: F2fSectionProps) {
                 ))}
               </div>
             ) : null}
-            <p className="tabular-nums text-sm text-foreground-muted">
-              Ref 40 {fmtForty(f2f.reference_40)}
-              {payload?.as_of ? ` · as of ${payload.as_of}` : ""}
-            </p>
-            <ul className="space-y-0.5 text-sm">
-              <li
-                className={
-                  f2f.explosion?.projected
-                    ? "tabular-nums text-foreground-muted"
-                    : "tabular-nums text-foreground"
-                }
-              >
-                Explosion {formatQualityMark(f2f.explosion, Boolean(payload?.composed))}
-              </li>
-              <li
-                className={
-                  f2f.force?.projected
-                    ? "tabular-nums text-foreground-muted"
-                    : "tabular-nums text-foreground"
-                }
-              >
-                Force {formatQualityMark(f2f.force, Boolean(payload?.composed))}
-              </li>
-              <li
-                className={
-                  f2f.form?.projected
-                    ? "tabular-nums text-foreground-muted"
-                    : "tabular-nums text-foreground"
-                }
-              >
-                Form {formatQualityMark(f2f.form, Boolean(payload?.composed))}
-              </li>
-            </ul>
+            {f2fShowsPredicted40s(f2f) ? (
+              <p className="tabular-nums text-sm text-foreground-muted">
+                Ref 40 {fmtForty(f2f.reference_40)}
+                {payload?.as_of ? ` · as of ${payload.as_of}` : ""}
+              </p>
+            ) : null}
+            {f2fShowsPredicted40s(f2f) ? (
+              <ul className="space-y-0.5 text-sm">
+                <li
+                  className={
+                    f2f.explosion?.projected
+                      ? "tabular-nums text-foreground-muted"
+                      : "tabular-nums text-foreground"
+                  }
+                >
+                  Explosion{" "}
+                  {formatQualityMark(f2f.explosion, Boolean(payload?.composed))}
+                </li>
+                <li
+                  className={
+                    f2f.force?.projected
+                      ? "tabular-nums text-foreground-muted"
+                      : "tabular-nums text-foreground"
+                  }
+                >
+                  Force {formatQualityMark(f2f.force, Boolean(payload?.composed))}
+                </li>
+                <li
+                  className={
+                    f2f.form?.projected
+                      ? "tabular-nums text-foreground-muted"
+                      : "tabular-nums text-foreground"
+                  }
+                >
+                  Form {formatQualityMark(f2f.form, Boolean(payload?.composed))}
+                </li>
+              </ul>
+            ) : null}
           </div>
           <F2fTriangle profile={f2f} />
         </div>

@@ -1,3 +1,4 @@
+import { f2fShowsPredicted40s } from "./f2f/labels";
 import type { F2fThemeMix, F2fThemePrimary } from "./f2f/themes";
 import type { F2fProfile, F2fQuality } from "./f2f/types";
 
@@ -17,6 +18,27 @@ export const F2F_PIE_COLORS = {
   form: "#ca8a04",
 } as const;
 
+export const ZONE_ABBREVS: Record<
+  "efficient" | "advanced" | "elite" | "world-class",
+  string
+> = {
+  efficient: "EFF",
+  advanced: "ADV",
+  elite: "E",
+  "world-class": "WC",
+};
+
+export const ZONE_ABBREV_LEGEND =
+  "EFF Efficient · ADV Advanced · E Elite · WC World-class";
+
+export function zoneAbbrev(label: string | undefined): string | null {
+  if (label === "efficient") return ZONE_ABBREVS.efficient;
+  if (label === "advanced") return ZONE_ABBREVS.advanced;
+  if (label === "elite") return ZONE_ABBREVS.elite;
+  if (label === "world-class") return ZONE_ABBREVS["world-class"];
+  return null;
+}
+
 const QUALITIES: F2fQuality[] = ["explosion", "force", "form"];
 
 const FOCUS_TEXT: Record<F2fQuality, string> = {
@@ -29,8 +51,21 @@ const PIE_SLICES: { key: F2fThemePrimary; label: string }[] = [
   { key: "balanced", label: "Balanced" },
   { key: "explosion", label: "Explosion-deficient" },
   { key: "force", label: "Force-deficient" },
-  { key: "form", label: "Form-deficient" },
+  { key: "form", label: "Top-End-deficient" },
 ];
+
+export const PDF_F2F_QUALITY_LABELS: Record<F2fQuality, string> = {
+  explosion: "Explosion",
+  force: "Force",
+  form: "Top-End",
+};
+
+export function pdfCoachF2fCopy(text: string): string {
+  return text
+    .replaceAll("Force-to-Form", "\u0000")
+    .replace(/\bForm\b/g, "Top-End")
+    .replaceAll("\u0000", "Force-to-Form");
+}
 
 export type F2fPaint = "strength" | "deficiency" | null;
 
@@ -75,6 +110,20 @@ export function f2fStrengthDeficiency(profile: F2fProfile): F2fStrengthMap {
   }
 
   return result;
+}
+
+export function f2fCardHeading(
+  name: string,
+  profile: F2fProfile | null | undefined
+): string {
+  if (
+    f2fShowsPredicted40s(profile) &&
+    profile?.reference_40 != null &&
+    Number.isFinite(profile.reference_40)
+  ) {
+    return `${name}: ${profile.reference_40.toFixed(2)} 40yd`;
+  }
+  return name;
 }
 
 export function f2fFocusBadge(

@@ -292,12 +292,23 @@ describe("renderTestingDayPdf", () => {
     expect(text).not.toContain("Mix:");
     expect(text).not.toContain("Top 3:");
     expect(text).toContain("Force-deficient 1 (100%)");
-    expect(text).toContain("Ref 40");
     expect(text).toContain("Ann Aye");
-    expect(text).toContain("5.12");
-    expect(text).toContain("5.20");
-    expect(text).toContain("4.90*");
+    expect(text).not.toContain("Ann Aye: 5.00 40yd");
+    expect(text).toContain("Levi Lee: 4.80 40yd");
+    expect(text).not.toContain("5.12");
+    expect(text).not.toContain("5.20");
+    expect(text).not.toContain("4.90*");
+    expect(text).toContain("4.70");
+    expect(text).toContain("4.75");
+    expect(text).toContain("5.10");
+    expect(text).not.toContain("Ref 40");
+    expect(text).not.toContain("Efficient+");
+    expect(text).not.toContain("No groups");
     expect(text).not.toContain("Force-strong");
+    expect(text).not.toContain("poor");
+    expect(text).toContain("Top-End");
+    expect(text).toContain("Top-End-deficient");
+    expect(text.replace(/Force-to-Form/g, "")).not.toMatch(/\bForm\b/);
   });
 
   it("omits Force-to-Form from athlete PDFs", async () => {
@@ -306,14 +317,16 @@ describe("renderTestingDayPdf", () => {
       audience: "athlete",
     });
     const athleteText = pdfVisibleText(buf);
-    expect(athleteText).toContain("Develop Top-End");
+    expect(athleteText.replace(/\u0097/g, "\u2014")).toContain(
+      "1st — 11th · Develop Top-End"
+    );
     expect(athleteText).not.toContain("Develop Force");
     expect(athleteText).not.toContain("Force-to-Form");
     expect(athleteText).not.toContain("Roster is");
     expect(athleteText).not.toContain("4.90*");
   });
 
-  it("renders name subline, live zone badges, and coach F2F columns", async () => {
+  it("renders name subline and coach F2F cards without table F2F columns", async () => {
     const buf = await renderTestingDayPdf({
       board: tableBoard,
       audience: "coach",
@@ -323,15 +336,17 @@ describe("renderTestingDayPdf", () => {
     expect(text).toContain("1st — 12th");
     expect(text).toContain("efficient");
     expect(text).not.toMatch(/soccer · M|volleyball · F/i);
-    expect(text).toContain("Explosion");
-    expect(text).toContain("Force");
-    expect(text).toContain("Form");
-    expect(text).toContain("4.90*");
-    expect(text).toContain("5.20");
-    expect(text).toContain("5.12");
+    expect(text).toContain("Ann Aye");
+    expect(text).not.toContain("Ann Aye: 5.00 40yd");
+    expect(text).not.toContain("4.90*");
+    expect(text).not.toContain("5.20");
+    expect(text).not.toContain("5.12");
+    expect(text).not.toContain("Efficient+");
+    expect(text).not.toContain("poor");
+    expect(text.replace(/Force-to-Form/g, "")).not.toMatch(/\bForm\b/);
   });
 
-  it("keeps athlete PDFs free of main-table Force-to-Form numbers", async () => {
+  it("compacts athlete zones and advice onto the table row", async () => {
     const buf = await renderTestingDayPdf({
       board: tableBoard,
       audience: "athlete",
@@ -339,7 +354,10 @@ describe("renderTestingDayPdf", () => {
     });
     const text = pdfVisibleText(buf).replace(/\u0097/g, "\u2014");
     expect(text).toContain("1st — 12th");
-    expect(text).toContain("efficient");
+    expect(text).toContain("28 in — EFF");
+    expect(text).toContain("EFF Efficient");
+    expect(text).toContain("ADV Advanced");
+    expect(text).toContain("E Elite");
     expect(text).not.toMatch(/soccer · M|volleyball · F/i);
     expect(text).not.toContain("4.90*");
     expect(text).not.toContain("Explosion");
