@@ -12,7 +12,7 @@ const FILL = "#93c5fd";
 const AXES: { quality: F2fQuality; angle: number; label: string }[] = [
   { quality: "explosion", angle: Math.PI / 2, label: "Explosion" },
   { quality: "force", angle: (7 * Math.PI) / 6, label: "Force" },
-  { quality: "form", angle: (11 * Math.PI) / 6, label: "Form" },
+  { quality: "form", angle: (11 * Math.PI) / 6, label: "Top-End" },
 ];
 
 function axisPoint(angle: number, radius: number) {
@@ -28,7 +28,16 @@ function labelAnchor(quality: F2fQuality): "middle" | "end" | "start" {
   return "middle";
 }
 
-export function PdfF2fTriangle({ profile }: { profile: F2fProfile }) {
+const DEFAULT_DISPLAY_SIZE = 72;
+export const F2F_CARD_TRIANGLE_SIZE = Math.round(DEFAULT_DISPLAY_SIZE * 1.15);
+
+export function PdfF2fTriangle({
+  profile,
+  size = DEFAULT_DISPLAY_SIZE,
+}: {
+  profile: F2fProfile;
+  size?: number;
+}) {
   const reference = profile.reference_40;
   const frame = AXES.map((axis) => axisPoint(axis.angle, FRAME_R));
   const plotted = AXES.map((axis) => {
@@ -46,7 +55,7 @@ export function PdfF2fTriangle({ profile }: { profile: F2fProfile }) {
   const pointsAttr = connected.map((point) => `${point.x},${point.y}`).join(" ");
 
   return (
-    <Svg viewBox={`0 0 ${SIZE} ${SIZE}`} width={72} height={72}>
+    <Svg viewBox={`0 0 ${SIZE} ${SIZE}`} width={size} height={size}>
       <Polygon
         points={frame.map((point) => `${point.x},${point.y}`).join(" ")}
         fill="none"
