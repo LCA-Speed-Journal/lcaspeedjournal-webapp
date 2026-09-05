@@ -32,6 +32,14 @@ describe("resolveForce", () => {
     expect(byMph?.predicted_40).toBeCloseTo(byTime!.predicted_40, 2);
     expect(byTimeIgnoreYards?.predicted_40).toBeCloseTo(4.93, 2);
   });
+
+  it("extrapolates a 5-15 slower than the XPE floor instead of clamping", () => {
+    const edge = resolveForce({ timeS: 1.39, yards: 10, lookup: "time" });
+    const slower = resolveForce({ timeS: 1.5, yards: 10, lookup: "time" });
+    expect(edge?.predicted_40).toBeCloseTo(5.71, 2);
+    expect(slower?.extrapolated).toBe(true);
+    expect(slower!.predicted_40).toBeGreaterThan(edge!.predicted_40);
+  });
 });
 
 describe("resolveForm", () => {

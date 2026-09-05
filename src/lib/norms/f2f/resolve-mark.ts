@@ -1,6 +1,16 @@
 import { mphFromYardSplit, yardsInFortyComponent } from "../forty-yd";
 import { interpolatePredicted40, type LookupHit } from "./lookup";
-import { formMphPoints, forceMphPoints, forceTimePoints, broadPoints, type FormSplit } from "./tables";
+import {
+  broadPoints,
+  broadSlowFit,
+  forceMphPoints,
+  forceMphSlowFit,
+  forceTimePoints,
+  forceTimeSlowFit,
+  formMphPoints,
+  formMphSlowFit,
+  type FormSplit,
+} from "./tables";
 
 export type ForceMark = {
   timeS?: number;
@@ -34,17 +44,17 @@ function markMph(mark: { mph?: number; timeS?: number; yards?: number }): number
 
 export function resolveExplosion(feet: number): LookupHit | null {
   if (!Number.isFinite(feet)) return null;
-  return interpolatePredicted40(broadPoints(), feet);
+  return interpolatePredicted40(broadPoints(), feet, broadSlowFit);
 }
 
 export function resolveForce(mark: ForceMark): LookupHit | null {
   if (mark.lookup === "time") {
     if (mark.timeS == null || !Number.isFinite(mark.timeS)) return null;
-    return interpolatePredicted40(forceTimePoints(), mark.timeS);
+    return interpolatePredicted40(forceTimePoints(), mark.timeS, forceTimeSlowFit);
   }
   const mph = markMph(mark);
   if (mph == null) return null;
-  return interpolatePredicted40(forceMphPoints(), mph);
+  return interpolatePredicted40(forceMphPoints(), mph, forceMphSlowFit);
 }
 
 export function resolveForm(mark: FormMark): FormHit | null {
@@ -52,7 +62,7 @@ export function resolveForm(mark: FormMark): FormHit | null {
   const yards = mark.yards ?? yardsInFortyComponent(mark.component) ?? undefined;
   const mph = markMph({ mph: mark.mph, timeS: mark.timeS, yards });
   if (mph == null) return null;
-  const hit = interpolatePredicted40(formMphPoints(exact), mph);
+  const hit = interpolatePredicted40(formMphPoints(exact), mph, formMphSlowFit(exact));
   if (!hit) return null;
   return { ...hit, table: exact ?? "form" };
 }
