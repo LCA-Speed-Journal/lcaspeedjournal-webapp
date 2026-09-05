@@ -25,6 +25,10 @@ import {
 } from "@/lib/norms/testing-day";
 import { mergeDerivedSprintColumns } from "@/lib/norms/testing-day-derived";
 import { scoreTestingDayMatrix } from "@/lib/norms/testing-day-rank";
+import { attachF2fToAthletes } from "@/lib/norms/f2f/board";
+import { coerceThemeNotes } from "@/lib/norms/f2f/theme-notes";
+import type { F2fEntry } from "@/lib/norms/f2f/types";
+import { stampGraduatingClass } from "@/lib/norms/testing-day-pdf-layout";
 import {
   TWENTY_YD_DASH,
   TWENTY_YD_PRIMARY_COMPONENT,
@@ -36,6 +40,7 @@ type BoardEntryRow = {
   first_name: string;
   last_name: string;
   gender: string | null;
+  graduating_class: number | null;
   metric_key: string;
   component: string | null;
   interval_index: number | null;
@@ -51,6 +56,12 @@ function sessionDateString(raw: string | Date): string {
   return String(raw).slice(0, 10);
 }
 
+function isMissingF2fThemeNotesColumn(err: unknown): boolean {
+  const e = err as { code?: string; message?: string };
+  const msg = String(e?.message ?? "").toLowerCase();
+  return e?.code === "42703" || msg.includes("f2f_theme_notes");
+}
+
 export type BuildTestingDayBoardResult =
   | { ok: true; data: TestingDayBoardData }
   | { ok: false; status: number; error: string };
@@ -61,13 +72,29 @@ export async function buildTestingDayBoard(
 ): Promise<BuildTestingDayBoardResult> {
   const registry = getMetricsRegistry();
 
-  const [sessionRows, popResult, entryResult] = await Promise.all([
-    sql`
+  const sessionPromise = sql`
+      SELECT id, session_date, phase, f2f_theme_notes
+      FROM sessions
+      WHERE id = ${session_id}
+      LIMIT 1
+    `.catch(async (err: unknown) => {
+    if (!isMissingF2fThemeNotesColumn(err)) throw err;
+    const fallback = await sql`
       SELECT id, session_date, phase
       FROM sessions
       WHERE id = ${session_id}
       LIMIT 1
-    `,
+    `;
+    return {
+      rows: fallback.rows.map((row) => ({
+        ...(row as Record<string, unknown>),
+        f2f_theme_notes: {},
+      })),
+    };
+  });
+
+  const [sessionRows, popResult, entryResult] = await Promise.all([
+    sessionPromise,
     sql`
       SELECT id, name
       FROM norm_populations
@@ -80,6 +107,7 @@ export async function buildTestingDayBoard(
         a.first_name,
         a.last_name,
         a.gender,
+        a.graduating_class,
         e.metric_key,
         e.component,
         e.interval_index,
@@ -99,7 +127,9 @@ export async function buildTestingDayBoard(
     id: string;
     session_date: string | Date;
     phase: string | null;
+    f2f_theme_notes?: unknown;
   };
+  const noteOverrides = coerceThemeNotes(sessionRow.f2f_theme_notes);
   const populations = popResult.rows as AttachZonesPopulation[];
   const resolved = resolveSelectedPopulation(populationId, populations);
   if (!resolved.ok) {
@@ -323,6 +353,37 @@ export async function buildTestingDayBoard(
       })
     ),
     tests,
+  };
+
+  try {
+    const entriesByAthlete = new Map<string, F2fEntry[]>();
+    for (const row of rawEntries) {
+      const list = entriesByAthlete.get(row.athlete_id) ?? [];
+      list.push({
+        metric_key: row.metric_key,
+        component: row.component,
+        display_value: Number(row.display_value),
+      });
+      entriesByAthlete.set(row.athlete_id, list);
+    }
+    const attached = attachF2fToAthletes(data.matrix.athletes, entriesByAthlete, {
+      noteOverrides,
+    });
+    data.matrix = { ...data.matrix, athletes: attached.athletes };
+    data.f2f_themes = attached.f2f_themes;
+  } catch {
+    // Omit f2f / f2f_themes; scored board still returns.
+  }
+
+  const classByAthlete = new Map<string, number | null>();
+  for (const row of rawEntries) {
+    if (!classByAthlete.has(row.athlete_id)) {
+      classByAthlete.set(row.athlete_id, row.graduating_class ?? null);
+    }
+  }
+  data.matrix = {
+    ...data.matrix,
+    athletes: stampGraduatingClass(data.matrix.athletes, classByAthlete),
   };
 
   return { ok: true, data };

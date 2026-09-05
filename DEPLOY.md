@@ -59,6 +59,8 @@ If you have an existing database (created before Staff/Alumni support), also run
 
 **Back to School Night cohort widget:** Run `scripts/migrate-cohort-signups.sql` to add `cohort_config` and `cohort_signups`. Without this, `/cohort` and `/api/cohort` will 500.
 
+**Force-to-Form theme notes:** Run `scripts/migrate-f2f-theme-notes.sql` (safe to re-run, `IF NOT EXISTS`) to add `sessions.f2f_theme_notes`. Without it, testing-day still loads but theme-note PATCH returns 500 and overrides will not persist.
+
 ## 4b. Seed 2024 & 2025 historical data (optional)
 
 To populate the leaderboard with real 2024/2025 data from LCA-Speed-Journal:

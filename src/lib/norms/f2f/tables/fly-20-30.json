@@ -1,0 +1,318 @@
+{
+  "meta": {
+    "source": "Tony Villani XPE Game-Speed",
+    "workbook": "Villani-Metrics_40yd-Predictors.xlsx",
+    "sheet": "20-10 Fly (Top-End or Form)",
+    "quality": "form",
+    "journal_split": "20-30yd",
+    "fly_yards": 10,
+    "population": "male football ~175lb+"
+  },
+  "rows": [
+    {
+      "time_s": 1.202941176,
+      "mph": 17.0,
+      "predicted_40": 5.7
+    },
+    {
+      "time_s": 1.195906433,
+      "mph": 17.1,
+      "predicted_40": 5.7
+    },
+    {
+      "time_s": 1.188953488,
+      "mph": 17.2,
+      "predicted_40": 5.65
+    },
+    {
+      "time_s": 1.182080925,
+      "mph": 17.3,
+      "predicted_40": 5.6
+    },
+    {
+      "time_s": 1.175287356,
+      "mph": 17.4,
+      "predicted_40": 5.6
+    },
+    {
+      "time_s": 1.168571429,
+      "mph": 17.5,
+      "predicted_40": 5.55
+    },
+    {
+      "time_s": 1.161931818,
+      "mph": 17.6,
+      "predicted_40": 5.5
+    },
+    {
+      "time_s": 1.155367232,
+      "mph": 17.7,
+      "predicted_40": 5.5
+    },
+    {
+      "time_s": 1.148876404,
+      "mph": 17.8,
+      "predicted_40": 5.45
+    },
+    {
+      "time_s": 1.142458101,
+      "mph": 17.9,
+      "predicted_40": 5.4
+    },
+    {
+      "time_s": 1.136111111,
+      "mph": 18.0,
+      "predicted_40": 5.4
+    },
+    {
+      "time_s": 1.129834254,
+      "mph": 18.1,
+      "predicted_40": 5.35
+    },
+    {
+      "time_s": 1.123626374,
+      "mph": 18.2,
+      "predicted_40": 5.3
+    },
+    {
+      "time_s": 1.117486339,
+      "mph": 18.3,
+      "predicted_40": 5.3
+    },
+    {
+      "time_s": 1.111413043,
+      "mph": 18.4,
+      "predicted_40": 5.25
+    },
+    {
+      "time_s": 1.105405405,
+      "mph": 18.5,
+      "predicted_40": 5.25
+    },
+    {
+      "time_s": 1.099462366,
+      "mph": 18.6,
+      "predicted_40": 5.2
+    },
+    {
+      "time_s": 1.093582888,
+      "mph": 18.7,
+      "predicted_40": 5.15
+    },
+    {
+      "time_s": 1.087765957,
+      "mph": 18.8,
+      "predicted_40": 5.15
+    },
+    {
+      "time_s": 1.082010582,
+      "mph": 18.9,
+      "predicted_40": 5.1
+    },
+    {
+      "time_s": 1.076315789,
+      "mph": 19.0,
+      "predicted_40": 5.1
+    },
+    {
+      "time_s": 1.070680628,
+      "mph": 19.1,
+      "predicted_40": 5.05
+    },
+    {
+      "time_s": 1.065104167,
+      "mph": 19.2,
+      "predicted_40": 5.05
+    },
+    {
+      "time_s": 1.059585492,
+      "mph": 19.3,
+      "predicted_40": 5.0
+    },
+    {
+      "time_s": 1.054123711,
+      "mph": 19.4,
+      "predicted_40": 4.95
+    },
+    {
+      "time_s": 1.048717949,
+      "mph": 19.5,
+      "predicted_40": 4.95
+    },
+    {
+      "time_s": 1.043367347,
+      "mph": 19.6,
+      "predicted_40": 4.9
+    },
+    {
+      "time_s": 1.038071066,
+      "mph": 19.7,
+      "predicted_40": 4.9
+    },
+    {
+      "time_s": 1.032828283,
+      "mph": 19.8,
+      "predicted_40": 4.85
+    },
+    {
+      "time_s": 1.027638191,
+      "mph": 19.9,
+      "predicted_40": 4.85
+    },
+    {
+      "time_s": 1.0225,
+      "mph": 20.0,
+      "predicted_40": 4.8
+    },
+    {
+      "time_s": 1.017412935,
+      "mph": 20.1,
+      "predicted_40": 4.8
+    },
+    {
+      "time_s": 1.012376238,
+      "mph": 20.2,
+      "predicted_40": 4.75
+    },
+    {
+      "time_s": 1.007389163,
+      "mph": 20.3,
+      "predicted_40": 4.75
+    },
+    {
+      "time_s": 1.00245098,
+      "mph": 20.4,
+      "predicted_40": 4.7
+    },
+    {
+      "time_s": 0.9975609756,
+      "mph": 20.5,
+      "predicted_40": 4.7
+    },
+    {
+      "time_s": 0.9927184466,
+      "mph": 20.6,
+      "predicted_40": 4.65
+    },
+    {
+      "time_s": 0.9879227053,
+      "mph": 20.7,
+      "predicted_40": 4.65
+    },
+    {
+      "time_s": 0.9831730769,
+      "mph": 20.8,
+      "predicted_40": 4.6
+    },
+    {
+      "time_s": 0.9784688995,
+      "mph": 20.9,
+      "predicted_40": 4.6
+    },
+    {
+      "time_s": 0.9738095238,
+      "mph": 21.0,
+      "predicted_40": 4.55
+    },
+    {
+      "time_s": 0.9691943128,
+      "mph": 21.1,
+      "predicted_40": 4.55
+    },
+    {
+      "time_s": 0.9646226415,
+      "mph": 21.2,
+      "predicted_40": 4.5
+    },
+    {
+      "time_s": 0.9600938967,
+      "mph": 21.3,
+      "predicted_40": 4.5
+    },
+    {
+      "time_s": 0.9556074766,
+      "mph": 21.4,
+      "predicted_40": 4.5
+    },
+    {
+      "time_s": 0.9511627907,
+      "mph": 21.5,
+      "predicted_40": 4.45
+    },
+    {
+      "time_s": 0.9467592593,
+      "mph": 21.6,
+      "predicted_40": 4.45
+    },
+    {
+      "time_s": 0.9423963134,
+      "mph": 21.7,
+      "predicted_40": 4.4
+    },
+    {
+      "time_s": 0.9380733945,
+      "mph": 21.8,
+      "predicted_40": 4.4
+    },
+    {
+      "time_s": 0.9337899543,
+      "mph": 21.9,
+      "predicted_40": 4.35
+    },
+    {
+      "time_s": 0.9295454545,
+      "mph": 22.0,
+      "predicted_40": 4.35
+    },
+    {
+      "time_s": 0.9253393665,
+      "mph": 22.1,
+      "predicted_40": 4.35
+    },
+    {
+      "time_s": 0.9211711712,
+      "mph": 22.2,
+      "predicted_40": 4.3
+    },
+    {
+      "time_s": 0.9170403587,
+      "mph": 22.3,
+      "predicted_40": 4.3
+    },
+    {
+      "time_s": 0.9129464286,
+      "mph": 22.4,
+      "predicted_40": 4.25
+    },
+    {
+      "time_s": 0.9088888889,
+      "mph": 22.5,
+      "predicted_40": 4.25
+    },
+    {
+      "time_s": 0.9048672566,
+      "mph": 22.6,
+      "predicted_40": 4.25
+    },
+    {
+      "time_s": 0.9008810573,
+      "mph": 22.7,
+      "predicted_40": 4.2
+    },
+    {
+      "time_s": 0.8969298246,
+      "mph": 22.8,
+      "predicted_40": 4.2
+    },
+    {
+      "time_s": 0.8930131004,
+      "mph": 22.9,
+      "predicted_40": 4.15
+    },
+    {
+      "time_s": 0.8891304348,
+      "mph": 23.0,
+      "predicted_40": 4.15
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { EventsSection } from "./EventsSection";
 import { PRsSection } from "./PRsSection";
 import { ProgressionFlagsSection } from "./ProgressionFlagsSection";
+import { F2fSection } from "./F2fSection";
 import { ArchetypesSection } from "./ArchetypesSection";
 import { SuperpowersKryptoniteSection } from "./SuperpowersKryptoniteSection";
 import { HugoTeamsSection } from "./HugoTeamsSection";
@@ -101,6 +102,8 @@ export function AthleteDashboard({ athleteId }: AthleteDashboardProps) {
           <PRsSection athleteId={athleteId} />
 
           <ProgressionFlagsSection athleteId={athleteId} />
+
+          <F2fSection athleteId={athleteId} />
 
           <ArchetypesSection athleteId={athleteId} />
 
