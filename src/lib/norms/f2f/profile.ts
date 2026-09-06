@@ -381,13 +381,13 @@ export function buildF2fProfile(
   if (form) qualities.push({ quality: "form", predicted_40: form.predicted_40 });
 
   const show_predicted_40s = athlete.gender === "M";
-  const canLabel =
-    (athlete.gender === "M" || athlete.gender === "F") &&
-    qualities.length >= 2 &&
-    reference_40 != null &&
-    Number.isFinite(reference_40);
-
-  if (!canLabel) {
+  const knownGender = athlete.gender === "M" || athlete.gender === "F";
+  if (
+    !knownGender ||
+    qualities.length < 2 ||
+    reference_40 == null ||
+    !Number.isFinite(reference_40)
+  ) {
     return {
       reference_40,
       reference_source,

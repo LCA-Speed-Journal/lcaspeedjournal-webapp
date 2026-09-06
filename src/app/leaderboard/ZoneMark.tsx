@@ -21,7 +21,7 @@ export function ZoneLegend({
 }: {
   /** Inclusive floor. Live board uses efficient; reporting/historical omit this. */
   minLabel?: ZoneLabel;
-} = {}) {
+}) {
   const labels = minLabel
     ? ZONE_LABELS.filter((label) => zoneRank(label) >= zoneRank(minLabel))
     : ZONE_LABELS;

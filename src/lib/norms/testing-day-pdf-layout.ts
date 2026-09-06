@@ -171,9 +171,10 @@ export function athleteSubline(
   return grade ? `${placeText} — ${grade}` : placeText;
 }
 
-export function stampGraduatingClass<
-  T extends { athlete_id: string; graduating_class?: number | null },
->(athletes: T[], byId: Map<string, number | null>): T[] {
+export function stampGraduatingClass<T extends { athlete_id: string }>(
+  athletes: T[],
+  byId: Map<string, number | null>
+): (T & { graduating_class: number | null })[] {
   return athletes.map((athlete) => ({
     ...athlete,
     graduating_class: byId.get(athlete.athlete_id) ?? null,

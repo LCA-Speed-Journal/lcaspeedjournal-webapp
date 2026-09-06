@@ -410,10 +410,11 @@ function F2fTraitLine({
   const backgroundColor = f2fPaintBackground(paint);
   return (
     <Text
-      style={[
-        styles.f2fCardStat,
-        backgroundColor ? { backgroundColor } : null,
-      ]}
+      style={
+        backgroundColor
+          ? [styles.f2fCardStat, { backgroundColor }]
+          : styles.f2fCardStat
+      }
     >
       {label} {fmtPredictedForty(vertex)}
     </Text>
