@@ -75,25 +75,25 @@ export function getPreviewCatalog(): PreviewItem[] {
     wrap(
       "stress-12",
       "Density · 12 dummy rows",
-      "At the estimated scan-safe movement cap.",
+      "Comfortable dense sheet — heights shrink from ideal.",
       makeStressDraft(12)
     ),
     wrap(
       "stress-14",
       "Density · 14 dummy rows",
-      "Past the scan-safe cap — check crowding and Load×Reps cell height.",
+      "Dense noted rows; should still fit and stay scan-safe.",
       makeStressDraft(14)
     ),
     wrap(
       "stress-16",
       "Density · 16 dummy rows",
-      "Expected to exceed one landscape letter page.",
+      "Heavier shrink; check Load×Reps cell height in the preview.",
       makeStressDraft(16)
     ),
     wrap(
       "stress-20",
       "Density · 20 dummy rows",
-      "Overflow case — should not print as a single page.",
+      "Near the min pack; confirm it still fits one page.",
       makeStressDraft(20)
     ),
   ];

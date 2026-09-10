@@ -18,7 +18,7 @@ export function PreviewGallery({ items }: { items: PreviewItem[] }) {
   const { fit } = selected;
   const fitLabel = fit.fits ? "Fits one landscape letter page" : "Overflows one page";
   const scanLabel = fit.scanSafe
-    ? "Scan-safe (row count and set columns within budget)"
+    ? "Scan-safe (fits at or above minimum row heights; set columns within budget)"
     : "Not scan-safe — crowding or too many set columns";
 
   return (

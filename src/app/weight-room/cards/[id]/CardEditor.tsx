@@ -595,7 +595,7 @@ export function CardEditor({ templateId }: { templateId: string }) {
                   </p>
                   <p>
                     {fit.scanSafe
-                      ? "Scan-safe (row count and set columns within budget)"
+                      ? "Scan-safe (fits at or above minimum row heights; set columns within budget)"
                       : "Not scan-safe — crowding or too many set columns"}
                   </p>
                   {fit.warnings.length > 0 ? (
