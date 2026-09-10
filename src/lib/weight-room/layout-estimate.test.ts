@@ -13,6 +13,7 @@ import {
   analyzeCardFit,
   computeCardRowHeights,
   crowdingPrintWarning,
+  sheetRowCssVars,
 } from "./layout-estimate";
 import { makeStressDraft } from "./row-stress";
 import { sampleInSeasonSoccer } from "./sample-in-season";
@@ -132,6 +133,13 @@ describe("computeCardRowHeights", () => {
     expect(h.usedHeightIn).toBeCloseTo(
       HEADER_IN + TABLE_HEAD_IN + h.zeroSetRowIn + h.fillRowIn
     );
+  });
+
+  it("formats applied heights as inch CSS variables", () => {
+    const vars = sheetRowCssVars(computeCardRowHeights(notesDraft(4)));
+    expect(vars["--wr-fill-row"]).toBe(`${FILL_ROW_MAX_IN}in`);
+    expect(vars["--wr-notes-row"]).toBe(`${NOTES_ROW_MAX_IN}in`);
+    expect(vars["--wr-zero-set-row"]).toMatch(/in$/);
   });
 });
 

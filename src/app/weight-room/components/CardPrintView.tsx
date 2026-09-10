@@ -5,6 +5,10 @@ import {
   printHeaderGroups,
   type HugoGroup,
 } from "@/lib/weight-room/constants";
+import {
+  computeCardRowHeights,
+  sheetRowCssVars,
+} from "@/lib/weight-room/layout-estimate";
 import type { CardDraft, CardMovement } from "@/lib/weight-room/types";
 
 function headerBg(draft: CardDraft): string {
@@ -105,11 +109,16 @@ export function CardPrintView({
 }) {
   const maxSets = maxSetsOf(draft);
   const setColspan = maxSets * 2;
+  const heights = computeCardRowHeights(draft);
+  const rowVars = sheetRowCssVars(heights);
 
   return (
     <section
       className="wr-sheet"
-      style={{ ["--wr-header-bg" as string]: headerBg(draft) }}
+      style={{
+        ["--wr-header-bg" as string]: headerBg(draft),
+        ...rowVars,
+      }}
     >
       <div className="wr-fiducial wr-fiducial-tl" aria-hidden />
       <div className="wr-fiducial wr-fiducial-bl" aria-hidden />
@@ -179,9 +188,9 @@ export function CardPrintView({
         </thead>
         <tbody>
           {draft.movements.map((mov, idx) => {
-            const isWarmup =
-              mov.block.toLowerCase() === "warmup" && mov.setCount <= 0;
-            const hasNotes = Boolean(mov.notes.trim()) && !isWarmup;
+            const isZeroSet = mov.setCount <= 0;
+            const isWarmup = mov.block.toLowerCase() === "warmup";
+            const hasNotes = Boolean(mov.notes.trim()) && !isZeroSet;
             const labelPrefix = mov.label ? <strong>{mov.label} — </strong> : null;
             const rowClass = needsGroupSep(draft.movements, idx)
               ? "wr-group-sep"
@@ -192,14 +201,20 @@ export function CardPrintView({
               mov.name
             );
 
-            if (isWarmup) {
+            if (isZeroSet) {
               return (
-                <tr key={`${mov.label}-${idx}`} className={rowClass}>
+                <tr
+                  key={`${mov.label}-${idx}`}
+                  className={`${rowClass} wr-zero-set`.trim()}
+                >
                   <td className={`wr-ex ${blockClass(mov.block)}`}>
                     {labelPrefix}
                     {mov.name}
                   </td>
-                  <td className="wr-warmup-notes" colSpan={setColspan}>
+                  <td
+                    className={isWarmup ? "wr-warmup-notes" : undefined}
+                    colSpan={setColspan}
+                  >
                     {mov.notes}
                   </td>
                 </tr>
@@ -208,7 +223,7 @@ export function CardPrintView({
 
             return (
               <Fragment key={`${mov.label}-${idx}`}>
-                <tr className={rowClass}>
+                <tr className={`${rowClass} wr-fill-row`.trim()}>
                   <td
                     className={`wr-ex ${blockClass(mov.block)}${hasNotes ? " wr-ex-span" : ""}`}
                     rowSpan={hasNotes ? 2 : 1}

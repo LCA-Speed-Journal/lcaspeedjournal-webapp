@@ -165,3 +165,15 @@ export function crowdingPrintWarning(fit: CardFit | null): string | null {
   if (!fit || fit.scanSafe) return null;
   return PRINT_CROWDING_WARNING;
 }
+
+export function sheetRowCssVars(heights: CardRowHeights): {
+  "--wr-fill-row": string;
+  "--wr-notes-row": string;
+  "--wr-zero-set-row": string;
+} {
+  return {
+    "--wr-fill-row": `${heights.fillRowIn}in`,
+    "--wr-notes-row": `${heights.notesRowIn}in`,
+    "--wr-zero-set-row": `${heights.zeroSetRowIn}in`,
+  };
+}

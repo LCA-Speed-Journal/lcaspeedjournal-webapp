@@ -224,10 +224,15 @@ img.wr-qr-placeholder {
 }
 
 .wr-result {
-  min-height: 1.55em;
-  padding-top: 0.4em;
-  padding-bottom: 0.4em;
   background: #fff;
+}
+
+.wr-fill-row > .wr-target,
+.wr-fill-row > .wr-result {
+  height: var(--wr-fill-row);
+  padding-top: 0.08em;
+  padding-bottom: 0.08em;
+  box-sizing: border-box;
 }
 
 .wr-empty {
@@ -258,12 +263,19 @@ img.wr-qr-placeholder {
 }
 
 .wr-notes td {
+  height: var(--wr-notes-row);
+  box-sizing: border-box;
   font-size: 6.5pt;
   font-style: italic;
   color: #444;
   background: #f7f7f7;
   padding: 0.1em 0.28em;
   border-top: none;
+}
+
+.wr-zero-set > td {
+  height: var(--wr-zero-set-row);
+  box-sizing: border-box;
 }
 
 .wr-block-warmup {
