@@ -2,9 +2,16 @@ import { describe, it, expect } from "vitest";
 import extraSessions from "./extracurricular-sessions.json";
 import { extraSessionToDraft } from "./from-extra-json";
 import {
+  FILL_ROW_MAX_IN,
+  FILL_ROW_MIN_IN,
+  HEADER_IN,
+  NOTES_ROW_MAX_IN,
   PAGE_BODY_IN,
+  TABLE_HEAD_IN,
+  ZERO_SET_ROW_MAX_IN,
   MAX_SCAN_SAFE_SETS,
   analyzeCardFit,
+  computeCardRowHeights,
   crowdingPrintWarning,
 } from "./layout-estimate";
 import { makeStressDraft } from "./row-stress";
@@ -35,6 +42,98 @@ function tinyDraft(overrides: Partial<CardDraft> = {}): CardDraft {
     ...overrides,
   };
 }
+
+function notesDraft(count: number): CardDraft {
+  return tinyDraft({
+    movements: Array.from({ length: count }, (_, i) => ({
+      label: String(i + 1),
+      name: `Lift ${i + 1}`,
+      block: "Main",
+      setCount: 3,
+      targets: ["5", "5", "5"],
+      notes: "Cue",
+      fromPair: false,
+      exerciseHtml: null,
+      speedJournalMetricKey: null,
+    })),
+  });
+}
+
+describe("computeCardRowHeights", () => {
+  it("grows a 4-row notes card to fillable and notes max and leaves leftover paper", () => {
+    const h = computeCardRowHeights(notesDraft(4));
+    expect(h.fillRowIn).toBeCloseTo(FILL_ROW_MAX_IN);
+    expect(h.notesRowIn).toBeCloseTo(NOTES_ROW_MAX_IN);
+    expect(h.leftoverIn).toBeGreaterThan(0);
+    expect(h.usedHeightIn).toBeLessThanOrEqual(PAGE_BODY_IN);
+    expect(h.usedHeightIn).toBeCloseTo(
+      HEADER_IN + TABLE_HEAD_IN + 4 * h.fillRowIn + 4 * h.notesRowIn
+    );
+  });
+
+  it("grows an 8-row all-notes card to max caps", () => {
+    const h = computeCardRowHeights(notesDraft(8));
+    expect(h.fillRowIn).toBeCloseTo(FILL_ROW_MAX_IN);
+    expect(h.notesRowIn).toBeCloseTo(NOTES_ROW_MAX_IN);
+  });
+
+  it("keeps a 13-row all-notes card near ideal", () => {
+    const h = computeCardRowHeights(notesDraft(13));
+    expect(h.fillRowIn).toBeGreaterThan(0.3);
+    expect(h.fillRowIn).toBeLessThan(0.34);
+    expect(h.notesRowIn).toBeGreaterThan(0.18);
+    expect(h.notesRowIn).toBeLessThan(0.2);
+  });
+
+  it("shrinks a 15-row all-notes card toward mins but still fits the grid", () => {
+    const h = computeCardRowHeights(notesDraft(15));
+    expect(h.fillRowIn).toBeLessThan(5 / 16);
+    expect(h.fillRowIn).toBeGreaterThanOrEqual(FILL_ROW_MIN_IN);
+    expect(h.usedHeightIn).toBeLessThanOrEqual(PAGE_BODY_IN);
+  });
+
+  it("applies mins when even the min pack overflows", () => {
+    const h = computeCardRowHeights(notesDraft(24));
+    expect(h.fillRowIn).toBeCloseTo(FILL_ROW_MIN_IN);
+    expect(h.usedHeightIn).toBeGreaterThan(PAGE_BODY_IN);
+  });
+
+  it("uses the zero-set band for a 0-set warmup, not a fixed 0.40in", () => {
+    const draft = tinyDraft({
+      movements: [
+        {
+          label: "W",
+          name: "Prep",
+          block: "Warmup",
+          setCount: 0,
+          targets: [],
+          notes: "Med-ball",
+          fromPair: false,
+          exerciseHtml: null,
+          speedJournalMetricKey: null,
+        },
+        {
+          label: "1",
+          name: "Squat",
+          block: "Main",
+          setCount: 3,
+          targets: ["5", "5", "5"],
+          notes: "",
+          fromPair: false,
+          exerciseHtml: null,
+          speedJournalMetricKey: null,
+        },
+      ],
+    });
+    const h = computeCardRowHeights(draft);
+    expect(h.zeroSetRowIn).toBeGreaterThanOrEqual(1 / 4);
+    expect(h.zeroSetRowIn).toBeLessThanOrEqual(ZERO_SET_ROW_MAX_IN);
+    expect(h.zeroSetRowIn).not.toBeCloseTo(0.4);
+    expect(h.usedHeightIn).toBeCloseTo(
+      HEADER_IN + TABLE_HEAD_IN + h.zeroSetRowIn + h.fillRowIn
+    );
+  });
+});
 
 describe("analyzeCardFit", () => {
   it("fits a short in-season style card", () => {
