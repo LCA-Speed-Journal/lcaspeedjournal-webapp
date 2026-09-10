@@ -5,6 +5,7 @@ import {
   PAGE_BODY_IN,
   MAX_SCAN_SAFE_SETS,
   analyzeCardFit,
+  crowdingPrintWarning,
 } from "./layout-estimate";
 import { makeStressDraft } from "./row-stress";
 import { sampleInSeasonSoccer } from "./sample-in-season";
@@ -73,6 +74,14 @@ describe("analyzeCardFit", () => {
     expect(fits8.fits).toBe(true);
     expect(overflow.fits).toBe(false);
     expect(overflow.estimatedHeightIn).toBeGreaterThan(PAGE_BODY_IN);
+  });
+
+  it("warns to check the preview instead of treating crowding as a print block", () => {
+    const crowded = analyzeCardFit(makeStressDraft(13));
+    expect(crowded.movementCount).toBe(13);
+    expect(crowded.scanSafe).toBe(false);
+    expect(crowdingPrintWarning(crowded)).toMatch(/check the preview/i);
+    expect(crowdingPrintWarning(analyzeCardFit(tinyDraft()))).toBeNull();
   });
 });
 

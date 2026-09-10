@@ -10,6 +10,8 @@ export const WARMUP_ROW_IN = 0.4;
 export const MIN_SCAN_ROW_IN = 0.26;
 export const MAX_SCAN_SAFE_SETS = 6;
 export const MAX_SCAN_SAFE_MOVEMENTS = 12;
+export const PRINT_CROWDING_WARNING =
+  "Check the preview to make sure all movements fit on one page before printing.";
 
 export type CardFit = {
   estimatedHeightIn: number;
@@ -83,4 +85,10 @@ export function analyzeCardFit(draft: CardDraft): CardFit {
     maxSets,
     warnings,
   };
+}
+
+/** Print stays available past scan-safe limits; crowding is a preview check. */
+export function crowdingPrintWarning(fit: CardFit | null): string | null {
+  if (!fit || fit.scanSafe) return null;
+  return PRINT_CROWDING_WARNING;
 }

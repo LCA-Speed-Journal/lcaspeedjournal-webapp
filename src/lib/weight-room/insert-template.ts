@@ -11,7 +11,7 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const TEMPLATE_HAS_LOGS_ERROR =
-  "Cannot modify a template that has session logs";
+  "Cannot change or delete a template that has session logs";
 
 export type MovementInsertInput = {
   sort_index: number;

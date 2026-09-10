@@ -10,8 +10,12 @@ import { getMetricsRegistry } from "@/lib/parser";
 import { FORTY_YD_COMPONENTS, FORTY_YD_DASH } from "@/lib/norms/editor-metrics";
 import { downloadPreviewPdf } from "@/lib/weight-room/card-pdf";
 import { isHugoGroup } from "@/lib/weight-room/constants";
-import { analyzeCardFit } from "@/lib/weight-room/layout-estimate";
+import {
+  analyzeCardFit,
+  crowdingPrintWarning,
+} from "@/lib/weight-room/layout-estimate";
 import { encodeTemplatePayload } from "@/lib/weight-room/qr-payload";
+import { moveMovement } from "@/lib/weight-room/reorder-movements";
 import type { CardDraft, CardMovement } from "@/lib/weight-room/types";
 import type { WorkoutMovement, WorkoutTemplate } from "@/types/weight-room";
 
@@ -225,17 +229,19 @@ export function CardEditor({ templateId }: { templateId: string }) {
     draftSignature(draft) !== draftSignature(previewDraft);
 
   const fit = draft ? analyzeCardFit(draft) : null;
-  const previewScanSafe = previewDraft
-    ? analyzeCardFit(previewDraft).scanSafe
-    : false;
-  const canDownloadPdf = Boolean(previewDraft && previewScanSafe);
-  const canPrint = Boolean(fit?.scanSafe && qrUrl);
+  const printWarning = crowdingPrintWarning(fit);
+  const canDownloadPdf = Boolean(previewDraft);
+  const canPrint = Boolean(qrUrl);
   const printCopies = Math.min(50, Math.max(1, Number.isFinite(copyCount) ? copyCount : 12));
 
   function updateMovement(key: string, patch: Partial<MovementForm>) {
     setMovements((rows) =>
       rows.map((row) => (row.key === key ? { ...row, ...patch } : row))
     );
+  }
+
+  function reorderMovement(key: string, delta: -1 | 1) {
+    setMovements((rows) => moveMovement(rows, key, delta));
   }
 
   async function onSave() {
@@ -396,7 +402,7 @@ export function CardEditor({ templateId }: { templateId: string }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {movements.map((m) => (
+                    {movements.map((m, i) => (
                       <tr key={m.key} className="border-b border-border">
                         <td className="px-2 py-1.5">
                           <input
@@ -502,17 +508,37 @@ export function CardEditor({ templateId }: { templateId: string }) {
                           </div>
                         </td>
                         <td className="px-2 py-1.5">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setMovements((rows) =>
-                                rows.filter((row) => row.key !== m.key)
-                              )
-                            }
-                            className="text-xs text-danger hover:opacity-80"
-                          >
-                            Remove
-                          </button>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => reorderMovement(m.key, -1)}
+                              disabled={i === 0}
+                              className="text-xs text-foreground hover:opacity-80 disabled:opacity-40"
+                              aria-label={`Move ${m.name || "movement"} up`}
+                            >
+                              Up
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => reorderMovement(m.key, 1)}
+                              disabled={i === movements.length - 1}
+                              className="text-xs text-foreground hover:opacity-80 disabled:opacity-40"
+                              aria-label={`Move ${m.name || "movement"} down`}
+                            >
+                              Down
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setMovements((rows) =>
+                                  rows.filter((row) => row.key !== m.key)
+                                )
+                              }
+                              className="text-xs text-danger hover:opacity-80"
+                            >
+                              Remove
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -602,6 +628,29 @@ export function CardEditor({ templateId }: { templateId: string }) {
                     className={`mt-1 max-w-[8rem] ${inputClass}`}
                   />
                 </label>
+                {printWarning ? (
+                  <p
+                    className="mt-3 flex items-start gap-2 text-sm text-gold"
+                    role="status"
+                  >
+                    <span aria-hidden="true" className="mt-0.5 shrink-0">
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 3 2.5 20.5h19L12 3Z" />
+                        <path d="M12 10v5" />
+                        <path d="M12 17.5h.01" />
+                      </svg>
+                    </span>
+                    <span>{printWarning}</span>
+                  </p>
+                ) : null}
                 {canPrint ? (
                   <button
                     type="button"
@@ -610,12 +659,7 @@ export function CardEditor({ templateId }: { templateId: string }) {
                   >
                     Print {printCopies} {printCopies === 1 ? "copy" : "copies"}
                   </button>
-                ) : (
-                  <p className="mt-3 text-sm text-danger">
-                    Print is blocked until this card is scan-safe (12 movements
-                    / 6 set columns max).
-                  </p>
-                )}
+                ) : null}
               </section>
 
               <section className="mt-6 rounded-xl border border-border bg-surface-elevated p-4 print:hidden">

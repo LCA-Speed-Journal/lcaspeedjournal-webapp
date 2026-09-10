@@ -4,7 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
-import { HUGO_GROUP_META, type HugoGroup } from "@/lib/weight-room/constants";
+import {
+  HUGO_GROUP_META,
+  HUGO_GROUPS,
+  type HugoGroup,
+} from "@/lib/weight-room/constants";
+import { filterTemplatesByActivity } from "@/lib/weight-room/template-list";
 import type { WorkoutTemplate } from "@/types/weight-room";
 
 const fetcher = (url: string) =>
@@ -31,6 +36,14 @@ export function CardsIndex() {
   }>("/api/weight-room/templates", fetcher);
 
   const templates = data?.data ?? [];
+  const [activityFilter, setActivityFilter] = useState<HugoGroup | "">("");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState("");
+  const visibleTemplates = filterTemplatesByActivity(
+    templates,
+    activityFilter
+  );
   const [csvBusy, setCsvBusy] = useState(false);
   const [csvMessage, setCsvMessage] = useState("");
   const [csvError, setCsvError] = useState("");
@@ -104,6 +117,29 @@ export function CardsIndex() {
       setSeedError("Network error — try again");
     } finally {
       setSeedBusy(false);
+    }
+  }
+
+  async function onDeleteTemplate(id: string) {
+    setDeleteBusyId(id);
+    setDeleteError("");
+    try {
+      const res = await fetch(`/api/weight-room/templates/${id}`, {
+        method: "DELETE",
+      });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setDeleteError(errorText(json, "Delete failed"));
+        setDeleteConfirmId(null);
+        return;
+      }
+      setDeleteConfirmId(null);
+      await mutate();
+    } catch {
+      setDeleteError("Network error — try again");
+      setDeleteConfirmId(null);
+    } finally {
+      setDeleteBusyId(null);
     }
   }
 
@@ -205,6 +241,27 @@ export function CardsIndex() {
           <h2 className="text-sm font-medium uppercase tracking-wider text-foreground-muted">
             Templates
           </h2>
+          <label className="mt-3 block text-sm text-foreground">
+            Activity
+            <select
+              value={activityFilter}
+              onChange={(e) => {
+                setActivityFilter(e.target.value as HugoGroup | "");
+                setDeleteConfirmId(null);
+              }}
+              className="mt-1 block w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground"
+            >
+              <option value="">All activities</option>
+              {HUGO_GROUPS.map((g) => (
+                <option key={g} value={g}>
+                  {HUGO_GROUP_META[g].label}
+                </option>
+              ))}
+            </select>
+          </label>
+          {deleteError ? (
+            <p className="mt-3 text-sm text-danger">{deleteError}</p>
+          ) : null}
           {isLoading ? (
             <p className="mt-3 text-sm text-foreground-muted">Loading…</p>
           ) : error ? (
@@ -213,13 +270,24 @@ export function CardsIndex() {
             <p className="mt-3 text-sm text-foreground-muted">
               No templates yet. Import a CSV or seed the extra term.
             </p>
+          ) : visibleTemplates.length === 0 ? (
+            <p className="mt-3 text-sm text-foreground-muted">
+              No templates for{" "}
+              {activityFilter
+                ? HUGO_GROUP_META[activityFilter].label
+                : "this filter"}
+              .
+            </p>
           ) : (
             <ul className="mt-3 flex flex-col gap-2">
-              {templates.map((t) => (
-                <li key={t.id}>
+              {visibleTemplates.map((t) => (
+                <li
+                  key={t.id}
+                  className="flex items-stretch gap-2 rounded-xl border border-border bg-surface-elevated"
+                >
                   <Link
                     href={`/weight-room/cards/${t.id}`}
-                    className="block rounded-xl border border-border bg-surface-elevated px-4 py-3 hover:border-accent/50"
+                    className="min-w-0 flex-1 px-4 py-3 hover:text-accent"
                   >
                     <p className="text-sm font-medium text-foreground">
                       {t.title}
@@ -231,6 +299,40 @@ export function CardsIndex() {
                         : ""}
                     </p>
                   </Link>
+                  <div className="flex shrink-0 items-center gap-2 px-3">
+                    {deleteConfirmId === t.id ? (
+                      <>
+                        <span className="text-xs text-gold">Delete?</span>
+                        <button
+                          type="button"
+                          onClick={() => void onDeleteTemplate(t.id)}
+                          disabled={deleteBusyId === t.id}
+                          className="rounded border border-danger px-2 py-1 text-xs text-danger hover:bg-danger-dim disabled:opacity-50"
+                        >
+                          {deleteBusyId === t.id ? "…" : "Yes"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmId(null)}
+                          disabled={deleteBusyId === t.id}
+                          className="rounded border border-border px-2 py-1 text-xs text-foreground hover:bg-surface disabled:opacity-50"
+                        >
+                          No
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteError("");
+                          setDeleteConfirmId(t.id);
+                        }}
+                        className="rounded border border-danger px-2 py-1 text-xs text-danger hover:bg-danger-dim"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
