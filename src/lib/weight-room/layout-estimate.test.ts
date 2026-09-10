@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import extraSessions from "./extracurricular-sessions.json";
 import { extraSessionToDraft } from "./from-extra-json";
 import {
+  FIDUCIAL_KEEP_OUT_IN,
   FILL_ROW_MAX_IN,
   FILL_ROW_MIN_IN,
   HEADER_IN,
@@ -78,12 +79,20 @@ describe("computeCardRowHeights", () => {
     expect(h.notesRowIn).toBeCloseTo(NOTES_ROW_MAX_IN);
   });
 
+  it("keeps a 12-row all-notes card off the bottom fiducials", () => {
+    const h = computeCardRowHeights(notesDraft(12));
+    expect(h.usedHeightIn + FIDUCIAL_KEEP_OUT_IN).toBeLessThanOrEqual(
+      PAGE_BODY_IN + 1e-9
+    );
+    expect(h.leftoverIn).toBeGreaterThanOrEqual(FIDUCIAL_KEEP_OUT_IN - 1e-9);
+  });
+
   it("keeps a 13-row all-notes card near ideal", () => {
     const h = computeCardRowHeights(notesDraft(13));
-    expect(h.fillRowIn).toBeGreaterThan(0.3);
-    expect(h.fillRowIn).toBeLessThan(0.34);
-    expect(h.notesRowIn).toBeGreaterThan(0.18);
-    expect(h.notesRowIn).toBeLessThan(0.2);
+    expect(h.fillRowIn).toBeGreaterThan(0.26);
+    expect(h.fillRowIn).toBeLessThan(0.32);
+    expect(h.notesRowIn).toBeGreaterThan(0.16);
+    expect(h.notesRowIn).toBeLessThan(0.19);
   });
 
   it("shrinks a 15-row all-notes card toward mins but still fits the grid", () => {

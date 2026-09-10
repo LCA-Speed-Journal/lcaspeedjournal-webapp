@@ -2,8 +2,16 @@ import type { CardDraft } from "./types";
 
 /** Landscape letter height minus typical 0.35in top/bottom margins. */
 export const PAGE_BODY_IN = 7.8;
-export const HEADER_IN = 0.8;
+/** Title bar + athlete/sport/date + sticker pad + `.wr-top` gap/margin. */
+export const HEADER_IN = 1.1;
 export const TABLE_HEAD_IN = 0.32;
+/** Matches `.wr-sheet` top padding. */
+export const SHEET_PAD_TOP_IN = 0.12;
+/**
+ * Bottom keep-out so the grid cannot enter the 0.22in fiducials.
+ * Matches `.wr-sheet` padding-bottom (square + 0.04in inset + slack).
+ */
+export const FIDUCIAL_KEEP_OUT_IN = 0.36;
 export const MAX_SCAN_SAFE_SETS = 6;
 export const PRINT_CROWDING_WARNING =
   "Check the preview to make sure all movements fit on one page before printing.";
@@ -60,7 +68,12 @@ export function computeCardRowHeights(draft: CardDraft): CardRowHeights {
     }
   }
 
-  const available = PAGE_BODY_IN - HEADER_IN - TABLE_HEAD_IN;
+  const available =
+    PAGE_BODY_IN -
+    SHEET_PAD_TOP_IN -
+    FIDUCIAL_KEEP_OUT_IN -
+    HEADER_IN -
+    TABLE_HEAD_IN;
   const idealSum =
     nFill * FILL_ROW_IDEAL_IN +
     nNotes * NOTES_ROW_IDEAL_IN +

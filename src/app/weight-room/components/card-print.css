@@ -7,7 +7,7 @@
   width: 10.2in;
   min-height: 7.8in;
   margin: 0 auto;
-  padding: 0.12in 0.08in 0.2in;
+  padding: 0.12in 0.08in 0.36in;
   background: #fff;
   color: #1a1a1a;
   font-family: Helvetica, Arial, sans-serif;
@@ -210,9 +210,10 @@ img.wr-qr-placeholder {
   padding: 0.12em 0.08em;
 }
 
-.wr-col-ex {
+.wr-table th.wr-col-ex {
   text-align: left;
   width: 2in;
+  padding-left: 0.1in;
 }
 
 .wr-target {
@@ -239,17 +240,19 @@ img.wr-qr-placeholder {
   background: #b8b8b8;
 }
 
-.wr-ex {
+.wr-table td.wr-ex {
   font-weight: 600;
   text-align: left;
   font-size: 8pt;
   line-height: 1.2;
   width: 2in;
+  padding-left: 0.1in;
+  padding-right: 0.08in;
+  vertical-align: middle;
 }
 
-.wr-ex-span {
-  vertical-align: top;
-  padding-top: 0.2em;
+.wr-table td.wr-ex-span {
+  vertical-align: middle;
 }
 
 .wr-group-sep > td {
