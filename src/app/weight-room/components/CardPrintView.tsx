@@ -1,4 +1,4 @@
-import { Fragment } from "react";
+import { Fragment, type CSSProperties } from "react";
 import "./card-print.css";
 import {
   HUGO_GROUP_META,
@@ -115,10 +115,12 @@ export function CardPrintView({
   return (
     <section
       className="wr-sheet"
-      style={{
-        ["--wr-header-bg" as string]: headerBg(draft),
-        ...rowVars,
-      }}
+      style={
+        {
+          ["--wr-header-bg"]: headerBg(draft),
+          ...rowVars,
+        } as CSSProperties
+      }
     >
       <div className="wr-fiducial wr-fiducial-tl" aria-hidden />
       <div className="wr-fiducial wr-fiducial-bl" aria-hidden />
