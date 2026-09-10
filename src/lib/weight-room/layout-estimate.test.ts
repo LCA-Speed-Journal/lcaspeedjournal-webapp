@@ -169,18 +169,38 @@ describe("analyzeCardFit", () => {
 
   it("eventually overflows when dummy rows pile up", () => {
     const fits8 = analyzeCardFit(makeStressDraft(8));
-    const overflow = analyzeCardFit(makeStressDraft(20));
+    const overflow = analyzeCardFit(makeStressDraft(24));
     expect(fits8.fits).toBe(true);
     expect(overflow.fits).toBe(false);
     expect(overflow.estimatedHeightIn).toBeGreaterThan(PAGE_BODY_IN);
   });
 
-  it("warns to check the preview instead of treating crowding as a print block", () => {
-    const crowded = analyzeCardFit(makeStressDraft(13));
-    expect(crowded.movementCount).toBe(13);
-    expect(crowded.scanSafe).toBe(false);
-    expect(crowdingPrintWarning(crowded)).toMatch(/check the preview/i);
-    expect(crowdingPrintWarning(analyzeCardFit(tinyDraft()))).toBeNull();
+  it("marks 15 noted dummy rows scan-safe when they fit at shrunk heights", () => {
+    const r = analyzeCardFit(makeStressDraft(15));
+    expect(r.fits).toBe(true);
+    expect(r.scanSafe).toBe(true);
+    expect(r.warnings.some((w) => /scan-safe max of 12/i.test(w))).toBe(false);
+  });
+
+  it("treats 13 dummy rows as scan-safe (no movement-count cap)", () => {
+    const r = analyzeCardFit(makeStressDraft(13));
+    expect(r.fits).toBe(true);
+    expect(r.scanSafe).toBe(true);
+    expect(crowdingPrintWarning(r)).toBeNull();
+  });
+
+  it("overflows when the min pack exceeds the page body", () => {
+    const overflow = analyzeCardFit(makeStressDraft(24));
+    expect(overflow.fits).toBe(false);
+    expect(overflow.scanSafe).toBe(false);
+    expect(overflow.estimatedHeightIn).toBeGreaterThan(PAGE_BODY_IN);
+    expect(crowdingPrintWarning(overflow)).toMatch(/check the preview/i);
+  });
+
+  it("keeps estimatedHeightIn equal to computeCardRowHeights usedHeightIn", () => {
+    const draft = makeStressDraft(8);
+    const r = analyzeCardFit(draft);
+    expect(r.estimatedHeightIn).toBeCloseTo(computeCardRowHeights(draft).usedHeightIn);
   });
 });
 
