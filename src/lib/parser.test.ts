@@ -259,8 +259,46 @@ describe("parseFortyYardComponent", () => {
     });
   });
 
+  it("accepts 5-15yd and 20-30yd Force/Form flies", () => {
+    expect(parseFortyYardComponent("1.22", "5-15yd").component).toBe("5-15yd");
+    expect(parseFortyYardComponent("1.05", "20-30yd").component).toBe("20-30yd");
+  });
+
   it("rejects an unknown component", () => {
     expect(() => parseFortyYardComponent("1.72", "0-10m")).toThrow(/Unknown 40yd component/);
+  });
+});
+
+describe("40yd named day_components flies", () => {
+  it("stores a single 5-15yd fly from day_components", () => {
+    const rows = parseEntry("40yd_Dash", "1.22", {
+      day_components: { "40yd_Dash": ["5-15yd"] },
+    });
+    expect(rows).toEqual([
+      {
+        metric_key: "40yd_Dash",
+        interval_index: null,
+        component: "5-15yd",
+        value: 1.22,
+        display_value: 1.22,
+        units: "s",
+      },
+    ]);
+  });
+
+  it("stores multiple named flies without L-R or cumulatives", () => {
+    const rows = parseEntry("40yd_Dash", "1.22|1.05", {
+      day_components: { "40yd_Dash": ["5-15yd", "20-30yd"] },
+    });
+    expect(rows.map((r) => r.component)).toEqual(["5-15yd", "20-30yd"]);
+    expect(rows.every((r) => r.metric_key === "40yd_Dash")).toBe(true);
+    expect(rows.find((r) => r.component === "L-R")).toBeUndefined();
+  });
+
+  it("still uses cumulative splits when day_components is absent", () => {
+    const rows = parseEntry("40yd_Dash", "1.80|3.10|5.00");
+    expect(rows.map((r) => r.component)).toContain("0-40yd");
+    expect(rows.map((r) => r.component)).toContain("20-40yd");
   });
 });
 

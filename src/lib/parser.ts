@@ -129,6 +129,13 @@ export function parseEntry(
     return parseSingleInterval(metric, rawInput.trim(), splitOverride);
   }
   if (inputStructure === "cumulative") {
+    const named =
+      metricKey === FORTY_YD_DASH
+        ? sessionOverrides?.day_components?.[metricKey]
+        : undefined;
+    if (Array.isArray(named) && named.length > 0) {
+      return parseNamedFortyYardComponents(rawInput, named);
+    }
     const splits =
       sessionOverrides?.day_splits?.[metricKey] ?? metric.default_splits;
     const splitNums = (splits as number[]).filter((s) => typeof s === "number");
@@ -173,6 +180,20 @@ export function parseFortyYardComponent(
     display_value: time,
     units: "s",
   };
+}
+
+/** Session named flies: one independent time per label (no L–R %, no cumulatives). */
+function parseNamedFortyYardComponents(
+  rawInput: string,
+  labels: string[]
+): ParsedEntry[] {
+  const parts = splitValues(rawInput);
+  if (parts.length !== labels.length) {
+    throw new Error(
+      `Named 40yd values (${parts.length}) do not match components (${labels.length})`
+    );
+  }
+  return labels.map((label, i) => parseFortyYardComponent(parts[i], label));
 }
 
 function parseSingleInterval(

@@ -27,12 +27,14 @@ export function mphFromYardSplit(timeS: number, yards: number): number | null {
   return (MPH_PER_10YD_PER_SECOND * yards) / 10 / timeS;
 }
 
-/** Live 20-40yd board ranks/displays mph; other 40yd marks stay seconds-primary. */
+/** Live 20-40yd / 20-30yd board ranks/displays mph; other 40yd marks stay seconds-primary. */
 export function isFortyYardMphPrimary(
   metricKey: string,
   component: string | null | undefined
 ): boolean {
-  if (metricKey === FORTY_YD_DASH) return component === "20-40yd";
+  if (metricKey === FORTY_YD_DASH) {
+    return component === "20-40yd" || component === "20-30yd";
+  }
   if (metricKey === TWENTY_YD_DASH) return component === "10-20yd";
   return false;
 }

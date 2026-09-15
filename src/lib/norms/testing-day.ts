@@ -4,6 +4,7 @@ import {
 } from "./attach-zones";
 import {
   AGILITY_5105_CUT_COMPONENTS,
+  FORTY_YD_COMPONENTS,
   NORMS_DEFAULTS_METRIC_KEYS,
   TWENTY_YD_COMPONENTS,
   TWENTY_YD_DASH,
@@ -17,15 +18,7 @@ import { isZoneLabel, zoneRank, type ZoneLabel } from "./palette";
 import type { F2fProfile } from "./f2f/types";
 import type { F2fThemes } from "./f2f/themes";
 
-export const FORTY_YARD_COMPONENTS = [
-  "0-10yd",
-  "0-20yd",
-  "0-40yd",
-  "10-20yd",
-  "20-40yd",
-  "0-5yd",
-  "5-10yd",
-] as const;
+export const FORTY_YARD_COMPONENTS = FORTY_YD_COMPONENTS;
 
 const EFFICIENT_RANK = zoneRank("efficient");
 

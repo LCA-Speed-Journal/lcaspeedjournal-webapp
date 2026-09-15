@@ -12,6 +12,17 @@ import {
   pickerOptionCount,
 } from "@/lib/quick-athlete";
 import { sessionSetupMetricOptions } from "@/lib/metric-utils";
+import { FORTY_YD_DASH } from "@/lib/norms/editor-metrics";
+import {
+  HUGO_GROUP_META,
+  HUGO_GROUPS,
+  isHugoGroup,
+  type HugoGroup,
+} from "@/lib/weight-room/constants";
+import {
+  athleteHasHugoGroup,
+  filterAthletesByHugoGroup,
+} from "@/lib/weight-room/hugo-memberships";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -95,12 +106,29 @@ type AthleteItem = {
   last_name: string;
   athlete_type?: string;
   graduating_class?: number | null;
+  hugo_group?: string | null;
+  hugo_groups?: string[];
 };
+
+function athleteSportLabel(a: AthleteItem): string | null {
+  const groups =
+    a.hugo_groups && a.hugo_groups.length > 0
+      ? a.hugo_groups
+      : a.hugo_group
+        ? [a.hugo_group]
+        : [];
+  if (groups.length === 0) return null;
+  return groups
+    .map((g) => (isHugoGroup(g) ? HUGO_GROUP_META[g].label : g))
+    .join(", ");
+}
 
 function athleteDisplayName(a: AthleteItem): string {
   const t = a.athlete_type ?? "athlete";
   const suffix = t === "staff" ? " (Staff)" : t === "alumni" ? " (Alumni)" : "";
-  return `${a.first_name} ${a.last_name}${suffix}`;
+  const sport = athleteSportLabel(a);
+  const sportSuffix = sport ? ` · ${sport}` : "";
+  return `${a.first_name} ${a.last_name}${suffix}${sportSuffix}`;
 }
 
 type EntryFormProps = {
@@ -114,6 +142,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const { mutate: globalMutate } = useSWRConfig();
   const [sessionId, setSessionId] = useState(sessionIdProp ?? "");
   const [activeOnly, setActiveOnly] = useState(true);
+  const [sportFilter, setSportFilter] = useState<HugoGroup | "">("");
   const [athleteQuery, setAthleteQuery] = useState("");
   const [selectedAthlete, setSelectedAthlete] = useState<{ id: string; displayName: string } | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -159,6 +188,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       phase_week: number;
       day_metrics?: string[] | null;
       day_splits?: Record<string, number[]> | null;
+      day_components?: Record<string, string[]> | null;
     }[];
   }>("/api/sessions", fetcher);
   const { data: athletesAllRes } = useSWR<{ data: AthleteItem[] }>("/api/athletes", fetcher);
@@ -166,14 +196,15 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
 
   const sessions = sessionsRes?.data ?? [];
   const athletes = activeOnly ? (athletesActiveRes?.data ?? []) : (athletesAllRes?.data ?? []);
+  const athletesInSport = filterAthletesByHugoGroup(athletes, sportFilter);
   const athleteId = selectedAthlete?.id ?? "";
   const athleteSearch = athleteQuery.trim().toLowerCase();
   const filteredAthletes = athleteSearch
-    ? athletes.filter(
+    ? athletesInSport.filter(
         (a) =>
           `${a.first_name} ${a.last_name}`.toLowerCase().includes(athleteSearch)
       )
-    : athletes;
+    : athletesInSport;
   const showAddOption = addOptionVisible(athleteQuery);
   const optionCount = pickerOptionCount(filteredAthletes.length, athleteQuery);
   const addHighlighted = isAddOptionIndex(
@@ -264,7 +295,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
 
   useEffect(() => {
     if (dropdownOpen) setHighlightedIndex(0);
-  }, [athleteQuery, athletes, activeOnly, dropdownOpen]);
+  }, [athleteQuery, athletes, activeOnly, sportFilter, dropdownOpen]);
 
   useEffect(() => {
     const id = addHighlighted
@@ -287,6 +318,14 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       : allOptions;
   const selectedMetric = options.find((o) => o.key === metricKey) ?? null;
 
+  const namedFortyComponents =
+    metricKey === FORTY_YD_DASH &&
+    Array.isArray(selectedSession?.day_components?.[FORTY_YD_DASH]) &&
+    selectedSession!.day_components![FORTY_YD_DASH]!.length > 0
+      ? selectedSession!.day_components![FORTY_YD_DASH]!
+      : [];
+  const showNamedFlies = namedFortyComponents.length > 0;
+
   const cumulativeSplits =
     selectedSession?.day_splits?.[metricKey] ?? selectedMetric?.defaultSplits;
   const splitCount = Array.isArray(cumulativeSplits) && cumulativeSplits.length > 0
@@ -294,29 +333,41 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     : 0;
   const selectedMetricIsSplit = selectedMetric != null && isSplitMetricKey(selectedMetric.key);
   const showSplitEntryToggle =
+    !showNamedFlies &&
     selectedMetric != null &&
     splitCount > 0 &&
     (selectedMetric.inputStructure === "cumulative" || selectedMetricIsSplit);
   const showMobileSplits =
+    !showNamedFlies &&
     isMobile &&
     selectedMetric?.inputStructure === "cumulative" &&
     splitCount > 0;
 
   useEffect(() => {
-    if (showMobileSplits && splitValues.length !== splitCount) {
+    if (showNamedFlies && splitValues.length !== namedFortyComponents.length) {
+      setSplitValues(Array(namedFortyComponents.length).fill(""));
+    } else if (showMobileSplits && splitValues.length !== splitCount) {
       setSplitValues(Array(splitCount).fill(""));
-    }
-    if (!showMobileSplits && splitValues.length > 0) {
+    } else if (!showNamedFlies && !showMobileSplits && splitValues.length > 0) {
       setSplitValues([]);
     }
-  }, [showMobileSplits, splitCount, metricKey, sessionId]);
+  }, [
+    showNamedFlies,
+    namedFortyComponents.length,
+    showMobileSplits,
+    splitCount,
+    metricKey,
+    sessionId,
+  ]);
 
   async function submitEntry() {
     setError("");
     setSuccess("");
     setLoading(true);
     let rawToSend: string;
-    if (showMobileSplits) {
+    if (showNamedFlies) {
+      rawToSend = splitValues.map((v) => v.trim()).join("|");
+    } else if (showMobileSplits) {
       const str = splitValues.map((v) => v.trim()).join("|");
       if (splitEntryMode === "segment") {
         const converted = segmentInputToCumulativeInput(str);
@@ -362,7 +413,11 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       const count = json.data?.count ?? 1;
       setSuccess(`Saved ${count} ${count === 1 ? "entry" : "entries"}`);
       setRawInput("");
-      if (showMobileSplits) setSplitValues(Array(splitCount).fill(""));
+      if (showNamedFlies) {
+        setSplitValues(Array(namedFortyComponents.length).fill(""));
+      } else if (showMobileSplits) {
+        setSplitValues(Array(splitCount).fill(""));
+      }
       // Invalidate leaderboard cache so live leaderboard (and any open tab) refetches
       void globalMutate(
         (key) => typeof key === "string" && key.startsWith("/api/leaderboard"),
@@ -386,11 +441,16 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     void submitEntry();
   }
 
+  const multiFieldEntry = showNamedFlies || showMobileSplits;
   const allSplitsFilled =
-    !showMobileSplits || splitValues.length === 0 ||
+    !multiFieldEntry ||
+    splitValues.length === 0 ||
     splitValues.every((v) => v.trim() !== "");
-  const hasValue = showMobileSplits
-    ? allSplitsFilled && splitValues.length === splitCount
+  const expectedFieldCount = showNamedFlies
+    ? namedFortyComponents.length
+    : splitCount;
+  const hasValue = multiFieldEntry
+    ? allSplitsFilled && splitValues.length === expectedFieldCount
     : rawInput.trim() !== "";
   const canSubmit = effectiveSessionId && athleteId && metricKey && hasValue;
 
@@ -442,6 +502,33 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           />
           <span className="text-sm font-medium text-foreground">Active only</span>
         </label>
+        <label htmlFor="entry_sport" className="mb-1 block text-sm font-medium text-foreground">
+          Sport
+        </label>
+        <select
+          id="entry_sport"
+          value={sportFilter}
+          onChange={(e) => {
+            const next = e.target.value as HugoGroup | "";
+            setSportFilter(next);
+            if (selectedAthlete && next) {
+              const selected = athletes.find((a) => a.id === selectedAthlete.id);
+              if (!selected || !athleteHasHugoGroup(selected, next)) {
+                setSelectedAthlete(null);
+                setAthleteQuery("");
+              }
+            }
+            setDropdownOpen(false);
+          }}
+          className="mb-3 min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
+        >
+          <option value="">All sports</option>
+          {HUGO_GROUPS.map((g) => (
+            <option key={g} value={g}>
+              {HUGO_GROUP_META[g].label}
+            </option>
+          ))}
+        </select>
         <label htmlFor="entry_athlete" className="mb-1 block text-sm font-medium text-foreground">
           Athlete
         </label>
@@ -496,7 +583,11 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
                 }
               }
             }}
-            placeholder="Search or select athlete…"
+            placeholder={
+              sportFilter
+                ? `Search ${HUGO_GROUP_META[sportFilter].label} athletes…`
+                : "Search or select athlete…"
+            }
             className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 pr-8 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
             aria-expanded={dropdownOpen}
             aria-autocomplete="list"
@@ -753,7 +844,37 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             </button>
           </div>
         )}
-        {showMobileSplits ? (
+        {showNamedFlies ? (
+          <div className="space-y-2">
+            {namedFortyComponents.map((label, i) => (
+              <div key={label}>
+                <label
+                  htmlFor={`entry_fly_${label}`}
+                  className="mb-0.5 block text-xs font-mono text-foreground-muted"
+                >
+                  {label}
+                </label>
+                <input
+                  id={`entry_fly_${label}`}
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={splitValues[i] ?? ""}
+                  onChange={(e) => {
+                    const next = [...splitValues];
+                    next[i] = e.target.value;
+                    setSplitValues(next);
+                  }}
+                  placeholder="e.g. 1.22"
+                  className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
+                />
+              </div>
+            ))}
+            <p className="text-xs text-foreground-muted">
+              One fly time per split (seconds). Feeds Force-to-Form when applicable.
+            </p>
+          </div>
+        ) : showMobileSplits ? (
           <div className="space-y-2">
             {splitValues.map((val, i) => (
               <div key={i}>
@@ -792,9 +913,11 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             required
           />
         )}
-        <p className="mt-1 text-xs text-foreground-muted">
-          {inputHint(selectedMetric, selectedSession?.day_splits, splitEntryMode)}
-        </p>
+        {!showNamedFlies && (
+          <p className="mt-1 text-xs text-foreground-muted">
+            {inputHint(selectedMetric, selectedSession?.day_splits, splitEntryMode)}
+          </p>
+        )}
       </div>
 
       {error && (

@@ -50,7 +50,8 @@ export function pickBestMaxVelocityHits(
   const candidates: TestingDayHit[] = [];
   for (const row of rows) {
     const from40 =
-      row.metric_key === FORTY_YD_DASH && row.component === "20-40yd";
+      row.metric_key === FORTY_YD_DASH &&
+      (row.component === "20-40yd" || row.component === "20-30yd");
     const from20 =
       row.metric_key === TWENTY_YD_DASH && row.component === "10-20yd";
     if (!from40 && !from20) continue;

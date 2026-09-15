@@ -39,6 +39,17 @@ export const FORTY_YD_COMPONENTS = [
   "20-40yd",
   "0-5yd",
   "5-10yd",
+  "5-15yd",
+  "20-30yd",
+] as const;
+
+/** Interval flies selectable as named single-time 40yd marks in session setup. */
+export const FORTY_YD_NAMED_FLIES = [
+  "5-10yd",
+  "5-15yd",
+  "10-20yd",
+  "20-30yd",
+  "20-40yd",
 ] as const;
 
 export const TWENTY_YD_COMPONENTS = [

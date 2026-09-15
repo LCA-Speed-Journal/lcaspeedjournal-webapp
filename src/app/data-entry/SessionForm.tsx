@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import {
+  FORTY_YD_DASH,
+  FORTY_YD_NAMED_FLIES,
+} from "@/lib/norms/editor-metrics";
 
 type MetricOption = {
   key: string;
@@ -36,6 +40,7 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
   const [phaseWeek, setPhaseWeek] = useState(1);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
+  const [namedFortyFlies, setNamedFortyFlies] = useState<string[]>([]);
   const [sessionNotes, setSessionNotes] = useState("");
   const [metricSearch, setMetricSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -49,6 +54,9 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
           m.label.toLowerCase().includes(metricSearch.trim().toLowerCase())
         );
 
+  const fortySelected = selectedMetrics.includes(FORTY_YD_DASH);
+  const usingNamedFlies = fortySelected && namedFortyFlies.length > 0;
+
   function toggleMetric(key: string) {
     const isDeselecting = selectedMetrics.includes(key);
     if (isDeselecting) {
@@ -57,27 +65,52 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
         delete next[key];
         return next;
       });
+      if (key === FORTY_YD_DASH) setNamedFortyFlies([]);
     }
     setSelectedMetrics((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
     );
   }
 
+  function toggleNamedFly(label: string) {
+    setNamedFortyFlies((prev) => {
+      const next = prev.includes(label)
+        ? prev.filter((c) => c !== label)
+        : [...prev, label];
+      if (next.length > 0) {
+        setCustomSplits((splits) => {
+          if (!(FORTY_YD_DASH in splits)) return splits;
+          const copy = { ...splits };
+          delete copy[FORTY_YD_DASH];
+          return copy;
+        });
+      }
+      return next;
+    });
+  }
+
   const splitConfigMetrics = metricOptions.filter(
     (m) =>
       selectedMetrics.includes(m.key) &&
-      (m.input_structure === "cumulative" || isSplitMetric(m))
+      (m.input_structure === "cumulative" || isSplitMetric(m)) &&
+      !(m.key === FORTY_YD_DASH && usingNamedFlies)
   );
 
   function buildDaySplits(): Record<string, number[]> | undefined {
     const out: Record<string, number[]> = {};
     for (const m of splitConfigMetrics) {
+      if (m.key === FORTY_YD_DASH && usingNamedFlies) continue;
       const input = customSplits[m.key]?.trim();
       if (!input) continue;
       const parsed = parseSplitsInput(input);
       if (parsed && parsed.length > 0) out[m.key] = parsed;
     }
     return Object.keys(out).length > 0 ? out : undefined;
+  }
+
+  function buildDayComponents(): Record<string, string[]> | undefined {
+    if (!usingNamedFlies) return undefined;
+    return { [FORTY_YD_DASH]: namedFortyFlies };
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -87,6 +120,7 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
     setLoading(true);
     try {
       const day_splits = buildDaySplits();
+      const day_components = buildDayComponents();
       const res = await fetch("/api/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -96,6 +130,7 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
           phase_week: phase === "Other" ? 0 : phaseWeek,
           day_metrics: selectedMetrics.length > 0 ? selectedMetrics : undefined,
           day_splits,
+          day_components,
           session_notes: sessionNotes.trim() || undefined,
         }),
       });
@@ -197,6 +232,34 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
         </div>
       </div>
 
+      {fortySelected && (
+        <div>
+          <span className="mb-2 block text-sm font-medium text-foreground">
+            40yd named flies (optional) — single fly time each
+          </span>
+          <p className="mb-2 text-xs text-foreground-muted">
+            Check splits to log one time per fly (e.g. Force 5-15yd or Form 20-30yd).
+            When any are checked, custom 40yd gates below are ignored.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {FORTY_YD_NAMED_FLIES.map((label) => (
+              <label
+                key={label}
+                className="flex cursor-pointer items-center gap-2 text-sm text-foreground"
+              >
+                <input
+                  type="checkbox"
+                  checked={namedFortyFlies.includes(label)}
+                  onChange={() => toggleNamedFly(label)}
+                  className="rounded border-border bg-surface text-accent focus:ring-accent"
+                />
+                <span className="font-mono">{label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
       {splitConfigMetrics.length > 0 && (
         <div>
           <span className="mb-2 block text-sm font-medium text-foreground">
@@ -209,10 +272,12 @@ export function SessionForm({ phases, metricOptions }: SessionFormProps) {
             For Flying 20m workflows, use <code className="font-mono">10,10</code> for two
             10m segments, or <code className="font-mono">20</code> for a single 20m interval.
           </p>
-          <p className="mb-2 text-xs text-foreground-muted">
-            For 40yd, distances are yards: <code className="font-mono">10</code> for a 10yd-only
-            mark, or <code className="font-mono">10,10,20</code> for a full dash.
-          </p>
+          {!usingNamedFlies && (
+            <p className="mb-2 text-xs text-foreground-muted">
+              For 40yd, distances are yards: <code className="font-mono">10</code> for a 10yd-only
+              mark, or <code className="font-mono">10,10,20</code> for a full dash.
+            </p>
+          )}
           <p className="mb-2 text-xs text-foreground-muted">
             For 20yd, distances are yards: <code className="font-mono">10</code> for a
             10yd-only mark, or <code className="font-mono">5,5,10</code> for a full 20.

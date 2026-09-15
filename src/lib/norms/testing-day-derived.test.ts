@@ -64,6 +64,20 @@ describe("pickBestMaxVelocityHits", () => {
     expect(hits[0].athlete_id).toBe("a");
     expect(hits[0].display_value).toBeCloseTo(20.45, 5);
   });
+
+  it("includes 40yd 20-30yd flies in Max Velocity", () => {
+    const hits = pickBestMaxVelocityHits([
+      {
+        ...base,
+        athlete_id: "a",
+        metric_key: "40yd_Dash",
+        component: "20-30yd",
+        display_value: 1.0,
+      },
+    ]);
+    expect(hits).toHaveLength(1);
+    expect(hits[0].display_value).toBeCloseTo(20.45, 5);
+  });
 });
 
 describe("mergeDerivedSprintColumns", () => {

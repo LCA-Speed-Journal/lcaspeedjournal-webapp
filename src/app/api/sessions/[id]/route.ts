@@ -5,6 +5,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import {
+  sanitizeDayComponents,
+  sanitizeDaySplits,
+} from "@/lib/session-day-config";
 
 function serializeSessionRow(row: Record<string, unknown>) {
   return {
@@ -27,7 +31,7 @@ export async function GET(
   try {
     const { id } = await params;
     const { rows } = await sql`
-      SELECT id, session_date, phase, phase_week, day_metrics, day_splits, session_notes, created_at
+      SELECT id, session_date, phase, phase_week, day_metrics, day_splits, day_components, session_notes, created_at
       FROM sessions
       WHERE id = ${id}
       LIMIT 1
@@ -63,6 +67,7 @@ export async function PATCH(
       phase_week,
       day_metrics,
       day_splits,
+      day_components,
       session_notes,
     } = body;
 
@@ -85,22 +90,10 @@ export async function PATCH(
       Array.isArray(day_metrics) && day_metrics.length > 0
         ? JSON.stringify(day_metrics)
         : null;
-    let daySplitsJson: string | null = null;
-    if (
-      day_splits != null &&
-      typeof day_splits === "object" &&
-      !Array.isArray(day_splits)
-    ) {
-      const sanitized: Record<string, number[]> = {};
-      for (const [k, v] of Object.entries(day_splits)) {
-        if (Array.isArray(v) && v.every((n) => typeof n === "number" && n > 0)) {
-          sanitized[k] = v as number[];
-        }
-      }
-      if (Object.keys(sanitized).length > 0) {
-        daySplitsJson = JSON.stringify(sanitized);
-      }
-    }
+    const splits = sanitizeDaySplits(day_splits);
+    const components = sanitizeDayComponents(day_components);
+    const daySplitsJson = splits ? JSON.stringify(splits) : null;
+    const dayComponentsJson = components ? JSON.stringify(components) : null;
     const notes = session_notes ?? null;
 
     const { rows } = await sql`
@@ -111,9 +104,10 @@ export async function PATCH(
         phase_week = ${week},
         day_metrics = ${dayMetricsJson},
         day_splits = ${daySplitsJson},
+        day_components = ${dayComponentsJson},
         session_notes = ${notes}
       WHERE id = ${id}
-      RETURNING id, session_date, phase, phase_week, day_metrics, day_splits, session_notes, created_at
+      RETURNING id, session_date, phase, phase_week, day_metrics, day_splits, day_components, session_notes, created_at
     `;
 
     if (!rows.length) {

@@ -185,6 +185,60 @@ describe("pickF2fMarks best", () => {
     expect(picked.entries.some((e) => e.component === "10-20yd")).toBe(true);
     expect(picked.entries.some((e) => e.component === "20-40yd")).toBe(true);
   });
+
+  it("prefers timed 5-15yd for Force over 5-10 + 10-20 reconstruction inputs", () => {
+    const fiveFifteen = dated({
+      metric_key: "40yd_Dash",
+      component: "5-15yd",
+      display_value: 1.2,
+      session_id: "may",
+      session_date: MAY,
+    });
+    const fiveTen = dated({
+      metric_key: "40yd_Dash",
+      component: "5-10yd",
+      display_value: 0.7,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const tenTwenty = dated({
+      metric_key: "40yd_Dash",
+      component: "10-20yd",
+      display_value: 1.3,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const picked = pickF2fMarks([fiveFifteen, fiveTen, tenTwenty, januaryBroad], {
+      mode: "best",
+      ...WINDOW,
+    });
+    expect(picked.entries.some((e) => e.component === "5-15yd")).toBe(true);
+    expect(picked.entries.some((e) => e.component === "5-10yd")).toBe(false);
+  });
+
+  it("prefers a faster 20-30yd Form over a slower prior 20-40yd", () => {
+    // Slow 20-40 (~18.6 mph) vs fast 20-30 (1.00s = 20.45 mph) → 20-30 wins Form
+    const slowTwentyForty = dated({
+      metric_key: "40yd_Dash",
+      component: "20-40yd",
+      display_value: 2.2,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const fastTwentyThirty = dated({
+      metric_key: "40yd_Dash",
+      component: "20-30yd",
+      display_value: 1.0,
+      session_id: "may",
+      session_date: MAY,
+    });
+    const picked = pickF2fMarks(
+      [slowTwentyForty, fastTwentyThirty, januaryBroad],
+      { mode: "best", ...WINDOW }
+    );
+    expect(picked.entries.some((e) => e.component === "20-30yd")).toBe(true);
+    expect(picked.entries.some((e) => e.component === "20-40yd")).toBe(false);
+  });
 });
 
 describe("pickF2fMarks full-test", () => {

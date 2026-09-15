@@ -119,6 +119,24 @@ describe("parseMovements", () => {
     expect(ok.value[0].speed_journal_component).toBe("0-10yd");
   });
 
+  it("accepts 5-15yd and 20-30yd as 40yd speed journal components", () => {
+    for (const component of ["5-15yd", "20-30yd"] as const) {
+      const ok = parseMovements([
+        {
+          name: component,
+          block: "Primer",
+          set_count: 1,
+          targets: ["Best"],
+          speed_journal_metric_key: "40yd_Dash",
+          speed_journal_component: component,
+        },
+      ]);
+      expect(ok.ok).toBe(true);
+      if (!ok.ok) return;
+      expect(ok.value[0].speed_journal_component).toBe(component);
+    }
+  });
+
   it('rejects speed_journal_metric_key "not-a-metric"', () => {
     const r = parseMovements([
       {

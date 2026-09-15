@@ -29,9 +29,11 @@ describe("mphFromYardSplit", () => {
 });
 
 describe("live 20-40yd mph primary", () => {
-  it("is only the 20-40yd fly on 40yd_Dash", () => {
+  it("is the 20-40yd or 20-30yd fly on 40yd_Dash", () => {
     expect(isFortyYardMphPrimary("40yd_Dash", "20-40yd")).toBe(true);
+    expect(isFortyYardMphPrimary("40yd_Dash", "20-30yd")).toBe(true);
     expect(isFortyYardMphPrimary("40yd_Dash", "10-20yd")).toBe(false);
+    expect(isFortyYardMphPrimary("40yd_Dash", "5-15yd")).toBe(false);
     expect(isFortyYardMphPrimary("40yd_Dash", "0-40yd")).toBe(false);
     expect(isFortyYardMphPrimary("40m_Sprint", "20-40m")).toBe(false);
   });
@@ -39,8 +41,11 @@ describe("live 20-40yd mph primary", () => {
   it("shows mph on short/split 40yd marks but not the full dash", () => {
     expect(showFortyYardMphSecondary("40yd_Dash", "0-10yd")).toBe(true);
     expect(showFortyYardMphSecondary("40yd_Dash", "10-20yd")).toBe(true);
+    expect(showFortyYardMphSecondary("40yd_Dash", "5-15yd")).toBe(true);
     expect(showFortyYardMphSecondary("40yd_Dash", "0-40yd")).toBe(false);
     expect(isFortyYardComponent("0-10yd")).toBe(true);
+    expect(isFortyYardComponent("5-15yd")).toBe(true);
+    expect(isFortyYardComponent("20-30yd")).toBe(true);
     expect(isFortyYardComponent("0-10m")).toBe(false);
   });
 
@@ -56,6 +61,19 @@ describe("live 20-40yd mph primary", () => {
     expect(ten?.secondaryUnits).toBe("mph");
 
     expect(fortyYardLiveReadout("40yd_Dash", "0-40yd", 4.9)).toBeNull();
+  });
+
+  it("ranks 20-30yd as mph-primary and 5-15yd as seconds-primary", () => {
+    const form = fortyYardLiveReadout("40yd_Dash", "20-30yd", 1.0);
+    expect(form?.primaryUnits).toBe("mph");
+    expect(form?.primaryValue).toBeCloseTo(MPH_PER_10YD_PER_SECOND, 5);
+    expect(form?.secondaryValue).toBe(1.0);
+    expect(form?.secondaryUnits).toBe("s");
+
+    const force = fortyYardLiveReadout("40yd_Dash", "5-15yd", 1.22);
+    expect(force?.primaryUnits).toBe("s");
+    expect(force?.primaryValue).toBe(1.22);
+    expect(force?.secondaryUnits).toBe("mph");
   });
 });
 
