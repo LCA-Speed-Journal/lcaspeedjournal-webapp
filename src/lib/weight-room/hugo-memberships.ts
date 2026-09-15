@@ -63,6 +63,15 @@ export function athleteHasHugoGroup(
   return athlete.hugo_group === group;
 }
 
+/** Empty/undefined group means no filter. */
+export function filterAthletesByHugoGroup<T extends HugoTeamAthlete>(
+  athletes: T[],
+  group: string | null | undefined
+): T[] {
+  if (!group) return athletes;
+  return athletes.filter((athlete) => athleteHasHugoGroup(athlete, group));
+}
+
 /** First membership added becomes the athlete's primary Hugo sport. */
 export function shouldSetPrimaryOnFirstAdd(
   existingMembershipCount: number

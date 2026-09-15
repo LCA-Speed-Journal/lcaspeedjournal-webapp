@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   athleteHasHugoGroup,
   attachHugoGroups,
+  filterAthletesByHugoGroup,
   groupMembershipsByAthleteId,
   isMissingRelationOrColumn,
   isOnHugoTeam,
@@ -115,6 +116,33 @@ describe("athleteHasHugoGroup", () => {
     expect(
       athleteHasHugoGroup({ hugo_groups: ["track"], hugo_group: "xc" }, "soccer")
     ).toBe(false);
+  });
+});
+
+describe("filterAthletesByHugoGroup", () => {
+  const jane = { id: "j", hugo_groups: ["volleyball"], hugo_group: null };
+  const pat = { id: "p", hugo_groups: ["soccer", "track"], hugo_group: "soccer" };
+  const alex = { id: "a", hugo_groups: [], hugo_group: "football" };
+
+  it("returns everyone when no sport is selected", () => {
+    expect(filterAthletesByHugoGroup([jane, pat, alex], "")).toEqual([
+      jane,
+      pat,
+      alex,
+    ]);
+    expect(filterAthletesByHugoGroup([jane, pat], null)).toEqual([jane, pat]);
+  });
+
+  it("keeps only members of the selected sport", () => {
+    expect(filterAthletesByHugoGroup([jane, pat, alex], "volleyball")).toEqual([
+      jane,
+    ]);
+    expect(filterAthletesByHugoGroup([jane, pat, alex], "soccer")).toEqual([
+      pat,
+    ]);
+    expect(filterAthletesByHugoGroup([jane, pat, alex], "football")).toEqual([
+      alex,
+    ]);
   });
 });
 
