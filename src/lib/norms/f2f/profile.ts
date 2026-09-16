@@ -163,9 +163,12 @@ function withDerivedSprintFlies(entries: F2fEntry[]): F2fEntry[] {
 }
 
 function pickForce(entries: F2fEntry[]): F2fVertex | null {
+  type Candidate = { vertex: F2fVertex; rank: number };
+  const preferred: Candidate[] = [];
+
   const timed515 = pickSprintSplit(entries, "5-15yd");
   if (timed515) {
-    return vertexFromEntry(
+    const vertex = vertexFromEntry(
       timed515,
       resolveForce({
         timeS: timed515.display_value,
@@ -175,6 +178,7 @@ function pickForce(entries: F2fEntry[]): F2fVertex | null {
       false,
       mphFromYardSplit(timed515.display_value, 10)
     );
+    if (vertex) preferred.push({ vertex, rank: 0 });
   }
 
   const fiveTen = pickSprintSplit(entries, "5-10yd");
@@ -200,18 +204,31 @@ function pickForce(entries: F2fEntry[]): F2fVertex | null {
           fiveTen.session_date === tenTwenty.session_date
             ? fiveTen.session_date
             : undefined;
-        return {
-          ...vertex,
-          input: {
-            metric_key: fiveTen.metric_key,
-            component: "5-15yd",
-            value: reconstructed.timeS,
-            units: "s",
+        preferred.push({
+          vertex: {
+            ...vertex,
+            input: {
+              metric_key: fiveTen.metric_key,
+              component: "5-15yd",
+              value: reconstructed.timeS,
+              units: "s",
+            },
+            ...(sameDate ? { session_date: sameDate } : {}),
           },
-          ...(sameDate ? { session_date: sameDate } : {}),
-        };
+          rank: 1,
+        });
       }
     }
+  }
+
+  if (preferred.length > 0) {
+    preferred.sort((a, b) => {
+      if (a.vertex.predicted_40 !== b.vertex.predicted_40) {
+        return a.vertex.predicted_40 - b.vertex.predicted_40;
+      }
+      return a.rank - b.rank;
+    });
+    return preferred[0]!.vertex;
   }
 
   if (fiveTen) {

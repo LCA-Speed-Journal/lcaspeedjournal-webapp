@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { f2fSchoolYearWindow, pickF2fMarks } from "./pick-marks";
+import {
+  f2fSchoolYearWindow,
+  pickEarliestF2fMarks,
+  pickF2fMarks,
+} from "./pick-marks";
 import type { DatedF2fEntry } from "./pick-marks";
+import { buildF2fProfile } from "./profile";
+import { predict40FromTwenty } from "./segment-table";
 
 function dated(
   partial: Omit<DatedF2fEntry, "component"> & { component?: string | null }
@@ -186,7 +192,7 @@ describe("pickF2fMarks best", () => {
     expect(picked.entries.some((e) => e.component === "20-40yd")).toBe(true);
   });
 
-  it("prefers timed 5-15yd for Force over 5-10 + 10-20 reconstruction inputs", () => {
+  it("prefers timed 5-15yd for Force when it scores better than profiled 5-10", () => {
     const fiveFifteen = dated({
       metric_key: "40yd_Dash",
       component: "5-15yd",
@@ -214,6 +220,37 @@ describe("pickF2fMarks best", () => {
     });
     expect(picked.entries.some((e) => e.component === "5-15yd")).toBe(true);
     expect(picked.entries.some((e) => e.component === "5-10yd")).toBe(false);
+  });
+
+  it("uses profiled 5-10 for Force when it scores better than a slower timed 5-15", () => {
+    const slowFiveFifteen = dated({
+      metric_key: "40yd_Dash",
+      component: "5-15yd",
+      display_value: 1.5,
+      session_id: "may",
+      session_date: MAY,
+    });
+    const fiveTen = dated({
+      metric_key: "40yd_Dash",
+      component: "5-10yd",
+      display_value: 0.7,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const tenTwenty = dated({
+      metric_key: "40yd_Dash",
+      component: "10-20yd",
+      display_value: 1.3,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const picked = pickF2fMarks(
+      [slowFiveFifteen, fiveTen, tenTwenty, januaryBroad],
+      { mode: "best", ...WINDOW }
+    );
+    expect(picked.entries.some((e) => e.component === "5-10yd")).toBe(true);
+    expect(picked.entries.some((e) => e.component === "10-20yd")).toBe(true);
+    expect(picked.entries.some((e) => e.component === "5-15yd")).toBe(false);
   });
 
   it("prefers a faster 20-30yd Form over a slower prior 20-40yd", () => {
@@ -400,5 +437,165 @@ describe("pickF2fMarks latest", () => {
     expect(fiveTen?.session_date).toBe(APR);
     expect(tenTwenty?.session_date).toBe(APR);
     expect(form?.session_date).toBe(MAY);
+  });
+});
+
+describe("pickEarliestF2fMarks", () => {
+  it("takes January Broad; latest still carries Broad when April has none", () => {
+    const aprilForm = dated({
+      metric_key: "40yd_Dash",
+      component: "20-40yd",
+      display_value: 2.0,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const earliest = pickEarliestF2fMarks(
+      [januaryBroad, aprilForty, aprilFiveTen, aprilForm],
+      WINDOW
+    );
+    const latest = pickF2fMarks(
+      [januaryBroad, aprilForty, aprilFiveTen, aprilForm],
+      { mode: "latest", ...WINDOW }
+    );
+
+    expect(earliest.mode).toBe("earliest");
+    const earlyBroad = earliest.entries.find(
+      (e) => e.metric_key === "Standing-Broad"
+    );
+    expect(earlyBroad?.session_date).toBe(JAN);
+
+    const lateBroad = latest.entries.find(
+      (e) => e.metric_key === "Standing-Broad"
+    );
+    expect(lateBroad?.session_date).toBe(JAN);
+    expect(lateBroad?.display_value).toBe(10);
+  });
+
+  it("prefers the earliest Broad when multiple exist", () => {
+    const marchBroad = dated({
+      metric_key: "Standing-Broad",
+      display_value: 9,
+      session_id: "mar",
+      session_date: MAR,
+    });
+    const earliest = pickEarliestF2fMarks([januaryBroad, marchBroad], WINDOW);
+    expect(earliest.entries[0]?.session_date).toBe(JAN);
+    expect(earliest.entries[0]?.display_value).toBe(10);
+  });
+
+  it("uses earliest-session force (5-10) not a later 5-15 for beginning", () => {
+    const earlyFiveTen = dated({
+      metric_key: "20yd_Dash",
+      component: "5-10yd",
+      display_value: 0.76,
+      session_id: "jan",
+      session_date: JAN,
+    });
+    const earlyTenTwenty = dated({
+      metric_key: "20yd_Dash",
+      component: "10-20yd",
+      display_value: 1.37,
+      session_id: "jan",
+      session_date: JAN,
+    });
+    const laterFiveFifteen = dated({
+      metric_key: "40yd_Dash",
+      component: "5-15yd",
+      display_value: 1.49,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const earliest = pickEarliestF2fMarks(
+      [januaryBroad, earlyFiveTen, earlyTenTwenty, laterFiveFifteen],
+      WINDOW
+    );
+    const latest = pickF2fMarks(
+      [januaryBroad, earlyFiveTen, earlyTenTwenty, laterFiveFifteen],
+      { mode: "latest", ...WINDOW }
+    );
+    expect(
+      earliest.entries.some((e) => e.component === "5-10yd" && e.session_date === JAN)
+    ).toBe(true);
+    expect(
+      latest.entries.some((e) => e.component === "5-15yd" && e.session_date === APR)
+    ).toBe(true);
+  });
+
+  it("keeps 0-20yd scale anchors from the Force session (20yd testing day)", () => {
+    const fiveFifteen = dated({
+      metric_key: "20yd_Dash",
+      component: "5-15yd",
+      display_value: 1.49,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const zeroTwenty = dated({
+      metric_key: "20yd_Dash",
+      component: "0-20yd",
+      display_value: 3.25,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const formTenTwenty = dated({
+      metric_key: "20yd_Dash",
+      component: "10-20yd",
+      display_value: 1.4,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const latest = pickF2fMarks(
+      [januaryBroad, fiveFifteen, zeroTwenty, formTenTwenty],
+      { mode: "latest", ...WINDOW }
+    );
+    const best = pickF2fMarks(
+      [januaryBroad, fiveFifteen, zeroTwenty, formTenTwenty],
+      { mode: "best", ...WINDOW }
+    );
+    const earliest = pickEarliestF2fMarks(
+      [januaryBroad, fiveFifteen, zeroTwenty, formTenTwenty],
+      WINDOW
+    );
+
+    for (const picked of [latest, best, earliest]) {
+      expect(
+        picked.entries.some(
+          (e) => e.component === "0-20yd" && e.session_id === "apr"
+        )
+      ).toBe(true);
+      expect(picked.entries.some((e) => e.component === "5-15yd")).toBe(true);
+    }
+  });
+
+  it("uses Force-session 0-20 for reference, not median(Force, Form)", () => {
+    const fiveFifteen = dated({
+      metric_key: "20yd_Dash",
+      component: "5-15yd",
+      display_value: 1.49,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const zeroTwenty = dated({
+      metric_key: "20yd_Dash",
+      component: "0-20yd",
+      display_value: 3.25,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const formTenTwenty = dated({
+      metric_key: "20yd_Dash",
+      component: "10-20yd",
+      display_value: 1.4,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const picked = pickF2fMarks(
+      [januaryBroad, fiveFifteen, zeroTwenty, formTenTwenty],
+      { mode: "latest", ...WINDOW }
+    );
+    const profile = buildF2fProfile(picked.entries, { gender: "F" });
+    const expectedRef = predict40FromTwenty(3.25);
+    expect(expectedRef).not.toBeNull();
+    expect(profile.reference_40).toBeCloseTo(expectedRef!, 4);
+    expect(profile.reference_source).toBe("projected");
   });
 });

@@ -225,7 +225,7 @@ describe("buildF2fProfile", () => {
     expect(profile.form?.projected).toBe(false);
   });
 
-  it("prefers a timed 5-15yd over reconstruction", () => {
+  it("prefers a timed 5-15yd over reconstruction when it scores better", () => {
     const profile = buildF2fProfile(
       [
         { metric_key: "40yd_Dash", component: "5-15yd", display_value: 1.2 },
@@ -240,6 +240,27 @@ describe("buildF2fProfile", () => {
     expect(profile.force?.input?.value).toBe(1.2);
     expect(profile.force?.mph).toBeCloseTo(mphFromYardSplit(1.2, 10)!, 2);
     expect(profile.force?.predicted_40).toBeCloseTo(timed!.predicted_40);
+  });
+
+  it("uses profiled 5-10 over a slower timed 5-15 when formula favors it", () => {
+    const profile = buildF2fProfile(
+      [
+        { metric_key: "40yd_Dash", component: "5-15yd", display_value: 1.5 },
+        { metric_key: "40yd_Dash", component: "5-10yd", display_value: 0.7 },
+        { metric_key: "40yd_Dash", component: "10-20yd", display_value: 1.3 },
+      ],
+      male
+    );
+    const reconstructed = reconstructFiveFifteen(0.7, 1.3);
+    const expected = resolveForce({
+      timeS: reconstructed!.timeS,
+      yards: 10,
+      lookup: "time",
+    });
+    expect(profile.force?.projected).toBe(true);
+    expect(profile.force?.input?.component).toBe("5-15yd");
+    expect(profile.force?.input?.value).toBeCloseTo(reconstructed!.timeS, 5);
+    expect(profile.force?.predicted_40).toBeCloseTo(expected!.predicted_40);
   });
 
   it("copies metric input and session_date onto vertices", () => {

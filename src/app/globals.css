@@ -32,6 +32,11 @@
   --zone-advanced: #16a34a;
   --zone-elite: #2563eb;
   --zone-world-class: #7c3aed;
+  /* F2F overlay: beginning / end contrast per theme */
+  --f2f-overlay-begin: #71717a;
+  --f2f-overlay-begin-fill: rgba(113, 113, 122, 0.2);
+  --f2f-overlay-end: #2d4a6f;
+  --f2f-overlay-end-fill: rgba(45, 74, 111, 0.22);
 }
 
 .dark {
@@ -65,6 +70,10 @@
   --zone-advanced: #16a34a;
   --zone-elite: #2563eb;
   --zone-world-class: #7c3aed;
+  --f2f-overlay-begin: #ffffff;
+  --f2f-overlay-begin-fill: rgba(255, 255, 255, 0.18);
+  --f2f-overlay-end: #f5e000;
+  --f2f-overlay-end-fill: rgba(245, 224, 0, 0.22);
 }
 
 @theme inline {

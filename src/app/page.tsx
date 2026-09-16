@@ -47,6 +47,12 @@ export default function Home() {
                 >
                   Reporting
                 </Link>
+                <Link
+                  href="/reporting/team-progress"
+                  className="rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
+                >
+                  Team progress
+                </Link>
               </div>
             </div>
             <div>

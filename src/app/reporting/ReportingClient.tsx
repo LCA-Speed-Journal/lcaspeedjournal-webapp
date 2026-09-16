@@ -115,12 +115,26 @@ export default function ReportingClient() {
                 (same units within a metric).
               </p>
             </div>
-            <Link
-              href="/"
-              className="shrink-0 rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
-            >
-              Home
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/reporting/team-progress"
+                className="shrink-0 rounded-xl border border-accent/60 bg-accent/15 px-4 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-accent/25"
+              >
+                Team progress
+              </Link>
+              <Link
+                href="/reporting/testing-day"
+                className="shrink-0 rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
+              >
+                Testing day
+              </Link>
+              <Link
+                href="/"
+                className="shrink-0 rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
+              >
+                Home
+              </Link>
+            </div>
           </header>
 
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
