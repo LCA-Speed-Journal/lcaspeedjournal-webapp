@@ -287,7 +287,7 @@ export async function POST(request: NextRequest) {
     }
 
     let newMovements: MovementInsertInput[] = [];
-    let clientTempIds: (string | null)[] = [];
+    const clientTempIds: (string | null)[] = [];
     if ("new_movements" in body && body.new_movements != null) {
       if (!Array.isArray(body.new_movements)) {
         return NextResponse.json(

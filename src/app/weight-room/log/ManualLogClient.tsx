@@ -218,8 +218,8 @@ export function ManualLogClient() {
   const templates = templatesRes?.data ?? [];
   const payload = logRes?.data;
   const template = payload?.template ?? null;
-  const roster = payload?.roster ?? [];
-  const logs = payload?.logs ?? [];
+  const roster = useMemo(() => payload?.roster ?? [], [payload?.roster]);
+  const logs = useMemo(() => payload?.logs ?? [], [payload?.logs]);
 
   const logsByAthlete = useMemo(() => {
     const map = new Map<string, ManualLog>();
