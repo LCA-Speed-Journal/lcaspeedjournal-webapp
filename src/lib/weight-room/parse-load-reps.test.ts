@@ -38,6 +38,24 @@ describe("parseLoadReps", () => {
     expect(r.units).toBe("in");
   });
 
+  it('parses inch mark with " suffix as output', () => {
+    expect(parseLoadReps('19.6"')).toMatchObject({
+      kind: "output",
+      load: 19.6,
+      units: "in",
+    });
+    expect(parseLoadReps("19.6″")).toMatchObject({
+      kind: "output",
+      load: 19.6,
+      units: "in",
+    });
+    expect(parseLoadReps('22.5 "')).toMatchObject({
+      kind: "output",
+      load: 22.5,
+      units: "in",
+    });
+  });
+
   it("empty and garbage stay unknown with raw preserved", () => {
     expect(parseLoadReps("").kind).toBe("unknown");
     expect(parseLoadReps("  ").kind).toBe("unknown");

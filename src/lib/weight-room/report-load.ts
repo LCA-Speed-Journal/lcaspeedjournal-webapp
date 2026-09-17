@@ -4,13 +4,19 @@ import {
   serializeDate,
 } from "@/lib/weight-room/insert-template";
 import type {
+  JournalAttendanceRow,
+  JournalSpeedMark,
   ReportAggregateInput,
   ReportAthlete,
   ReportLog,
   ReportMovement,
   ReportResult,
 } from "@/lib/weight-room/report-aggregate";
-import { priorWeekRange } from "@/lib/weight-room/report-aggregate";
+import {
+  mergeJournalAttendance,
+  mergeJournalSpeedMarks,
+  priorWeekRange,
+} from "@/lib/weight-room/report-aggregate";
 import type { HugoGroup } from "@/lib/weight-room/constants";
 
 export type ReportSource = Pick<
@@ -64,6 +70,14 @@ export function rowsToReportSource(rows: Record<string, unknown>[]): ReportSourc
           id: mid,
           name: String(row.movement_name ?? ""),
           targets: normalizeTargets(row.targets),
+          speed_journal_metric_key:
+            row.speed_journal_metric_key == null
+              ? null
+              : String(row.speed_journal_metric_key),
+          speed_journal_component:
+            row.speed_journal_component == null
+              ? null
+              : String(row.speed_journal_component),
         });
       }
     }
@@ -127,7 +141,9 @@ export async function loadTeamReportSource(opts: {
       r.reps,
       r.units,
       m.name AS movement_name,
-      m.targets
+      m.targets,
+      m.speed_journal_metric_key,
+      m.speed_journal_component
     FROM session_logs l
     INNER JOIN athletes a ON a.id = l.athlete_id
     LEFT JOIN set_results r ON r.session_log_id = l.id
@@ -162,7 +178,9 @@ export async function loadAthleteReportSource(opts: {
       r.reps,
       r.units,
       m.name AS movement_name,
-      m.targets
+      m.targets,
+      m.speed_journal_metric_key,
+      m.speed_journal_component
     FROM session_logs l
     INNER JOIN athletes a ON a.id = l.athlete_id
     LEFT JOIN set_results r ON r.session_log_id = l.id
@@ -174,27 +192,214 @@ export async function loadAthleteReportSource(opts: {
   return rowsToReportSource(rows as Record<string, unknown>[]);
 }
 
+export async function loadTeamJournalAttendance(opts: {
+  hugo_group: string;
+  from: string;
+  to: string;
+}): Promise<JournalAttendanceRow[]> {
+  const { rows } = await sql`
+    SELECT DISTINCT
+      e.athlete_id,
+      s.session_date,
+      a.first_name,
+      a.last_name
+    FROM entries e
+    INNER JOIN sessions s ON s.id = e.session_id
+    INNER JOIN athletes a ON a.id = e.athlete_id
+    WHERE s.session_date BETWEEN ${opts.from}::date AND ${opts.to}::date
+      AND (s.origin IS NULL OR s.origin <> ${"weight_room"})
+      AND (
+        EXISTS (
+          SELECT 1
+          FROM athlete_hugo_memberships m
+          WHERE m.athlete_id = a.id AND m.hugo_group = ${opts.hugo_group}
+        )
+        OR a.hugo_group = ${opts.hugo_group}
+      )
+  `;
+  return (rows as Array<Record<string, unknown>>).map((row) => ({
+    athlete_id: String(row.athlete_id),
+    session_date: serializeDate(row.session_date),
+    first_name: String(row.first_name ?? ""),
+    last_name: String(row.last_name ?? ""),
+  }));
+}
+
+export async function loadAthleteJournalAttendance(opts: {
+  athlete_id: string;
+  from: string;
+  to: string;
+}): Promise<JournalAttendanceRow[]> {
+  const { rows } = await sql`
+    SELECT DISTINCT
+      e.athlete_id,
+      s.session_date,
+      a.first_name,
+      a.last_name
+    FROM entries e
+    INNER JOIN sessions s ON s.id = e.session_id
+    INNER JOIN athletes a ON a.id = e.athlete_id
+    WHERE e.athlete_id = ${opts.athlete_id}::uuid
+      AND s.session_date BETWEEN ${opts.from}::date AND ${opts.to}::date
+      AND (s.origin IS NULL OR s.origin <> ${"weight_room"})
+  `;
+  return (rows as Array<Record<string, unknown>>).map((row) => ({
+    athlete_id: String(row.athlete_id),
+    session_date: serializeDate(row.session_date),
+    first_name: String(row.first_name ?? ""),
+    last_name: String(row.last_name ?? ""),
+  }));
+}
+
+function mapJournalSpeedRows(
+  rows: Array<Record<string, unknown>>
+): JournalSpeedMark[] {
+  return rows.map((row) => ({
+    athlete_id: String(row.athlete_id),
+    session_date: serializeDate(row.session_date),
+    first_name: String(row.first_name ?? ""),
+    last_name: String(row.last_name ?? ""),
+    metric_key: String(row.metric_key ?? ""),
+    component: row.component == null ? null : String(row.component),
+    value: toNum(row.value) ?? 0,
+    units: String(row.units ?? ""),
+    raw_input: row.raw_input == null ? null : String(row.raw_input),
+  }));
+}
+
+export async function loadTeamJournalSpeedMarks(opts: {
+  hugo_group: string;
+  from: string;
+  to: string;
+}): Promise<JournalSpeedMark[]> {
+  const { rows } = await sql`
+    SELECT
+      e.athlete_id,
+      s.session_date,
+      a.first_name,
+      a.last_name,
+      e.metric_key,
+      e.component,
+      e.value,
+      e.units,
+      e.raw_input
+    FROM entries e
+    INNER JOIN sessions s ON s.id = e.session_id
+    INNER JOIN athletes a ON a.id = e.athlete_id
+    WHERE s.session_date BETWEEN ${opts.from}::date AND ${opts.to}::date
+      AND (s.origin IS NULL OR s.origin <> ${"weight_room"})
+      AND (
+        EXISTS (
+          SELECT 1
+          FROM athlete_hugo_memberships m
+          WHERE m.athlete_id = a.id AND m.hugo_group = ${opts.hugo_group}
+        )
+        OR a.hugo_group = ${opts.hugo_group}
+      )
+      AND (
+        lower(coalesce(e.units, '')) = ${"mph"}
+        OR (
+          (lower(coalesce(e.units, '')) = ${"s"} OR e.units IS NULL)
+          AND e.component IS NOT NULL
+        )
+      )
+  `;
+  return mapJournalSpeedRows(rows as Array<Record<string, unknown>>);
+}
+
+export async function loadAthleteJournalSpeedMarks(opts: {
+  athlete_id: string;
+  from: string;
+  to: string;
+}): Promise<JournalSpeedMark[]> {
+  const { rows } = await sql`
+    SELECT
+      e.athlete_id,
+      s.session_date,
+      a.first_name,
+      a.last_name,
+      e.metric_key,
+      e.component,
+      e.value,
+      e.units,
+      e.raw_input
+    FROM entries e
+    INNER JOIN sessions s ON s.id = e.session_id
+    INNER JOIN athletes a ON a.id = e.athlete_id
+    WHERE e.athlete_id = ${opts.athlete_id}::uuid
+      AND s.session_date BETWEEN ${opts.from}::date AND ${opts.to}::date
+      AND (s.origin IS NULL OR s.origin <> ${"weight_room"})
+      AND (
+        lower(coalesce(e.units, '')) = ${"mph"}
+        OR (
+          (lower(coalesce(e.units, '')) = ${"s"} OR e.units IS NULL)
+          AND e.component IS NOT NULL
+        )
+      )
+  `;
+  return mapJournalSpeedRows(rows as Array<Record<string, unknown>>);
+}
+
 export async function loadTeamAggregateInput(opts: {
   hugo_group: HugoGroup;
   from: string;
   to: string;
 }): Promise<ReportAggregateInput> {
   const prior = priorWeekRange(opts.from);
-  const [current, previous] = await Promise.all([
+  const [
+    current,
+    previous,
+    currentJournal,
+    priorJournal,
+    currentSpeed,
+    priorSpeed,
+  ] = await Promise.all([
     loadTeamReportSource(opts),
     loadTeamReportSource({
       hugo_group: opts.hugo_group,
       from: prior.from,
       to: prior.to,
     }),
+    loadTeamJournalAttendance(opts),
+    loadTeamJournalAttendance({
+      hugo_group: opts.hugo_group,
+      from: prior.from,
+      to: prior.to,
+    }),
+    loadTeamJournalSpeedMarks(opts),
+    loadTeamJournalSpeedMarks({
+      hugo_group: opts.hugo_group,
+      from: prior.from,
+      to: prior.to,
+    }),
   ]);
+  const withAttendance = mergeJournalAttendance(
+    current,
+    currentJournal,
+    opts.hugo_group
+  );
+  const merged = mergeJournalSpeedMarks(
+    withAttendance,
+    currentSpeed,
+    opts.hugo_group
+  );
+  const withPriorAttendance = mergeJournalAttendance(
+    previous,
+    priorJournal,
+    opts.hugo_group
+  );
+  const mergedPrior = mergeJournalSpeedMarks(
+    withPriorAttendance,
+    priorSpeed,
+    opts.hugo_group
+  );
   return {
     hugo_group: opts.hugo_group,
     from: opts.from,
     to: opts.to,
-    ...current,
-    priorLogs: previous.logs,
-    priorResults: previous.results,
+    ...merged,
+    priorLogs: mergedPrior.logs,
+    priorResults: mergedPrior.results,
   };
 }
 
@@ -205,20 +410,67 @@ export async function loadAthleteAggregateInput(opts: {
   to: string;
 }): Promise<ReportAggregateInput> {
   const prior = priorWeekRange(opts.from);
-  const [current, previous] = await Promise.all([
+  const [
+    current,
+    previous,
+    currentJournal,
+    priorJournal,
+    currentSpeed,
+    priorSpeed,
+  ] = await Promise.all([
     loadAthleteReportSource(opts),
     loadAthleteReportSource({
       athlete_id: opts.athlete_id,
       from: prior.from,
       to: prior.to,
     }),
+    loadAthleteJournalAttendance({
+      athlete_id: opts.athlete_id,
+      from: opts.from,
+      to: opts.to,
+    }),
+    loadAthleteJournalAttendance({
+      athlete_id: opts.athlete_id,
+      from: prior.from,
+      to: prior.to,
+    }),
+    loadAthleteJournalSpeedMarks({
+      athlete_id: opts.athlete_id,
+      from: opts.from,
+      to: opts.to,
+    }),
+    loadAthleteJournalSpeedMarks({
+      athlete_id: opts.athlete_id,
+      from: prior.from,
+      to: prior.to,
+    }),
   ]);
+  const withAttendance = mergeJournalAttendance(
+    current,
+    currentJournal,
+    opts.hugo_group
+  );
+  const merged = mergeJournalSpeedMarks(
+    withAttendance,
+    currentSpeed,
+    opts.hugo_group
+  );
+  const withPriorAttendance = mergeJournalAttendance(
+    previous,
+    priorJournal,
+    opts.hugo_group
+  );
+  const mergedPrior = mergeJournalSpeedMarks(
+    withPriorAttendance,
+    priorSpeed,
+    opts.hugo_group
+  );
   return {
     hugo_group: opts.hugo_group,
     from: opts.from,
     to: opts.to,
-    ...current,
-    priorLogs: previous.logs,
-    priorResults: previous.results,
+    ...merged,
+    priorLogs: mergedPrior.logs,
+    priorResults: mergedPrior.results,
   };
 }

@@ -206,10 +206,11 @@ export function ReportsClient() {
         </p>
         <h1 className="mt-2 text-3xl font-bold text-foreground">Reports</h1>
         <p className="mt-3 max-w-2xl text-foreground-muted">
-          Download a team or individual PDF from reviewed session logs. Dates
-          default to last Monday–Sunday in your local timezone (the week ending
-          on the most recent Sunday, including today if today is Sunday). Range
-          is capped at 12 weeks (84 days).
+          Download a team or individual PDF from reviewed session logs. Speed
+          Journal testing days (baseline, mid-season, end-of-season) also count
+          toward weekly attendance. Dates default to last Monday–Sunday in your
+          local timezone (the week ending on the most recent Sunday, including
+          today if today is Sunday). Range is capped at 12 weeks (84 days).
         </p>
 
         <div className="mt-4">
@@ -330,28 +331,50 @@ export function ReportsClient() {
               </OverviewTile>
 
               <OverviewTile title="Outputs">
-                {overview.outputs.length === 0 ? (
+                {overview.outputGroups.length === 0 ? (
                   <p className="text-sm text-foreground-muted">—</p>
                 ) : (
-                  <ul className="space-y-2">
-                    {overview.outputs.map((row, i) => (
-                      <li
-                        key={`${row.athlete_id}-${row.movement_name}-${row.session_date}-${i}`}
-                        className="text-sm text-foreground"
-                      >
-                        <p>
-                          {displayName(row.first_name, row.last_name)}
-                          <span className="text-foreground-muted">
-                            {" "}
-                            · {row.movement_name}
-                          </span>
-                        </p>
-                        <p className="text-foreground-muted">
-                          {row.raw_text?.trim() || "—"} / {formatParsedOutput(row)}
-                        </p>
-                      </li>
+                  <div className="space-y-4">
+                    {overview.outputGroups.map((group) => (
+                      <div key={group.key}>
+                        <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-foreground">
+                          {group.label}
+                          {group.units ? (
+                            <span className="font-normal text-foreground-muted">
+                              {" "}
+                              · {group.units}
+                            </span>
+                          ) : null}
+                        </h4>
+                        <ol className="space-y-1.5">
+                          {group.rows.map((row, i) => (
+                            <li
+                              key={`${group.key}-${row.athlete_id}-${row.session_date}-${i}`}
+                              className="flex justify-between gap-2 text-sm text-foreground"
+                            >
+                              <span>
+                                <span className="text-foreground-muted tabular-nums">
+                                  {i + 1}.{" "}
+                                </span>
+                                {displayName(row.first_name, row.last_name)}
+                              </span>
+                              <span className="shrink-0 text-foreground-muted">
+                                {row.units === "mph"
+                                  ? `${formatParsedOutput(row)}${
+                                      row.raw_text?.trim()
+                                        ? ` · ${row.raw_text.trim()}`
+                                        : ""
+                                    }`
+                                  : formatParsedOutput(row) !== "—"
+                                    ? formatParsedOutput(row)
+                                    : row.raw_text?.trim() || "—"}
+                              </span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 )}
               </OverviewTile>
 

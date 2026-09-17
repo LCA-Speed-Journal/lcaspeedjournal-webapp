@@ -112,7 +112,8 @@ export function parseLoadReps(raw: string): ParsedLoadReps {
     };
   }
 
-  const inches = trimmed.match(/^(\d+(?:\.\d+)?)\s*in$/i);
+  // Inches: "22.5 in", '19.6"', '19.6″' (straight or double-prime)
+  const inches = trimmed.match(/^(\d+(?:\.\d+)?)\s*(?:in|["”″])$/i);
   if (inches) {
     return {
       raw: trimmed,

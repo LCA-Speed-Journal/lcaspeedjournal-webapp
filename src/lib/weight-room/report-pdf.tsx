@@ -131,8 +131,12 @@ function AthleteSection({ row }: { row: AthleteReportRow }) {
         row.outputs.map((out, i) => (
           <Text key={`${out.movement_name}-${out.session_date}-${i}`} style={styles.metric}>
             {out.session_date ? `${out.session_date} · ` : ""}
-            {out.movement_name}
-            {out.raw_text ? ` — ${out.raw_text}` : ""}
+            {out.drill_label ?? out.movement_name}
+            {out.units === "mph" && out.load != null
+              ? ` — ${out.load} mph${out.raw_text ? ` (from ${out.raw_text})` : ""}`
+              : out.raw_text
+                ? ` — ${out.raw_text}`
+                : ""}
           </Text>
         ))
       )}

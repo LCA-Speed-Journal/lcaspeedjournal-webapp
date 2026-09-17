@@ -1,12 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { aggregateWeightRoomReport, isWeightRoomReportRangeTooLong } from "./report-aggregate";
+import {
+  aggregateWeightRoomReport,
+  isWeightRoomReportRangeTooLong,
+  journalSpeedMarkMph,
+  mergeJournalAttendance,
+  mergeJournalSpeedMarks,
+  resolveSpeedDrillYards,
+} from "./report-aggregate";
 import type {
+  JournalSpeedMark,
   ReportAggregateInput,
   ReportAthlete,
   ReportLog,
   ReportMovement,
   ReportResult,
 } from "./report-aggregate";
+import { mphFromYardSplit } from "@/lib/norms/forty-yd";
 
 const ada: ReportAthlete = {
   id: "athlete-ada",
@@ -317,8 +326,154 @@ describe("aggregateWeightRoomReport", () => {
     expect(names).toContain("Broad Jump");
   });
 
+  it("counts Speed Journal testing days toward weekly attendance", () => {
+    const source = mergeJournalAttendance(
+      {
+        logs: [log("log-scan", ada.id, "2026-09-08")],
+        results: [],
+        movements: [],
+        athletes: [ada],
+      },
+      [
+        {
+          athlete_id: ada.id,
+          session_date: "2026-09-04",
+          first_name: "Ada",
+          last_name: "Lovelace",
+        },
+        {
+          athlete_id: ada.id,
+          session_date: "2026-09-08",
+          first_name: "Ada",
+          last_name: "Lovelace",
+        },
+        {
+          athlete_id: alan.id,
+          session_date: "2026-09-02",
+          first_name: "Alan",
+          last_name: "Turing",
+        },
+      ],
+      "soccer"
+    );
+
+    const report = aggregateWeightRoomReport({
+      hugo_group: "soccer",
+      from: "2026-09-01",
+      to: "2026-09-07",
+      ...source,
+    });
+
+    expect(report.sessionDates).toEqual([
+      "2026-09-02",
+      "2026-09-04",
+      "2026-09-08",
+    ]);
+    expect(report.attendanceByDate).toEqual([
+      { session_date: "2026-09-02", count: 1 },
+      { session_date: "2026-09-04", count: 1 },
+      { session_date: "2026-09-08", count: 1 },
+    ]);
+    expect(report.athletes.find((a) => a.athlete_id === ada.id)?.daysPresent).toBe(
+      2
+    );
+    expect(report.athletes.find((a) => a.athlete_id === alan.id)?.daysPresent).toBe(
+      1
+    );
+  });
+
   it("rejects PDF ranges longer than 12 weeks and allows 84 days", () => {
     expect(isWeightRoomReportRangeTooLong("2026-01-01", "2026-03-26")).toBe(false);
     expect(isWeightRoomReportRangeTooLong("2026-01-01", "2026-03-27")).toBe(true);
+  });
+
+  it("converts timed 5-15yd set_results to best mph in Outputs", () => {
+    const fly: ReportMovement = {
+      id: "mov-515",
+      name: "5-15yd Fly",
+      speed_journal_metric_key: "40yd_Dash",
+      speed_journal_component: "5-15yd",
+    };
+    expect(resolveSpeedDrillYards(fly)).toBe(10);
+
+    const report = aggregateWeightRoomReport({
+      hugo_group: "volleyball",
+      from: "2026-09-08",
+      to: "2026-09-14",
+      athletes: [ada],
+      movements: [fly],
+      logs: [
+        log("log-slow", ada.id, "2026-09-14"),
+        log("log-fast", ada.id, "2026-09-14", "tmpl-b"),
+      ],
+      results: [
+        result({
+          session_log_id: "log-slow",
+          movement_id: fly.id,
+          raw_text: "1.80s",
+          kind: "duration",
+          load: 1.8,
+          reps: null,
+          units: "s",
+        }),
+        result({
+          session_log_id: "log-fast",
+          movement_id: fly.id,
+          raw_text: "1.68s",
+          kind: "duration",
+          load: 1.68,
+          reps: null,
+          units: "s",
+        }),
+      ],
+    });
+
+    const expected = Math.round((mphFromYardSplit(1.68, 10) ?? 0) * 100) / 100;
+    expect(report.athletes[0].outputs).toEqual([
+      expect.objectContaining({
+        movement_name: "5-15yd",
+        drill_label: "5-15yd",
+        units: "mph",
+        load: expected,
+        raw_text: "1.68s",
+      }),
+    ]);
+  });
+
+  it("merges Speed Journal 5-15yd entries into Outputs as mph", () => {
+    const mark: JournalSpeedMark = {
+      athlete_id: ada.id,
+      session_date: "2026-09-14",
+      first_name: "Ada",
+      last_name: "Lovelace",
+      metric_key: "40yd_Dash",
+      component: "5-15yd",
+      value: 1.68,
+      units: "s",
+      raw_input: "1.68s",
+    };
+    expect(journalSpeedMarkMph(mark)).toBe(
+      Math.round((mphFromYardSplit(1.68, 10) ?? 0) * 100) / 100
+    );
+
+    const merged = mergeJournalSpeedMarks(
+      { logs: [], results: [], movements: [], athletes: [] },
+      [mark],
+      "volleyball"
+    );
+    const report = aggregateWeightRoomReport({
+      hugo_group: "volleyball",
+      from: "2026-09-08",
+      to: "2026-09-14",
+      ...merged,
+    });
+
+    expect(report.athletes[0].outputs).toEqual([
+      expect.objectContaining({
+        movement_name: "5-15yd",
+        units: "mph",
+        load: journalSpeedMarkMph(mark),
+      }),
+    ]);
   });
 });
