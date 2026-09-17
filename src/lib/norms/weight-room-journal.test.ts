@@ -4,7 +4,11 @@ vi.mock("@/lib/db", () => ({
   sql: vi.fn(),
 }));
 
-import { parseJournalPostsBody } from "./weight-room-journal";
+import {
+  entryPresenceKey,
+  journalPostsForFillIfMissing,
+  parseJournalPostsBody,
+} from "./weight-room-journal";
 
 describe("parseJournalPostsBody", () => {
   it("defaults to an empty array when journal_posts is missing", () => {
@@ -47,5 +51,67 @@ describe("parseJournalPostsBody", () => {
 
   it("parses an empty array", () => {
     expect(parseJournalPostsBody([])).toEqual({ ok: true, value: [] });
+  });
+});
+
+describe("entryPresenceKey", () => {
+  it("joins metric key and component with ::", () => {
+    expect(entryPresenceKey("Vertical Jump", null)).toBe("Vertical Jump::");
+    expect(entryPresenceKey("Vertical Jump", undefined)).toBe("Vertical Jump::");
+    expect(entryPresenceKey("Vertical Jump", "")).toBe("Vertical Jump::");
+    expect(entryPresenceKey("40yd_Dash", "10yd")).toBe("40yd_Dash::10yd");
+  });
+});
+
+describe("journalPostsForFillIfMissing", () => {
+  const cmj = {
+    id: "mov-cmj",
+    speed_journal_metric_key: "Vertical Jump",
+    speed_journal_component: null as string | null,
+  };
+  const unmapped = {
+    id: "mov-squat",
+    speed_journal_metric_key: null as string | null,
+  };
+  const emptyMapped = {
+    id: "mov-empty",
+    speed_journal_metric_key: "" as string | null,
+  };
+
+  it("posts mapped CMJ when no existing entry for that metric", () => {
+    const posts = journalPostsForFillIfMissing({
+      movements: [cmj, unmapped, emptyMapped],
+      existingKeys: new Set(),
+    });
+    expect(posts).toEqual([
+      {
+        movement_id: "mov-cmj",
+        metric_key: "Vertical Jump",
+        component: null,
+        post: true,
+      },
+    ]);
+  });
+
+  it("does not post mapped CMJ when Vertical Jump:: already exists", () => {
+    const posts = journalPostsForFillIfMissing({
+      movements: [cmj],
+      existingKeys: new Set(["Vertical Jump::"]),
+    });
+    const cmjPost = posts.find((p) => p.movement_id === "mov-cmj");
+    if (cmjPost) {
+      expect(cmjPost.post).toBe(false);
+    } else {
+      expect(posts).toEqual([]);
+    }
+  });
+
+  it("skips unmapped movements", () => {
+    expect(
+      journalPostsForFillIfMissing({
+        movements: [unmapped, emptyMapped],
+        existingKeys: new Set(),
+      })
+    ).toEqual([]);
   });
 });

@@ -156,6 +156,101 @@ export async function upsertWeightRoomEntry(input: {
   return String((inserted[0] as { id: string }).id);
 }
 
+/** Presence key for athlete+date entry lookup: metric + optional component. */
+export function entryPresenceKey(
+  metricKey: string,
+  component: string | null | undefined
+): string {
+  return `${metricKey}::${component ?? ""}`;
+}
+
+/**
+ * Decide which mapped movements should dual-write when filling missing journal entries.
+ * Unmapped / empty metric keys are skipped. Existing keys get post:false (or omit is also OK for callers that filter).
+ */
+export function journalPostsForFillIfMissing(input: {
+  movements: {
+    id: string;
+    speed_journal_metric_key: string | null;
+    speed_journal_component?: string | null;
+  }[];
+  existingKeys: Set<string>;
+}): JournalPostChoice[] {
+  const posts: JournalPostChoice[] = [];
+  for (const movement of input.movements) {
+    const metricKey = movement.speed_journal_metric_key?.trim() ?? "";
+    if (!metricKey) continue;
+    const component =
+      typeof movement.speed_journal_component === "string" &&
+      movement.speed_journal_component.trim() !== ""
+        ? movement.speed_journal_component.trim()
+        : null;
+    const key = entryPresenceKey(metricKey, component);
+    posts.push({
+      movement_id: movement.id,
+      metric_key: metricKey,
+      component,
+      post: !input.existingKeys.has(key),
+    });
+  }
+  return posts;
+}
+
+/** Any entry for athlete+date+metric(+component) blocks fill, regardless of source. */
+export async function loadExistingEntryKeysForAthleteDate(
+  athleteId: string,
+  sessionDate: string
+): Promise<Set<string>> {
+  const { rows } = await sql`
+    SELECT e.metric_key, e.component
+    FROM entries e
+    JOIN sessions s ON s.id = e.session_id
+    WHERE e.athlete_id = ${athleteId}
+      AND s.session_date = ${sessionDate}
+  `;
+  const keys = new Set<string>();
+  for (const row of rows as { metric_key: unknown; component: unknown }[]) {
+    const metricKey = String(row.metric_key ?? "");
+    if (!metricKey) continue;
+    const component =
+      typeof row.component === "string" && row.component.trim() !== ""
+        ? row.component.trim()
+        : null;
+    keys.add(entryPresenceKey(metricKey, component));
+  }
+  return keys;
+}
+
+/**
+ * Dual-write mapped weight-room outputs to Speed Journal only when that
+ * athlete has no entry yet for the date + metric (+ component).
+ */
+export async function dualWriteWeightRoomJournalFillIfMissing(input: {
+  sessionDate: string;
+  athleteId: string;
+  movements: JournalMovement[];
+  outputs: CellOutput[];
+}): Promise<{ journal_warnings: string[]; journal_entry_ids: string[] }> {
+  const existingKeys = await loadExistingEntryKeysForAthleteDate(
+    input.athleteId,
+    input.sessionDate
+  );
+  const posts = journalPostsForFillIfMissing({
+    movements: input.movements,
+    existingKeys,
+  }).filter((p) => p.post);
+  if (posts.length === 0) {
+    return { journal_warnings: [], journal_entry_ids: [] };
+  }
+  return dualWriteWeightRoomJournal({
+    sessionDate: input.sessionDate,
+    athleteId: input.athleteId,
+    movements: input.movements,
+    outputs: input.outputs,
+    posts,
+  });
+}
+
 export async function dualWriteWeightRoomJournal(input: {
   sessionDate: string;
   athleteId: string;
