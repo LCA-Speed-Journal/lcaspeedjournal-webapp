@@ -238,13 +238,38 @@ function overridesFromLog(
   }
   const out: Record<string, string> = {};
   for (const row of rows) {
-    if (isTempId(row.rowKey)) continue;
-    const key = cellKey(row.rowKey, row.setIndex);
-    if (!byKey.has(key)) continue;
-    const raw = byKey.get(key);
-    out[key] = raw == null ? "" : raw;
+    // Prefer real movement UUID; for complex_split temps, try parent id
+    const lookupIds = [
+      row.rowKey,
+      row.movementId,
+      row.parentMovementId ?? undefined,
+    ].filter((id): id is string => typeof id === "string" && id.length > 0);
+
+    let matched = false;
+    for (const id of lookupIds) {
+      if (isTempId(id)) continue;
+      const key = cellKey(id, row.setIndex);
+      if (!byKey.has(key)) continue;
+      const raw = byKey.get(key);
+      // Store under the grid row key so the cell UI finds it
+      out[cellKey(row.rowKey, row.setIndex)] = raw == null ? "" : raw;
+      matched = true;
+      break;
+    }
+    if (matched) continue;
   }
   return out;
+}
+
+/** Fingerprint of log results so we re-hydrate when scan/manual data arrives. */
+function logResultsFingerprint(log: ManualLog | undefined): string {
+  if (!log) return "";
+  return log.results
+    .map(
+      (r) =>
+        `${r.movement_id}:${r.set_index}=${r.raw_text ?? ""}`
+    )
+    .join("|");
 }
 
 export function ManualLogClient() {
@@ -264,6 +289,10 @@ export function ManualLogClient() {
   const [omitMovementIds, setOmitMovementIds] = useState<string[]>([]);
   const omitMovementIdsRef = useRef(omitMovementIds);
   omitMovementIdsRef.current = omitMovementIds;
+  /** athleteId → fingerprint of log used to hydrate overrides (avoid overwrite after edits) */
+  const hydratedLogFpRef = useRef<Map<string, string>>(new Map());
+  /** Template id we already auto-selected logged athletes for (once per card). */
+  const autoSelectedForTemplateRef = useRef<string | null>(null);
 
   const templatesKey = hugoGroup
     ? `/api/weight-room/templates?hugo_group=${encodeURIComponent(hugoGroup)}`
@@ -308,6 +337,8 @@ export function ManualLogClient() {
     setActionMessage("");
     setJournalWarnings([]);
     setOmitMovementIds([]);
+    hydratedLogFpRef.current = new Map();
+    autoSelectedForTemplateRef.current = null;
   }, [hugoGroup]);
 
   useEffect(() => {
@@ -320,7 +351,19 @@ export function ManualLogClient() {
     setActionMessage("");
     setJournalWarnings([]);
     setOmitMovementIds([]);
+    hydratedLogFpRef.current = new Map();
+    autoSelectedForTemplateRef.current = null;
   }, [templateId]);
+
+  // Once per card: pre-check athletes who already have scan/manual logs
+  useEffect(() => {
+    if (!template || logLoading) return;
+    if (autoSelectedForTemplateRef.current === template.id) return;
+    autoSelectedForTemplateRef.current = template.id;
+    const loggedIds = logs.map((l) => l.athlete_id);
+    if (loggedIds.length === 0) return;
+    setSelectedAthleteIds(loggedIds);
+  }, [template?.id, logs, logLoading]);
 
   // Seed grid from loaded template
   useEffect(() => {
@@ -335,18 +378,7 @@ export function ManualLogClient() {
     }
     setRows(nextRows);
     setDefaults(nextDefaults);
-    setOverrides(() => {
-      const next: Record<string, Record<string, string>> = {};
-      for (const athleteId of selectedAthleteIds) {
-        next[athleteId] = overridesFromLog(
-          logsByAthlete.get(athleteId),
-          nextRows
-        );
-      }
-      return next;
-    });
-    // Seed from loaded template shape, not every unrelated SWR field.
-    // omitMovementIds read via ref so session hides survive reload without re-seeding on each omit.
+    // Overrides hydrated in dedicated effect once rows + logs + selection are ready
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template?.id, template?.movements?.map((m) => m.id).join(",")]);
 
@@ -361,34 +393,72 @@ export function ManualLogClient() {
   function toggleAthlete(athleteId: string) {
     setSelectedAthleteIds((prev) => {
       if (prev.includes(athleteId)) {
+        hydratedLogFpRef.current.delete(athleteId);
+        setOverrides((o) => {
+          if (!(athleteId in o)) return o;
+          const next = { ...o };
+          delete next[athleteId];
+          return next;
+        });
         return prev.filter((id) => id !== athleteId);
       }
       return [...prev, athleteId];
     });
-    setOverrides((prev) => {
-      if (prev[athleteId]) return prev;
-      const log = logsByAthlete.get(athleteId);
-      if (!log) return prev;
-      return {
-        ...prev,
-        [athleteId]: overridesFromLog(log, rows),
-      };
-    });
   }
 
-  // When rows become available after template load, fill overrides for already-selected athletes
+  // Hydrate athlete columns from existing scan / prior manual entry.
+  // Re-runs when logs arrive after selection so we never save prescription defaults over real data.
   useEffect(() => {
     if (rows.length === 0) return;
     setOverrides((prev) => {
       let changed = false;
       const next = { ...prev };
+      const selected = new Set(selectedAthleteIds);
+
       for (const athleteId of selectedAthleteIds) {
-        if (athleteId in next) continue;
         const log = logsByAthlete.get(athleteId);
-        if (!log) continue;
-        next[athleteId] = overridesFromLog(log, rows);
+        const fp = logResultsFingerprint(log);
+        const prevFp = hydratedLogFpRef.current.get(athleteId);
+        const cur = next[athleteId];
+
+        if (!log) {
+          if (!(athleteId in next)) {
+            next[athleteId] = {};
+            changed = true;
+          }
+          continue;
+        }
+
+        const fromLog = overridesFromLog(log, rows);
+
+        if (cur == null || prevFp !== fp) {
+          // First hydrate, or server log data changed — take log as base
+          next[athleteId] = fromLog;
+          hydratedLogFpRef.current.set(athleteId, fp);
+          changed = true;
+          continue;
+        }
+
+        // Same log: only fill keys the athlete column is still missing (new set rows, etc.)
+        let merged = cur;
+        for (const [key, value] of Object.entries(fromLog)) {
+          if (key in cur) continue;
+          if (merged === cur) merged = { ...cur };
+          merged[key] = value;
+        }
+        if (merged !== cur) {
+          next[athleteId] = merged;
+          changed = true;
+        }
+      }
+
+      for (const athleteId of Object.keys(next)) {
+        if (selected.has(athleteId)) continue;
+        delete next[athleteId];
+        hydratedLogFpRef.current.delete(athleteId);
         changed = true;
       }
+
       return changed ? next : prev;
     });
   }, [rows, selectedAthleteIds, logsByAthlete]);
@@ -865,7 +935,10 @@ export function ManualLogClient() {
                 Athletes ({selectedAthletes.length} selected)
               </h2>
               <p className="mt-1 text-xs text-foreground-muted">
-                Default none — check only the athletes logging this session.
+                Athletes marked (logged) already have scan or manual data for
+                this card — they are pre-selected and cells are filled so you
+                can edit without overwriting. Uncheck anyone you are not
+                updating.
               </p>
               <div className="mt-3 grid max-h-48 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
                 {roster.map((a) => {
