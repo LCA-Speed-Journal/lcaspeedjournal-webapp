@@ -56,6 +56,25 @@ describe("buildGridRowsFromTemplate", () => {
     expect(rows.some((r) => r.movementId === MOVEMENT_ID && r.setIndex === 0)).toBe(true);
     expect(rows.find((r) => r.defaultText === "45s/leg")?.name).toContain("Spring ankle");
   });
+
+  it("splits spaced-slash complexes into provisional rows", () => {
+    const rows = buildGridRowsFromTemplate([
+      {
+        id: MOVEMENT_ID,
+        name: "Recline Sit-Up / Side-Plank / Crawl",
+        block: "Accessory",
+        set_count: 2,
+        targets: ["10", "10"],
+        notes: "",
+        label: "4",
+      },
+    ]);
+    expect(rows.filter((r) => r.source === "complex_split")).toHaveLength(6);
+    expect(rows.every((r) => r.parentMovementId === MOVEMENT_ID)).toBe(true);
+    expect(new Set(rows.map((r) => r.name))).toEqual(
+      new Set(["Recline Sit-Up", "Side-Plank", "Crawl"])
+    );
+  });
 });
 
 describe("buildWarmupExpandInserts", () => {

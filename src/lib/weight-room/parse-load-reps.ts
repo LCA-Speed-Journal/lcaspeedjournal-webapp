@@ -8,6 +8,19 @@ const unknown = (raw: string): ParsedLoadReps => ({
   units: null,
 });
 
+/** Normalize distance unit tokens to yd | ft | m. */
+function normalizeDistanceUnit(raw: string): "yd" | "ft" | "m" | null {
+  const u = raw.toLowerCase();
+  if (u === "yd" || u === "yard" || u === "yards") return "yd";
+  if (u === "ft" || u === "foot" || u === "feet") return "ft";
+  if (u === "m" || u === "meter" || u === "meters" || u === "metre" || u === "metres")
+    return "m";
+  return null;
+}
+
+/** Per-side / per-each suffix after a dose (optional). */
+const PER_SUFFIX = "(?:\\s*(?:p\\s*)?\\/(?:leg|side|ea|each))?";
+
 export function parseLoadReps(raw: string): ParsedLoadReps {
   const trimmed = raw.trim();
 
@@ -17,6 +30,18 @@ export function parseLoadReps(raw: string): ParsedLoadReps {
 
   if (/^(bw|body\s*weight)$/i.test(trimmed)) {
     return { raw: trimmed, kind: "bw", load: null, reps: null, units: null };
+  }
+
+  // BW with reps: "BW x8", "BWx10", "bw × 12"
+  const bwReps = trimmed.match(/^(?:bw|body\s*weight)\s*[x×]\s*(\d+)$/i);
+  if (bwReps) {
+    return {
+      raw: trimmed,
+      kind: "bw",
+      load: null,
+      reps: Number(bwReps[1]),
+      units: null,
+    };
   }
 
   const amrap = trimmed.match(/^amrap\s+(\d+)$/i);
@@ -30,9 +55,12 @@ export function parseLoadReps(raw: string): ParsedLoadReps {
     };
   }
 
-  // Duration: "45s", "45s/leg", "45–60s", "45-60s" (use upper bound for ranges)
+  // Duration ranges: "45–60s", "45-60s" (+ optional /leg|/side|/ea)
   const durationRange = trimmed.match(
-    /^(\d+(?:\.\d+)?)\s*[–-]\s*(\d+(?:\.\d+)?)\s*s(?:\/(?:leg|side))?$/i,
+    new RegExp(
+      `^(\\d+(?:\\.\\d+)?)\\s*[–-]\\s*(\\d+(?:\\.\\d+)?)\\s*s${PER_SUFFIX}$`,
+      "i"
+    )
   );
   if (durationRange) {
     return {
@@ -44,8 +72,9 @@ export function parseLoadReps(raw: string): ParsedLoadReps {
     };
   }
 
+  // Duration: "45s", "45s/leg", "45s/ea", "45s p/ea"
   const duration = trimmed.match(
-    /^(\d+(?:\.\d+)?)\s*s(?:\/(?:leg|side))?$/i,
+    new RegExp(`^(\\d+(?:\\.\\d+)?)\\s*s${PER_SUFFIX}$`, "i")
   );
   if (duration) {
     return {
@@ -57,8 +86,10 @@ export function parseLoadReps(raw: string): ParsedLoadReps {
     };
   }
 
-  // Side/count doses: "15/side" — reps kind, not volume load_reps
-  const sideReps = trimmed.match(/^(\d+)\s*\/\s*side$/i);
+  // Reps with /side, /ea, p/ea: "15/side", "15/ea", "15 p/ea"
+  const sideReps = trimmed.match(
+    /^(\d+)\s*(?:p\s*)?\/\s*(?:side|ea|each)$/i
+  );
   if (sideReps) {
     return {
       raw: trimmed,
@@ -92,8 +123,42 @@ export function parseLoadReps(raw: string): ParsedLoadReps {
     };
   }
 
+  // Drill distance: "2x10yd", "2 × 30 yd"
+  const distSets = trimmed.match(
+    /^(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(yd|yard|yards|ft|foot|feet|m|meters?|metres?)$/i
+  );
+  if (distSets) {
+    const units = normalizeDistanceUnit(distSets[3]!);
+    if (units) {
+      return {
+        raw: trimmed,
+        kind: "distance",
+        load: Number(distSets[2]),
+        reps: Number(distSets[1]),
+        units,
+      };
+    }
+  }
+
+  // Single distance: "10yd", "30 ft", "5m"
+  const distAlone = trimmed.match(
+    /^(\d+(?:\.\d+)?)\s*(yd|yard|yards|ft|foot|feet|m|meters?|metres?)$/i
+  );
+  if (distAlone) {
+    const units = normalizeDistanceUnit(distAlone[2]!);
+    if (units) {
+      return {
+        raw: trimmed,
+        kind: "distance",
+        load: Number(distAlone[1]),
+        reps: null,
+        units,
+      };
+    }
+  }
+
   const loadXReps = trimmed.match(
-    /^(\d+(?:\.\d+)?)\s*(?:lbs?)?\s*[x×]\s*(\d+)$/i,
+    /^(\d+(?:\.\d+)?)\s*(?:lbs?)?\s*[x×]\s*(\d+)$/i
   );
   if (loadXReps) {
     return {

@@ -610,6 +610,54 @@ export async function appendTemplateMovements(
   return insertMovements(templateId, movements);
 }
 
+/**
+ * Patch name / set_count / targets on an existing movement (manual-log on-the-day edits).
+ * Does not delete or replace sibling movements.
+ */
+export async function updateTemplateMovementFields(
+  movementId: string,
+  patch: {
+    name?: string;
+    set_count?: number;
+    targets?: string[];
+  }
+): Promise<WorkoutMovementRow | null> {
+  if (!isUuid(movementId)) return null;
+  const { rows: existing } = await sql`
+    SELECT id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component
+    FROM workout_movements
+    WHERE id = ${movementId.trim()}
+    LIMIT 1
+  `;
+  if (existing.length === 0) return null;
+  const cur = serializeMovement(existing[0] as Record<string, unknown>);
+  const name =
+    patch.name !== undefined ? patch.name.trim() || cur.name : cur.name;
+  const set_count =
+    patch.set_count !== undefined ? patch.set_count : cur.set_count;
+  const targets =
+    patch.targets !== undefined ? patch.targets : cur.targets;
+  if (!Number.isInteger(set_count) || set_count < 0) {
+    throw new Error("set_count must be a non-negative integer");
+  }
+  if (targets.length !== set_count) {
+    throw new Error(
+      `set_count ${set_count} does not match ${targets.length} target(s)`
+    );
+  }
+  const targetsJson = JSON.stringify(targets);
+  const { rows } = await sql`
+    UPDATE workout_movements
+    SET name = ${name},
+        set_count = ${set_count},
+        targets = ${targetsJson}
+    WHERE id = ${movementId.trim()}
+    RETURNING id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component
+  `;
+  if (rows.length === 0) return null;
+  return serializeMovement(rows[0] as Record<string, unknown>);
+}
+
 export async function getTemplateWithMovements(
   id: string
 ): Promise<TemplateWithMovements | null> {

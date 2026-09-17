@@ -10,6 +10,7 @@ import {
   isUuid,
   parseMovements,
   serializeDate,
+  updateTemplateMovementFields,
   type MovementInsertInput,
   type WorkoutMovementRow,
 } from "@/lib/weight-room/insert-template";
@@ -330,12 +331,126 @@ export async function POST(request: NextRequest) {
       newMovements = parsed.value;
     }
 
+    const omitMovementIds = new Set<string>();
+    if ("omit_movement_ids" in body && body.omit_movement_ids != null) {
+      if (!Array.isArray(body.omit_movement_ids)) {
+        return NextResponse.json(
+          { error: "omit_movement_ids must be an array" },
+          { status: 400 }
+        );
+      }
+      for (let i = 0; i < body.omit_movement_ids.length; i++) {
+        const id = body.omit_movement_ids[i];
+        if (!isUuid(id)) {
+          return NextResponse.json(
+            { error: `omit_movement_ids[${i}] must be a UUID` },
+            { status: 400 }
+          );
+        }
+        omitMovementIds.add(id.trim());
+      }
+    }
+
+    type MovementUpdate = {
+      id: string;
+      name?: string;
+      set_count?: number;
+      targets?: string[];
+    };
+    const movementUpdates: MovementUpdate[] = [];
+    if ("movement_updates" in body && body.movement_updates != null) {
+      if (!Array.isArray(body.movement_updates)) {
+        return NextResponse.json(
+          { error: "movement_updates must be an array" },
+          { status: 400 }
+        );
+      }
+      for (let i = 0; i < body.movement_updates.length; i++) {
+        const item = body.movement_updates[i];
+        if (!isRecord(item) || !isUuid(item.id)) {
+          return NextResponse.json(
+            { error: `movement_updates[${i}].id must be a UUID` },
+            { status: 400 }
+          );
+        }
+        const patch: MovementUpdate = { id: item.id.trim() };
+        if ("name" in item) {
+          if (typeof item.name !== "string") {
+            return NextResponse.json(
+              { error: `movement_updates[${i}].name must be a string` },
+              { status: 400 }
+            );
+          }
+          patch.name = item.name;
+        }
+        if ("set_count" in item) {
+          if (
+            typeof item.set_count !== "number" ||
+            !Number.isInteger(item.set_count) ||
+            item.set_count < 0
+          ) {
+            return NextResponse.json(
+              {
+                error: `movement_updates[${i}].set_count must be a non-negative integer`,
+              },
+              { status: 400 }
+            );
+          }
+          patch.set_count = item.set_count;
+        }
+        if ("targets" in item) {
+          if (
+            !Array.isArray(item.targets) ||
+            !item.targets.every((t) => typeof t === "string")
+          ) {
+            return NextResponse.json(
+              {
+                error: `movement_updates[${i}].targets must be a string array`,
+              },
+              { status: 400 }
+            );
+          }
+          patch.targets = item.targets as string[];
+        }
+        movementUpdates.push(patch);
+      }
+    }
+
     let template = await getTemplateWithMovements(templateId);
     if (!template) {
       return NextResponse.json(
         { error: "Template not found" },
         { status: 404 }
       );
+    }
+
+    // Ensure updates only target movements on this template
+    const templateMovementIds = new Set(template.movements.map((m) => m.id));
+    for (const patch of movementUpdates) {
+      if (!templateMovementIds.has(patch.id)) {
+        return NextResponse.json(
+          { error: `movement_updates: movement ${patch.id} not on template` },
+          { status: 400 }
+        );
+      }
+      try {
+        await updateTemplateMovementFields(patch.id, patch);
+      } catch (err) {
+        return NextResponse.json(
+          { error: errorMessage(err) },
+          { status: 400 }
+        );
+      }
+    }
+    if (movementUpdates.length > 0) {
+      const reloadedAfterUpdates = await getTemplateWithMovements(templateId);
+      if (!reloadedAfterUpdates) {
+        return NextResponse.json(
+          { error: "Template not found after movement updates" },
+          { status: 404 }
+        );
+      }
+      template = reloadedAfterUpdates;
     }
 
     let inserted_movements: WorkoutMovementRow[] = [];
@@ -368,10 +483,12 @@ export async function POST(request: NextRequest) {
       templateId,
       sessionDate: template.session_date,
       hugoGroup: template.hugo_group,
-      movements: template.movements.map((m) => ({
-        id: m.id,
-        set_count: m.set_count,
-      })),
+      movements: template.movements
+        .filter((m) => m.set_count > 0 && !omitMovementIds.has(m.id))
+        .map((m) => ({
+          id: m.id,
+          set_count: m.set_count,
+        })),
       defaults: remappedDefaults,
       athletes: remappedAthletes,
     });

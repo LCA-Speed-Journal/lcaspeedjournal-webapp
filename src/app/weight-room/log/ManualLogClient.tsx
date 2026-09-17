@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ClipboardEvent,
 } from "react";
@@ -20,6 +21,7 @@ import {
   type TemplateMovementForGrid,
 } from "@/lib/weight-room/manual-log";
 import { parseLoadReps } from "@/lib/weight-room/parse-load-reps";
+import { splitComplexName } from "@/lib/weight-room/split-complex-name";
 import { splitWarmupDrills } from "@/lib/weight-room/split-warmup-drills";
 import type {
   WorkoutMovementRow,
@@ -69,10 +71,12 @@ type ManualLogPayload = {
 type TemplateListItem = WorkoutTemplateRow & { movement_count?: number };
 
 type ClientRow = {
-  source: "template" | "warmup_expand" | "added";
+  source: "template" | "warmup_expand" | "added" | "complex_split";
   /** Stable id for cell keys — real UUID or temp-* */
   rowKey: string;
   movementId: string | null;
+  /** When complex_split: original template movement to omit on save */
+  parentMovementId?: string | null;
   setIndex: number;
   defaultText: string;
   name: string;
@@ -103,11 +107,16 @@ function previewParsed(raw: string): string {
   if (p.kind === "load_reps") {
     return `${p.load} ${p.units} × ${p.reps}`;
   }
-  if (p.kind === "bw") return "BW";
+  if (p.kind === "bw") {
+    return p.reps != null ? `BW × ${p.reps}` : "BW";
+  }
   if (p.kind === "amrap") return `AMRAP ${p.reps}`;
   if (p.kind === "output") return `${p.load} ${p.units}`;
   if (p.kind === "duration") return `${p.load}s`;
   if (p.kind === "reps") return `${p.reps} reps`;
+  if (p.kind === "distance") {
+    return `${p.reps != null ? `${p.reps}×` : ""}${p.load}${p.units}`;
+  }
   return raw.trim() ? "unknown" : "—";
 }
 
@@ -135,30 +144,87 @@ function toGridMovements(
 
 /**
  * Build client rows from template movements.
- * Drop warmup_expand rows when a real set_count>0 movement already has that name
- * (after save, inserted drills replace provisional expand rows).
+ * Drop warmup_expand / complex_split rows when a real set_count>0 movement
+ * already has that name (after save, inserted rows replace provisional ones).
+ * Omit session-hidden template movement ids.
  */
-function buildClientRows(movements: WorkoutMovementRow[]): ClientRow[] {
+function buildClientRows(
+  movements: WorkoutMovementRow[],
+  omitIds: readonly string[] = []
+): ClientRow[] {
+  const omit = new Set(omitIds);
+  const visible = movements.filter((m) => !omit.has(m.id));
   const realNames = new Set(
-    movements
+    visible
       .filter((m) => m.set_count > 0)
       .map((m) => m.name.trim().toLowerCase())
   );
-  const base = buildGridRowsFromTemplate(toGridMovements(movements));
+  const base = buildGridRowsFromTemplate(toGridMovements(visible));
+  const tempByComplexGroup = new Map<string, string>();
   return base
     .filter((r) => {
-      if (r.source !== "warmup_expand") return true;
+      if (r.source !== "warmup_expand" && r.source !== "complex_split") {
+        return true;
+      }
       return !realNames.has(r.name.trim().toLowerCase());
     })
     .map((r) => {
-      const rowKey =
-        r.movementId != null ? r.movementId : newTempId();
+      let rowKey: string;
+      if (r.movementId != null) {
+        rowKey = r.movementId;
+      } else if (r.source === "complex_split") {
+        const group = `${r.parentMovementId ?? ""}::${r.name}`;
+        let id = tempByComplexGroup.get(group);
+        if (!id) {
+          id = newTempId();
+          tempByComplexGroup.set(group, id);
+        }
+        rowKey = id;
+      } else {
+        rowKey = newTempId();
+      }
       return {
-        ...r,
+        source: r.source,
         movementId: r.movementId ?? rowKey,
+        parentMovementId: r.parentMovementId ?? null,
         rowKey,
+        setIndex: r.setIndex,
+        defaultText: r.defaultText,
+        name: r.name,
+        block: r.block,
+        label: r.label,
       };
     });
+}
+
+function isInsertSource(
+  source: ClientRow["source"]
+): source is "warmup_expand" | "added" | "complex_split" {
+  return (
+    source === "warmup_expand" ||
+    source === "added" ||
+    source === "complex_split"
+  );
+}
+
+function cleanCellKeys(
+  defaults: Record<string, string>,
+  overrides: Record<string, Record<string, string>>,
+  keys: Iterable<string>
+): {
+  defaults: Record<string, string>;
+  overrides: Record<string, Record<string, string>>;
+} {
+  const drop = new Set(keys);
+  const nextDefaults = { ...defaults };
+  for (const key of drop) delete nextDefaults[key];
+  const nextOverrides: Record<string, Record<string, string>> = {};
+  for (const [athleteId, cells] of Object.entries(overrides)) {
+    const nextCells = { ...cells };
+    for (const key of drop) delete nextCells[key];
+    nextOverrides[athleteId] = nextCells;
+  }
+  return { defaults: nextDefaults, overrides: nextOverrides };
 }
 
 function overridesFromLog(
@@ -195,6 +261,9 @@ export function ManualLogClient() {
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [journalWarnings, setJournalWarnings] = useState<string[]>([]);
+  const [omitMovementIds, setOmitMovementIds] = useState<string[]>([]);
+  const omitMovementIdsRef = useRef(omitMovementIds);
+  omitMovementIdsRef.current = omitMovementIds;
 
   const templatesKey = hugoGroup
     ? `/api/weight-room/templates?hugo_group=${encodeURIComponent(hugoGroup)}`
@@ -238,6 +307,7 @@ export function ManualLogClient() {
     setActionError("");
     setActionMessage("");
     setJournalWarnings([]);
+    setOmitMovementIds([]);
   }, [hugoGroup]);
 
   useEffect(() => {
@@ -249,12 +319,16 @@ export function ManualLogClient() {
     setActionError("");
     setActionMessage("");
     setJournalWarnings([]);
+    setOmitMovementIds([]);
   }, [templateId]);
 
   // Seed grid from loaded template
   useEffect(() => {
     if (!template) return;
-    const nextRows = buildClientRows(template.movements);
+    const nextRows = buildClientRows(
+      template.movements,
+      omitMovementIdsRef.current
+    );
     const nextDefaults: Record<string, string> = {};
     for (const row of nextRows) {
       nextDefaults[cellKey(row.rowKey, row.setIndex)] = row.defaultText;
@@ -272,6 +346,7 @@ export function ManualLogClient() {
       return next;
     });
     // Seed from loaded template shape, not every unrelated SWR field.
+    // omitMovementIds read via ref so session hides survive reload without re-seeding on each omit.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template?.id, template?.movements?.map((m) => m.id).join(",")]);
 
@@ -380,35 +455,84 @@ export function ManualLogClient() {
   ) {
     const pasted = e.clipboardData.getData("text");
     const drills = splitWarmupDrills(pasted);
-    if (drills.length <= 1) return;
+    const complexParts =
+      drills.length > 1 ? [] : splitComplexName(pasted);
+
+    if (drills.length <= 1 && complexParts.length <= 1) return;
     e.preventDefault();
 
-    const idx = rows.findIndex((r) => r.rowKey === rowKey);
-    if (idx < 0) return;
-    const base = rows[idx]!;
-    const exploded: ClientRow[] = drills.map((drill, i) => {
-      const id = i === 0 ? base.rowKey : newTempId();
-      return {
-        source: "warmup_expand" as const,
-        movementId: id,
-        rowKey: id,
-        setIndex: 0,
-        defaultText: drill.dose,
-        name: drill.name,
-        block: base.block ?? "Warmup",
-        label: base.label ?? "W",
-      };
-    });
+    const groupIndexes = rows
+      .map((r, i) => (r.rowKey === rowKey ? i : -1))
+      .filter((i) => i >= 0);
+    if (groupIndexes.length === 0) return;
+    const firstIdx = groupIndexes[0]!;
+    const lastIdx = groupIndexes[groupIndexes.length - 1]!;
+    const base = rows[firstIdx]!;
+
+    let exploded: ClientRow[];
+    if (drills.length > 1) {
+      exploded = drills.map((drill, i) => {
+        const id = i === 0 ? base.rowKey : newTempId();
+        return {
+          source: "warmup_expand" as const,
+          movementId: id,
+          rowKey: id,
+          parentMovementId: null,
+          setIndex: 0,
+          defaultText: drill.dose,
+          name: drill.name,
+          block: base.block ?? "Warmup",
+          label: base.label ?? "W",
+        };
+      });
+    } else {
+      const parentId = !isTempId(base.rowKey)
+        ? base.rowKey
+        : (base.parentMovementId ?? null);
+      exploded = complexParts.map((part) => {
+        const id = newTempId();
+        return {
+          source: (parentId ? "complex_split" : "added") as
+            | "complex_split"
+            | "added",
+          movementId: id,
+          rowKey: id,
+          parentMovementId: parentId,
+          setIndex: 0,
+          defaultText: "",
+          name: part,
+          block: base.block ?? "Main",
+          label: base.label ?? "",
+        };
+      });
+      if (parentId && !isTempId(parentId)) {
+        setOmitMovementIds((prev) =>
+          prev.includes(parentId) ? prev : [...prev, parentId]
+        );
+      }
+    }
+
+    const dropKeys = rows
+      .filter((r) => r.rowKey === rowKey)
+      .map((r) => cellKey(r.rowKey, r.setIndex));
     const nextDefaults: Record<string, string> = {};
     for (const r of exploded) {
       nextDefaults[cellKey(r.rowKey, r.setIndex)] = r.defaultText;
     }
     setRows((prev) => [
-      ...prev.slice(0, idx),
+      ...prev.slice(0, firstIdx),
       ...exploded,
-      ...prev.slice(idx + 1),
+      ...prev.slice(lastIdx + 1),
     ]);
-    setDefaults((d) => ({ ...d, ...nextDefaults }));
+    setDefaults((d) => {
+      const cleaned = { ...d };
+      for (const key of dropKeys) delete cleaned[key];
+      return { ...cleaned, ...nextDefaults };
+    });
+    setOverrides((prev) => {
+      const { overrides: cleaned } = cleanCellKeys({}, prev, dropKeys);
+      return cleaned;
+    });
   }
 
   function addRow() {
@@ -417,6 +541,7 @@ export function ManualLogClient() {
       source: "added",
       movementId: id,
       rowKey: id,
+      parentMovementId: null,
       setIndex: 0,
       defaultText: "",
       name: "",
@@ -425,6 +550,69 @@ export function ManualLogClient() {
     };
     setRows((prev) => [...prev, row]);
     setDefaults((prev) => ({ ...prev, [cellKey(id, 0)]: "" }));
+  }
+
+  function addSet(rowKey: string) {
+    const group = rows.filter((r) => r.rowKey === rowKey);
+    if (group.length === 0) return;
+    const sample = group[0]!;
+    const newSetIndex =
+      Math.max(...group.map((r) => r.setIndex)) + 1;
+    const newRow: ClientRow = {
+      ...sample,
+      setIndex: newSetIndex,
+      defaultText: "",
+    };
+    const lastIdx = rows.map((r) => r.rowKey).lastIndexOf(rowKey);
+    setRows((prev) => [
+      ...prev.slice(0, lastIdx + 1),
+      newRow,
+      ...prev.slice(lastIdx + 1),
+    ]);
+    setDefaults((prev) => ({
+      ...prev,
+      [cellKey(rowKey, newSetIndex)]: "",
+    }));
+  }
+
+  function removeSet(rowKey: string) {
+    const group = rows.filter((r) => r.rowKey === rowKey);
+    if (group.length <= 1) return;
+    const maxSet = Math.max(...group.map((r) => r.setIndex));
+    const key = cellKey(rowKey, maxSet);
+    setRows((prev) =>
+      prev.filter((r) => !(r.rowKey === rowKey && r.setIndex === maxSet))
+    );
+    setDefaults((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    setOverrides((prev) => {
+      const { overrides: cleaned } = cleanCellKeys({}, prev, [key]);
+      return cleaned;
+    });
+  }
+
+  function removeMovement(rowKey: string) {
+    const group = rows.filter((r) => r.rowKey === rowKey);
+    if (group.length === 0) return;
+    const keys = group.map((r) => cellKey(r.rowKey, r.setIndex));
+    if (!isTempId(rowKey)) {
+      setOmitMovementIds((prev) =>
+        prev.includes(rowKey) ? prev : [...prev, rowKey]
+      );
+    }
+    setRows((prev) => prev.filter((r) => r.rowKey !== rowKey));
+    setDefaults((prev) => {
+      const next = { ...prev };
+      for (const key of keys) delete next[key];
+      return next;
+    });
+    setOverrides((prev) => {
+      const { overrides: cleaned } = cleanCellKeys({}, prev, keys);
+      return cleaned;
+    });
   }
 
   async function onSave() {
@@ -456,31 +644,79 @@ export function ManualLogClient() {
       }> = [];
 
       const defaultsPayload: Record<string, string> = {};
-
       for (const row of rows) {
         const key = cellKey(row.rowKey, row.setIndex);
-        defaultsPayload[key] =
-          defaults[key] ?? row.defaultText ?? "";
+        defaultsPayload[key] = defaults[key] ?? row.defaultText ?? "";
+      }
 
-        const needsInsert =
-          (row.source === "warmup_expand" || row.source === "added") &&
-          isTempId(row.rowKey);
-        if (!needsInsert) continue;
-
+      const insertGroups = new Map<string, ClientRow[]>();
+      for (const row of rows) {
+        if (!isInsertSource(row.source) || !isTempId(row.rowKey)) continue;
+        const list = insertGroups.get(row.rowKey) ?? [];
+        list.push(row);
+        insertGroups.set(row.rowKey, list);
+      }
+      for (const [tempId, group] of insertGroups) {
+        const sorted = [...group].sort((a, b) => a.setIndex - b.setIndex);
+        const sample = sorted[0]!;
         newMovements.push({
-          client_temp_id: row.rowKey,
+          client_temp_id: tempId,
           sort_index: nextSort++,
-          label: row.source === "warmup_expand" ? "W" : row.label ?? "",
-          name: row.name.trim() || "Untitled",
+          label:
+            sample.source === "warmup_expand" ? "W" : sample.label ?? "",
+          name: sample.name.trim() || "Untitled",
           block:
-            row.block?.trim() ||
-            (row.source === "warmup_expand" ? "Warmup" : "Main"),
-          set_count: 1,
-          targets: [defaultsPayload[key]],
+            sample.block?.trim() ||
+            (sample.source === "warmup_expand" ? "Warmup" : "Main"),
+          set_count: sorted.length,
+          targets: sorted.map(
+            (r) => defaultsPayload[cellKey(r.rowKey, r.setIndex)] ?? ""
+          ),
           notes: "",
           from_pair: false,
           speed_journal_metric_key: null,
           speed_journal_component: null,
+        });
+      }
+
+      const complexParents = new Set<string>();
+      for (const row of rows) {
+        if (
+          row.source === "complex_split" &&
+          row.parentMovementId &&
+          !isTempId(row.parentMovementId)
+        ) {
+          complexParents.add(row.parentMovementId);
+        }
+      }
+
+      const omitPayload = [
+        ...new Set([...omitMovementIds, ...complexParents]),
+      ];
+
+      const movementUpdates: Array<{
+        id: string;
+        name: string;
+        set_count: number;
+        targets: string[];
+      }> = [];
+      const templateGroups = new Map<string, ClientRow[]>();
+      for (const row of rows) {
+        if (isTempId(row.rowKey) || row.source !== "template") continue;
+        if (omitPayload.includes(row.rowKey)) continue;
+        const list = templateGroups.get(row.rowKey) ?? [];
+        list.push(row);
+        templateGroups.set(row.rowKey, list);
+      }
+      for (const [id, group] of templateGroups) {
+        const sorted = [...group].sort((a, b) => a.setIndex - b.setIndex);
+        movementUpdates.push({
+          id,
+          name: sorted[0]!.name.trim() || "Untitled",
+          set_count: sorted.length,
+          targets: sorted.map(
+            (r) => defaultsPayload[cellKey(r.rowKey, r.setIndex)] ?? ""
+          ),
         });
       }
 
@@ -497,6 +733,8 @@ export function ManualLogClient() {
           defaults: defaultsPayload,
           athletes: athletesPayload,
           new_movements: newMovements,
+          omit_movement_ids: omitPayload,
+          movement_updates: movementUpdates,
         }),
       });
       const json = (await res.json()) as {
@@ -506,6 +744,10 @@ export function ManualLogClient() {
       if (!res.ok) {
         throw new Error(errorText(json, "Save failed"));
       }
+
+      const nextOmit = omitPayload;
+      omitMovementIdsRef.current = nextOmit;
+      setOmitMovementIds(nextOmit);
 
       const warnings = json.data?.journal_warnings ?? [];
       setJournalWarnings(warnings);
@@ -525,8 +767,16 @@ export function ManualLogClient() {
   const canSave =
     Boolean(template) && selectedAthletes.length > 0 && rows.length > 0 && !busy;
 
+  const setCountByRowKey = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      map.set(row.rowKey, (map.get(row.rowKey) ?? 0) + 1);
+    }
+    return map;
+  }, [rows]);
+
   const stickyExercise = "sticky left-0 z-20 bg-surface-elevated";
-  const stickyDefault = "sticky left-[12rem] z-20 bg-surface-elevated";
+  const stickyDefault = "sticky left-[14rem] z-20 bg-surface-elevated";
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background px-4 py-8 sm:px-6">
@@ -697,7 +947,7 @@ export function ManualLogClient() {
                   <tr className="border-b border-border bg-surface-elevated text-left text-foreground-muted">
                     <th
                       className={`${stickyExercise} border-r border-border px-3 py-2 font-medium`}
-                      style={{ minWidth: "12rem", width: "12rem" }}
+                      style={{ minWidth: "14rem", width: "14rem" }}
                     >
                       Exercise
                     </th>
@@ -722,8 +972,7 @@ export function ManualLogClient() {
                   {rows.map((row) => {
                     const dKey = cellKey(row.rowKey, row.setIndex);
                     const defaultVal = defaults[dKey] ?? row.defaultText;
-                    const nameEditable =
-                      row.source === "warmup_expand" || row.source === "added";
+                    const groupSetCount = setCountByRowKey.get(row.rowKey) ?? 1;
                     return (
                       <tr
                         key={`${row.rowKey}:${row.setIndex}`}
@@ -731,32 +980,60 @@ export function ManualLogClient() {
                       >
                         <td
                           className={`${stickyExercise} border-r border-border px-2 py-1.5 align-top`}
-                          style={{ minWidth: "12rem", width: "12rem" }}
+                          style={{ minWidth: "14rem", width: "14rem" }}
                         >
-                          {nameEditable ? (
-                            <input
-                              className="w-full rounded border border-border bg-background px-2 py-1 text-foreground"
-                              value={row.name}
-                              placeholder="Exercise name"
-                              onChange={(e) =>
-                                onExerciseNameChange(row.rowKey, e.target.value)
-                              }
-                              onPaste={(e) =>
-                                onExerciseNamePaste(e, row.rowKey)
-                              }
-                            />
-                          ) : (
-                            <div className="px-1 py-1 text-foreground">
-                              <span>{row.name}</span>
-                              {row.setIndex > 0 ||
-                              (template.movements.find((m) => m.id === row.rowKey)
-                                ?.set_count ?? 0) > 1 ? (
-                                <span className="ml-1 text-xs text-foreground-muted">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1">
+                              <input
+                                className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1 text-foreground"
+                                value={row.name}
+                                placeholder="Exercise name"
+                                onChange={(e) =>
+                                  onExerciseNameChange(
+                                    row.rowKey,
+                                    e.target.value
+                                  )
+                                }
+                                onPaste={(e) =>
+                                  onExerciseNamePaste(e, row.rowKey)
+                                }
+                              />
+                              {groupSetCount > 1 ? (
+                                <span className="shrink-0 text-[10px] uppercase tracking-wide text-foreground-muted">
                                   set {row.setIndex + 1}
                                 </span>
                               ) : null}
                             </div>
-                          )}
+                            {row.setIndex === 0 ? (
+                              <div className="flex flex-wrap items-center gap-1">
+                                <button
+                                  type="button"
+                                  title="Remove set"
+                                  disabled={groupSetCount <= 1}
+                                  className="rounded border border-border px-1.5 py-0.5 text-xs text-foreground-muted hover:border-accent/50 hover:text-foreground disabled:opacity-30"
+                                  onClick={() => removeSet(row.rowKey)}
+                                >
+                                  −
+                                </button>
+                                <button
+                                  type="button"
+                                  title="Add set"
+                                  className="rounded border border-border px-1.5 py-0.5 text-xs text-foreground-muted hover:border-accent/50 hover:text-foreground"
+                                  onClick={() => addSet(row.rowKey)}
+                                >
+                                  +
+                                </button>
+                                <button
+                                  type="button"
+                                  title="Remove movement"
+                                  className="rounded border border-border px-1.5 py-0.5 text-xs text-foreground-muted hover:border-red-400/50 hover:text-red-300"
+                                  onClick={() => removeMovement(row.rowKey)}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
                         </td>
                         <td
                           className={`${stickyDefault} border-r border-border px-2 py-1.5 align-top`}

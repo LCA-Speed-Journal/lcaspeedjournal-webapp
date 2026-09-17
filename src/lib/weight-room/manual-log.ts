@@ -1,4 +1,5 @@
 import { splitWarmupDrills } from "./split-warmup-drills";
+import { splitComplexName } from "./split-complex-name";
 import {
   buildConfirmPayload,
   cellKey,
@@ -8,8 +9,10 @@ import {
 import type { MovementInsertInput } from "./insert-template";
 
 export type ManualLogGridRow = {
-  source: "template" | "warmup_expand";
+  source: "template" | "warmup_expand" | "complex_split";
   movementId: string | null;
+  /** When complex_split: original template movement to omit from this save */
+  parentMovementId?: string | null;
   setIndex: number;
   defaultText: string;
   name: string;
@@ -53,6 +56,25 @@ export function buildGridRowsFromTemplate(
 
   for (const movement of movements) {
     if (movement.set_count > 0) {
+      const parts = splitComplexName(movement.name);
+      if (parts.length > 1) {
+        for (const part of parts) {
+          for (let setIndex = 0; setIndex < movement.set_count; setIndex++) {
+            rows.push({
+              source: "complex_split",
+              movementId: null,
+              parentMovementId: movement.id,
+              setIndex,
+              defaultText: movement.targets[setIndex] ?? "",
+              name: part,
+              block: movement.block,
+              label: movement.label,
+            });
+          }
+        }
+        continue;
+      }
+
       for (let setIndex = 0; setIndex < movement.set_count; setIndex++) {
         rows.push({
           source: "template",

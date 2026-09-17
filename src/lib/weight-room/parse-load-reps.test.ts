@@ -100,4 +100,70 @@ describe("parseLoadReps", () => {
       reps: 15,
     });
   });
+
+  it("parses p/ea and /ea as reps or duration per-each", () => {
+    expect(parseLoadReps("15/ea")).toMatchObject({
+      kind: "reps",
+      reps: 15,
+    });
+    expect(parseLoadReps("15 p/ea")).toMatchObject({
+      kind: "reps",
+      reps: 15,
+    });
+    expect(parseLoadReps("45s/ea")).toMatchObject({
+      kind: "duration",
+      load: 45,
+      units: "s",
+    });
+    expect(parseLoadReps("45s p/ea")).toMatchObject({
+      kind: "duration",
+      load: 45,
+      units: "s",
+    });
+  });
+
+  it("parses BW with reps", () => {
+    expect(parseLoadReps("BW x8")).toMatchObject({
+      kind: "bw",
+      reps: 8,
+    });
+    expect(parseLoadReps("BWx10")).toMatchObject({
+      kind: "bw",
+      reps: 10,
+    });
+    expect(parseLoadReps("bw × 12")).toMatchObject({
+      kind: "bw",
+      reps: 12,
+    });
+  });
+
+  it("parses drill distance volume ft/yd/m", () => {
+    expect(parseLoadReps("10yd")).toMatchObject({
+      kind: "distance",
+      load: 10,
+      units: "yd",
+    });
+    expect(parseLoadReps("30 ft")).toMatchObject({
+      kind: "distance",
+      load: 30,
+      units: "ft",
+    });
+    expect(parseLoadReps("5m")).toMatchObject({
+      kind: "distance",
+      load: 5,
+      units: "m",
+    });
+    expect(parseLoadReps("2x10yd")).toMatchObject({
+      kind: "distance",
+      load: 10,
+      reps: 2,
+      units: "yd",
+    });
+    expect(parseLoadReps("2 × 30 yd")).toMatchObject({
+      kind: "distance",
+      load: 30,
+      reps: 2,
+      units: "yd",
+    });
+  });
 });
