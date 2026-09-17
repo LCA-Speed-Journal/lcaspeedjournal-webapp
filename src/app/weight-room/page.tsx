@@ -21,8 +21,9 @@ export default async function WeightRoomHubPage() {
         </p>
         <h1 className="mt-2 text-3xl font-bold text-foreground">Weight room</h1>
         <p className="mt-3 text-foreground-muted">
-          Hugo card printing, scan intake, and reports. Printable sheet layout is
-          the first checkpoint — review it before we lock scan processing.
+          Hugo card printing, scan intake, manual log for small groups, and
+          reports. Printable sheet layout is the first checkpoint — review it
+          before we lock scan processing.
         </p>
         <p className="mt-2 text-sm text-foreground-muted">
           Scan upload accepts JPEG, PNG, or WebP, max 4 MB (Vercel request
@@ -53,6 +54,12 @@ export default async function WeightRoomHubPage() {
             className="rounded-xl border border-border bg-surface-elevated px-4 py-3 text-sm font-medium text-foreground hover:border-accent/50"
           >
             Scans
+          </Link>
+          <Link
+            href="/weight-room/log"
+            className="rounded-xl border border-border bg-surface-elevated px-4 py-3 text-sm font-medium text-foreground hover:border-accent/50"
+          >
+            Manual log
           </Link>
           <Link
             href="/weight-room/rosters"
