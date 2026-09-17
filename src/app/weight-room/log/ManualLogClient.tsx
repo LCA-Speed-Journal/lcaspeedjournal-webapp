@@ -363,6 +363,8 @@ export function ManualLogClient() {
     const loggedIds = logs.map((l) => l.athlete_id);
     if (loggedIds.length === 0) return;
     setSelectedAthleteIds(loggedIds);
+    // template object identity changes; we key off template.id
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template?.id, logs, logLoading]);
 
   // Seed grid from loaded template
