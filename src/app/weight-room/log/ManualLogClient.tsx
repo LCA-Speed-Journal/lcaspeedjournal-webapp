@@ -332,14 +332,25 @@ export function ManualLogClient() {
 
   function setAthleteCell(athleteId: string, row: ClientRow, value: string) {
     const key = cellKey(row.rowKey, row.setIndex);
-    setOverrides((prev) => ({
-      ...prev,
-      [athleteId]: { ...(prev[athleteId] ?? {}), [key]: value },
-    }));
+    setOverrides((prev) => {
+      const athlete = { ...(prev[athleteId] ?? {}) };
+      if (value === "") {
+        // Empty via typing = restore inherit (not explicit skip)
+        delete athlete[key];
+      } else {
+        athlete[key] = value;
+      }
+      return { ...prev, [athleteId]: athlete };
+    });
   }
 
   function clearAthleteCell(athleteId: string, row: ClientRow) {
-    setAthleteCell(athleteId, row, "");
+    // Explicit skip: empty string override (distinct from inherit)
+    const key = cellKey(row.rowKey, row.setIndex);
+    setOverrides((prev) => ({
+      ...prev,
+      [athleteId]: { ...(prev[athleteId] ?? {}), [key]: "" },
+    }));
   }
 
   function focusedRaw(): string {
@@ -409,7 +420,7 @@ export function ManualLogClient() {
       setIndex: 0,
       defaultText: "",
       name: "",
-      block: "",
+      block: "Main",
       label: "",
     };
     setRows((prev) => [...prev, row]);
@@ -463,7 +474,7 @@ export function ManualLogClient() {
           name: row.name.trim() || "Untitled",
           block:
             row.block?.trim() ||
-            (row.source === "warmup_expand" ? "Warmup" : ""),
+            (row.source === "warmup_expand" ? "Warmup" : "Main"),
           set_count: 1,
           targets: [defaultsPayload[key]],
           notes: "",
