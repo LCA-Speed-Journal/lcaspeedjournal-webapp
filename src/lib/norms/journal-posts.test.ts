@@ -101,6 +101,29 @@ describe("buildJournalPostCandidates", () => {
       suggested_post: true,
     });
   });
+
+  it("treats duration cells as usable marks for timed tests", () => {
+    const ten: JournalMovement = {
+      id: "mov-10",
+      name: "10yd",
+      speed_journal_metric_key: "40yd_Dash",
+      speed_journal_component: "0-10yd",
+    };
+    const rows = buildJournalPostCandidates({
+      movements: [ten],
+      outputs: [
+        { movement_id: "mov-10", kind: "duration", load: 1.72, units: "s" },
+        { movement_id: "mov-10", kind: "duration", load: 1.68, units: "s" },
+      ],
+      lowerIsBetterFor: () => true,
+    });
+    expect(rows[0]).toMatchObject({
+      mapped: true,
+      suggested_post: true,
+      best_value: 1.68,
+      units: "s",
+    });
+  });
 });
 
 describe("applyJournalPosts", () => {

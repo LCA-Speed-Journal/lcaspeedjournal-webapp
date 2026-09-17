@@ -356,6 +356,8 @@ export async function POST(request: NextRequest) {
       name?: string;
       set_count?: number;
       targets?: string[];
+      speed_journal_metric_key?: string | null;
+      speed_journal_component?: string | null;
     };
     const movementUpdates: MovementUpdate[] = [];
     if ("movement_updates" in body && body.movement_updates != null) {
@@ -411,6 +413,40 @@ export async function POST(request: NextRequest) {
             );
           }
           patch.targets = item.targets as string[];
+        }
+        if ("speed_journal_metric_key" in item) {
+          if (
+            item.speed_journal_metric_key != null &&
+            typeof item.speed_journal_metric_key !== "string"
+          ) {
+            return NextResponse.json(
+              {
+                error: `movement_updates[${i}].speed_journal_metric_key must be a string or null`,
+              },
+              { status: 400 }
+            );
+          }
+          patch.speed_journal_metric_key =
+            item.speed_journal_metric_key == null
+              ? null
+              : item.speed_journal_metric_key;
+        }
+        if ("speed_journal_component" in item) {
+          if (
+            item.speed_journal_component != null &&
+            typeof item.speed_journal_component !== "string"
+          ) {
+            return NextResponse.json(
+              {
+                error: `movement_updates[${i}].speed_journal_component must be a string or null`,
+              },
+              { status: 400 }
+            );
+          }
+          patch.speed_journal_component =
+            item.speed_journal_component == null
+              ? null
+              : item.speed_journal_component;
         }
         movementUpdates.push(patch);
       }

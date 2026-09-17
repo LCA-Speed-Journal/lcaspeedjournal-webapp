@@ -27,11 +27,24 @@ import type {
   WorkoutMovementRow,
   WorkoutTemplateRow,
 } from "@/lib/weight-room/insert-template";
+import { getMetricsRegistry } from "@/lib/parser";
+import { FORTY_YD_COMPONENTS, FORTY_YD_DASH } from "@/lib/norms/editor-metrics";
 
 const fetcher = (url: string) =>
   fetch(url).then((r) =>
     r.ok ? r.json() : Promise.reject(new Error(r.statusText))
   );
+
+const metricSelectOptions = Object.entries(getMetricsRegistry())
+  .map(([key, def]) => ({
+    key,
+    label: def.display_name || key,
+    single: def.input_structure === "single_interval",
+  }))
+  .sort((a, b) => {
+    if (a.single !== b.single) return a.single ? -1 : 1;
+    return a.label.localeCompare(b.label);
+  });
 
 type RosterAthlete = {
   id: string;
@@ -286,6 +299,9 @@ export function ManualLogClient() {
   const [actionError, setActionError] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [journalWarnings, setJournalWarnings] = useState<string[]>([]);
+  const [journalLinks, setJournalLinks] = useState<
+    Record<string, { metric_key: string; component: string }>
+  >({});
   const [omitMovementIds, setOmitMovementIds] = useState<string[]>([]);
   const omitMovementIdsRef = useRef(omitMovementIds);
   omitMovementIdsRef.current = omitMovementIds;
@@ -336,6 +352,7 @@ export function ManualLogClient() {
     setActionError("");
     setActionMessage("");
     setJournalWarnings([]);
+    setJournalLinks({});
     setOmitMovementIds([]);
     hydratedLogFpRef.current = new Map();
     autoSelectedForTemplateRef.current = null;
@@ -350,6 +367,7 @@ export function ManualLogClient() {
     setActionError("");
     setActionMessage("");
     setJournalWarnings([]);
+    setJournalLinks({});
     setOmitMovementIds([]);
     hydratedLogFpRef.current = new Map();
     autoSelectedForTemplateRef.current = null;
@@ -378,8 +396,19 @@ export function ManualLogClient() {
     for (const row of nextRows) {
       nextDefaults[cellKey(row.rowKey, row.setIndex)] = row.defaultText;
     }
+    const nextLinks: Record<string, { metric_key: string; component: string }> =
+      {};
+    for (const m of template.movements) {
+      const metricKey = m.speed_journal_metric_key?.trim() ?? "";
+      let component = m.speed_journal_component?.trim() ?? "";
+      if (metricKey === FORTY_YD_DASH && !component) {
+        component = "0-10yd";
+      }
+      nextLinks[m.id] = { metric_key: metricKey, component };
+    }
     setRows(nextRows);
     setDefaults(nextDefaults);
+    setJournalLinks(nextLinks);
     // Overrides hydrated in dedicated effect once rows + logs + selection are ready
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template?.id, template?.movements?.map((m) => m.id).join(",")]);
@@ -605,6 +634,19 @@ export function ManualLogClient() {
       const { overrides: cleaned } = cleanCellKeys({}, prev, dropKeys);
       return cleaned;
     });
+    setJournalLinks((prev) => {
+      const next = { ...prev };
+      // Drop links for the original row when complex explode replaces it entirely
+      if (drills.length <= 1) {
+        delete next[rowKey];
+      }
+      for (const r of exploded) {
+        if (!(r.rowKey in next)) {
+          next[r.rowKey] = { metric_key: "", component: "" };
+        }
+      }
+      return next;
+    });
   }
 
   function addRow() {
@@ -622,6 +664,10 @@ export function ManualLogClient() {
     };
     setRows((prev) => [...prev, row]);
     setDefaults((prev) => ({ ...prev, [cellKey(id, 0)]: "" }));
+    setJournalLinks((prev) => ({
+      ...prev,
+      [id]: { metric_key: "", component: "" },
+    }));
   }
 
   function addSet(rowKey: string) {
@@ -685,6 +731,32 @@ export function ManualLogClient() {
       const { overrides: cleaned } = cleanCellKeys({}, prev, keys);
       return cleaned;
     });
+    setJournalLinks((prev) => {
+      if (!(rowKey in prev)) return prev;
+      const next = { ...prev };
+      delete next[rowKey];
+      return next;
+    });
+  }
+
+  function setJournalLink(
+    rowKey: string,
+    patch: { metric_key?: string; component?: string }
+  ) {
+    setJournalLinks((prev) => {
+      const cur = prev[rowKey] ?? { metric_key: "", component: "" };
+      const metric_key =
+        patch.metric_key !== undefined ? patch.metric_key : cur.metric_key;
+      let component =
+        patch.component !== undefined ? patch.component : cur.component;
+      if (patch.metric_key !== undefined) {
+        component =
+          patch.metric_key === FORTY_YD_DASH
+            ? cur.component || "0-10yd"
+            : "";
+      }
+      return { ...prev, [rowKey]: { metric_key, component } };
+    });
   }
 
   async function onSave() {
@@ -711,8 +783,8 @@ export function ManualLogClient() {
         targets: string[];
         notes: string;
         from_pair: boolean;
-        speed_journal_metric_key: null;
-        speed_journal_component: null;
+        speed_journal_metric_key: string | null;
+        speed_journal_component: string | null;
       }> = [];
 
       const defaultsPayload: Record<string, string> = {};
@@ -731,6 +803,8 @@ export function ManualLogClient() {
       for (const [tempId, group] of insertGroups) {
         const sorted = [...group].sort((a, b) => a.setIndex - b.setIndex);
         const sample = sorted[0]!;
+        const link = journalLinks[tempId];
+        const metricKey = link?.metric_key?.trim() || null;
         newMovements.push({
           client_temp_id: tempId,
           sort_index: nextSort++,
@@ -746,8 +820,11 @@ export function ManualLogClient() {
           ),
           notes: "",
           from_pair: false,
-          speed_journal_metric_key: null,
-          speed_journal_component: null,
+          speed_journal_metric_key: metricKey,
+          speed_journal_component:
+            metricKey === FORTY_YD_DASH
+              ? link?.component?.trim() || null
+              : null,
         });
       }
 
@@ -771,6 +848,8 @@ export function ManualLogClient() {
         name: string;
         set_count: number;
         targets: string[];
+        speed_journal_metric_key: string | null;
+        speed_journal_component: string | null;
       }> = [];
       const templateGroups = new Map<string, ClientRow[]>();
       for (const row of rows) {
@@ -782,6 +861,8 @@ export function ManualLogClient() {
       }
       for (const [id, group] of templateGroups) {
         const sorted = [...group].sort((a, b) => a.setIndex - b.setIndex);
+        const link = journalLinks[id];
+        const metricKey = link?.metric_key?.trim() || null;
         movementUpdates.push({
           id,
           name: sorted[0]!.name.trim() || "Untitled",
@@ -789,6 +870,11 @@ export function ManualLogClient() {
           targets: sorted.map(
             (r) => defaultsPayload[cellKey(r.rowKey, r.setIndex)] ?? ""
           ),
+          speed_journal_metric_key: metricKey,
+          speed_journal_component:
+            metricKey === FORTY_YD_DASH
+              ? link?.component?.trim() || null
+              : null,
         });
       }
 
@@ -1080,33 +1166,81 @@ export function ManualLogClient() {
                               ) : null}
                             </div>
                             {row.setIndex === 0 ? (
-                              <div className="flex flex-wrap items-center gap-1">
-                                <button
-                                  type="button"
-                                  title="Remove set"
-                                  disabled={groupSetCount <= 1}
-                                  className="rounded border border-border px-1.5 py-0.5 text-xs text-foreground-muted hover:border-accent/50 hover:text-foreground disabled:opacity-30"
-                                  onClick={() => removeSet(row.rowKey)}
-                                >
-                                  −
-                                </button>
-                                <button
-                                  type="button"
-                                  title="Add set"
-                                  className="rounded border border-border px-1.5 py-0.5 text-xs text-foreground-muted hover:border-accent/50 hover:text-foreground"
-                                  onClick={() => addSet(row.rowKey)}
-                                >
-                                  +
-                                </button>
-                                <button
-                                  type="button"
-                                  title="Remove movement"
-                                  className="rounded border border-border px-1.5 py-0.5 text-xs text-foreground-muted hover:border-red-400/50 hover:text-red-300"
-                                  onClick={() => removeMovement(row.rowKey)}
-                                >
-                                  Remove
-                                </button>
-                              </div>
+                              <>
+                                <div className="flex min-w-0 flex-col gap-1">
+                                  <span className="text-[10px] uppercase tracking-wide text-foreground-muted">
+                                    Journal
+                                  </span>
+                                  <select
+                                    value={
+                                      journalLinks[row.rowKey]?.metric_key ?? ""
+                                    }
+                                    onChange={(e) =>
+                                      setJournalLink(row.rowKey, {
+                                        metric_key: e.target.value,
+                                      })
+                                    }
+                                    className="w-full min-w-0 rounded border border-border bg-background px-2 py-1 text-sm text-foreground"
+                                    aria-label="Speed Journal metric"
+                                  >
+                                    <option value="">None</option>
+                                    {metricSelectOptions.map((opt) => (
+                                      <option key={opt.key} value={opt.key}>
+                                        {opt.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  {(journalLinks[row.rowKey]?.metric_key ??
+                                    "") === FORTY_YD_DASH ? (
+                                    <select
+                                      value={
+                                        journalLinks[row.rowKey]?.component ||
+                                        "0-10yd"
+                                      }
+                                      onChange={(e) =>
+                                        setJournalLink(row.rowKey, {
+                                          component: e.target.value,
+                                        })
+                                      }
+                                      className="w-full rounded border border-border bg-background px-2 py-1 text-sm text-foreground"
+                                      aria-label="40yd split"
+                                    >
+                                      {FORTY_YD_COMPONENTS.map((c) => (
+                                        <option key={c} value={c}>
+                                          {c}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : null}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-1">
+                                  <button
+                                    type="button"
+                                    title="Remove set"
+                                    disabled={groupSetCount <= 1}
+                                    className="rounded border border-border px-1.5 py-0.5 text-xs text-foreground-muted hover:border-accent/50 hover:text-foreground disabled:opacity-30"
+                                    onClick={() => removeSet(row.rowKey)}
+                                  >
+                                    −
+                                  </button>
+                                  <button
+                                    type="button"
+                                    title="Add set"
+                                    className="rounded border border-border px-1.5 py-0.5 text-xs text-foreground-muted hover:border-accent/50 hover:text-foreground"
+                                    onClick={() => addSet(row.rowKey)}
+                                  >
+                                    +
+                                  </button>
+                                  <button
+                                    type="button"
+                                    title="Remove movement"
+                                    className="rounded border border-border px-1.5 py-0.5 text-xs text-foreground-muted hover:border-red-400/50 hover:text-red-300"
+                                    onClick={() => removeMovement(row.rowKey)}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              </>
                             ) : null}
                           </div>
                         </td>

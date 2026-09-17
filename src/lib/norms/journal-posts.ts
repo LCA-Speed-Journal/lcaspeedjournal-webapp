@@ -38,7 +38,10 @@ export type AppliedJournalPost = {
 };
 
 function isUsableOutput(cell: CellOutput): boolean {
-  return cell.kind === "output" && Number.isFinite(cell.load);
+  if (cell.kind === "output" && Number.isFinite(cell.load)) return true;
+  // Sprint / timed tests entered as "1.32s" parse as duration
+  if (cell.kind === "duration" && Number.isFinite(cell.load)) return true;
+  return false;
 }
 
 function pickBestCell(

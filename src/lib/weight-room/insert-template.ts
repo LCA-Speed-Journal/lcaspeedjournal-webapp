@@ -611,8 +611,8 @@ export async function appendTemplateMovements(
 }
 
 /**
- * Patch name / set_count / targets on an existing movement (manual-log on-the-day edits).
- * Does not delete or replace sibling movements.
+ * Patch name / set_count / targets / Speed Journal mapping on an existing
+ * movement (manual-log on-the-day edits). Does not delete sibling movements.
  */
 export async function updateTemplateMovementFields(
   movementId: string,
@@ -620,6 +620,8 @@ export async function updateTemplateMovementFields(
     name?: string;
     set_count?: number;
     targets?: string[];
+    speed_journal_metric_key?: string | null;
+    speed_journal_component?: string | null;
   }
 ): Promise<WorkoutMovementRow | null> {
   if (!isUuid(movementId)) return null;
@@ -645,12 +647,50 @@ export async function updateTemplateMovementFields(
       `set_count ${set_count} does not match ${targets.length} target(s)`
     );
   }
+
+  let metricKey = cur.speed_journal_metric_key;
+  let component = cur.speed_journal_component;
+  if (patch.speed_journal_metric_key !== undefined) {
+    const raw = patch.speed_journal_metric_key;
+    if (raw == null || String(raw).trim() === "") {
+      metricKey = null;
+      component = null;
+    } else {
+      const key = String(raw).trim();
+      const registry = getMetricsRegistry();
+      if (!registry[key]) {
+        throw new Error(`speed_journal_metric_key is not a known metric`);
+      }
+      metricKey = key;
+    }
+  }
+  if (patch.speed_journal_component !== undefined) {
+    if (metricKey !== FORTY_YD_DASH) {
+      component = null;
+    } else {
+      const raw = patch.speed_journal_component;
+      if (raw == null || String(raw).trim() === "") {
+        component = null;
+      } else {
+        const c = String(raw).trim();
+        if (!isFortyYardComponent(c)) {
+          throw new Error(`speed_journal_component must be a 40yd split`);
+        }
+        component = c;
+      }
+    }
+  } else if (metricKey !== FORTY_YD_DASH) {
+    component = null;
+  }
+
   const targetsJson = JSON.stringify(targets);
   const { rows } = await sql`
     UPDATE workout_movements
     SET name = ${name},
         set_count = ${set_count},
-        targets = ${targetsJson}
+        targets = ${targetsJson},
+        speed_journal_metric_key = ${metricKey},
+        speed_journal_component = ${component}
     WHERE id = ${movementId.trim()}
     RETURNING id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component
   `;
