@@ -1,5 +1,9 @@
 # Scripts Runbook
 
+## Hugo sports (Women's Tennis, Women's Soccer, Nordic Ski, Golf)
+
+Run `scripts/migrate-hugo-groups-2026-fall.sql` against the app Postgres the same way as other SQL files. It is safe to re-run. It widens `athletes`, `athlete_hugo_memberships`, and `norm_sport_defaults` CHECK constraints so the new sports can be stored. Without it, adding someone to those rosters will fail the DB constraint even though the UI lists them.
+
 ## Normative data
 
 Run `scripts/migrate-normative-data.sql` against the app Postgres the same way as other SQL files: paste the file into the Vercel Postgres dashboard query editor, or run `psql $POSTGRES_URL -f scripts/migrate-normative-data.sql` locally. It is safe to re-run. It widens Hugo group CHECKs for football, adds primary-membership / weight-room dual-write columns, creates the `norm_*` tables, and seeds population names plus sport defaults only (no threshold numbers). There is no npm script for this file.

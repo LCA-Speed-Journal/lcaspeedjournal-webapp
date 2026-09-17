@@ -36,10 +36,10 @@ Reference (outside repo): `Python Scripts/2026 Coding/LCA-Speed-Journal/` for pa
 
 ## Current State
 
-**Last Updated:** January 31, 2026  
-**Working On:** Phase 3 responsive check (mobile-first, no horizontal scroll)  
-**Recently Completed:** Phase 3 UI theme — Cyberpunk dark theme (globals.css vars), neon accent (#00f5d4), gold/silver/bronze ranks, applied to home, leaderboard, historical, data-entry, athletes, login, forms, panels  
-**Blocked By:** None  
+**Last Updated:** September 6, 2026  
+**Working On:** Phase 3 polish follow-ups  
+**Recently Completed:** Added Women's Tennis, Women's Soccer, Nordic Ski, and Golf; roster gender dropdown; testing-day attendance on weight-room weekly reports; data-entry sport filter  
+**Blocked By:** None. Local/app Postgres CHECK constraints were widened; re-run `scripts/migrate-hugo-groups-2026-fall.sql` on any other environment before assigning the new sports.  
 
 ## Roadmap
 

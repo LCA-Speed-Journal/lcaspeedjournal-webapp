@@ -1,5 +1,14 @@
 export type AthleteCreateGender = "M" | "F";
 
+export function normalizeAthleteGender(
+  value: string | null | undefined
+): AthleteCreateGender | "" {
+  const g = (value ?? "").trim().toUpperCase();
+  if (g === "F" || g === "FEMALE") return "F";
+  if (g === "M" || g === "MALE") return "M";
+  return "";
+}
+
 export function parseNameFromQuery(query: string): { first: string; last: string } {
   const trimmed = query.trim();
   if (!trimmed) return { first: "", last: "" };

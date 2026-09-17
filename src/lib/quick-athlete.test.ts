@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseNameFromQuery,
+  normalizeAthleteGender,
   gradeToGraduatingClass,
   graduatingClassToGrade,
   resolveGraduatingClass,
@@ -42,6 +43,17 @@ describe("parseNameFromQuery", () => {
 
   it("returns empty parts for blank input", () => {
     expect(parseNameFromQuery("   ")).toEqual({ first: "", last: "" });
+  });
+});
+
+describe("normalizeAthleteGender", () => {
+  it("maps M/F and Male/Female", () => {
+    expect(normalizeAthleteGender("M")).toBe("M");
+    expect(normalizeAthleteGender("F")).toBe("F");
+    expect(normalizeAthleteGender("male")).toBe("M");
+    expect(normalizeAthleteGender("Female")).toBe("F");
+    expect(normalizeAthleteGender("")).toBe("");
+    expect(normalizeAthleteGender("X")).toBe("");
   });
 });
 

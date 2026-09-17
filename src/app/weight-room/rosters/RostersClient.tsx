@@ -12,6 +12,7 @@ import {
 import {
   gradeToGraduatingClass,
   graduatingClassToGrade,
+  normalizeAthleteGender,
 } from "@/lib/quick-athlete";
 import type { Athlete } from "@/types";
 
@@ -140,6 +141,8 @@ export function RostersClient() {
   const [removeError, setRemoveError] = useState("");
   const [gradeBusyId, setGradeBusyId] = useState("");
   const [gradeError, setGradeError] = useState("");
+  const [genderBusyId, setGenderBusyId] = useState("");
+  const [genderError, setGenderError] = useState("");
   const hugoGroupRef = useRef(hugoGroup);
   hugoGroupRef.current = hugoGroup;
   const confirmInFlight = useRef(false);
@@ -174,6 +177,7 @@ export function RostersClient() {
     setCommitResult(null);
     setRemoveError("");
     setGradeError("");
+    setGenderError("");
   }
 
   async function onPrepare() {
@@ -287,6 +291,37 @@ export function RostersClient() {
     }
   }
 
+  async function onGenderChange(athlete: Athlete, genderRaw: string) {
+    const gender = normalizeAthleteGender(genderRaw);
+    if (!gender) return;
+    setGenderError("");
+    setGenderBusyId(athlete.id);
+    try {
+      const res = await fetch(`/api/athletes/${athlete.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: athlete.first_name,
+          last_name: athlete.last_name,
+          gender,
+          athlete_type: athlete.athlete_type || "athlete",
+          active: athlete.active !== false,
+          graduating_class: athlete.graduating_class,
+        }),
+      });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setGenderError(json.error ?? "Failed to update gender");
+        return;
+      }
+      await mutate();
+    } catch {
+      setGenderError("Network error — try again");
+    } finally {
+      setGenderBusyId("");
+    }
+  }
+
   async function onGradeChange(athlete: Athlete, gradeRaw: string) {
     const grade = Number.parseInt(gradeRaw, 10);
     const graduatingClass = gradeToGraduatingClass(grade);
@@ -385,7 +420,10 @@ export function RostersClient() {
             <ul className="mt-3 flex flex-col gap-2">
               {members.map((athlete) => {
                 const grade = graduatingClassToGrade(athlete.graduating_class);
+                const gender = normalizeAthleteGender(athlete.gender);
                 const canEditGrade = (athlete.athlete_type || "athlete") === "athlete";
+                const rowBusy =
+                  gradeBusyId === athlete.id || genderBusyId === athlete.id;
                 return (
                   <li
                     key={athlete.id}
@@ -396,10 +434,26 @@ export function RostersClient() {
                     </span>
                     <div className="flex flex-wrap items-center gap-2">
                       <label className="flex items-center gap-2 text-sm text-foreground">
+                        Gender
+                        <select
+                          value={gender}
+                          disabled={rowBusy}
+                          onChange={(e) =>
+                            void onGenderChange(athlete, e.target.value)
+                          }
+                          className="rounded-lg border border-border bg-surface-elevated px-2 py-1.5 text-sm text-foreground disabled:opacity-50"
+                          aria-label={`Gender for ${athleteLabel(athlete)}`}
+                        >
+                          <option value="">—</option>
+                          <option value="M">M</option>
+                          <option value="F">F</option>
+                        </select>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-foreground">
                         Grade
                         <select
                           value={grade ?? ""}
-                          disabled={!canEditGrade || gradeBusyId === athlete.id}
+                          disabled={!canEditGrade || rowBusy}
                           onChange={(e) =>
                             void onGradeChange(athlete, e.target.value)
                           }
@@ -432,6 +486,9 @@ export function RostersClient() {
           ) : null}
           {gradeError ? (
             <p className="mt-2 text-sm text-danger">{gradeError}</p>
+          ) : null}
+          {genderError ? (
+            <p className="mt-2 text-sm text-danger">{genderError}</p>
           ) : null}
         </section>
 

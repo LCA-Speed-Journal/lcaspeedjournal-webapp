@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireCoachSession } from "@/lib/require-coach";
-import { isHugoGroup } from "@/lib/weight-room/constants";
+import {
+  defaultGenderForHugoGroup,
+  isHugoGroup,
+} from "@/lib/weight-room/constants";
 import { insertHugoMembership } from "@/lib/weight-room/hugo-memberships";
 import { isUuid } from "@/lib/weight-room/insert-template";
 
@@ -105,6 +108,7 @@ export async function POST(request: NextRequest) {
       let createdThisRow = false;
       try {
         if (!athleteId && row.create) {
+          const gender = defaultGenderForHugoGroup(rec.hugo_group);
           const { rows: inserted } = await sql`
             INSERT INTO athletes (
               first_name, last_name, gender, graduating_class, athlete_type, active
@@ -112,7 +116,7 @@ export async function POST(request: NextRequest) {
             VALUES (
               ${row.first_name},
               ${row.last_name},
-              ${"M"},
+              ${gender},
               ${graduatingClass},
               ${"athlete"},
               true

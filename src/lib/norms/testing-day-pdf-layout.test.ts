@@ -31,6 +31,12 @@ describe("sectionHeading", () => {
     expect(sectionHeading("mens_basketball", "M")).toBe(
       "Testing Day: Men's Basketball"
     );
+    expect(sectionHeading("womens_soccer", "F")).toBe(
+      "Testing Day: Women's Soccer"
+    );
+    expect(sectionHeading("womens_tennis", "F")).toBe(
+      "Testing Day: Women's Tennis"
+    );
     expect(sectionHeading(null, null)).toBe("Testing Day: No primary sport");
   });
 });
