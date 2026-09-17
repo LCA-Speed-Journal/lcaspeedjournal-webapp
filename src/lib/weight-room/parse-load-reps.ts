@@ -30,6 +30,57 @@ export function parseLoadReps(raw: string): ParsedLoadReps {
     };
   }
 
+  // Duration: "45s", "45s/leg", "45–60s", "45-60s" (use upper bound for ranges)
+  const durationRange = trimmed.match(
+    /^(\d+(?:\.\d+)?)\s*[–-]\s*(\d+(?:\.\d+)?)\s*s(?:\/(?:leg|side))?$/i,
+  );
+  if (durationRange) {
+    return {
+      raw: trimmed,
+      kind: "duration",
+      load: Number(durationRange[2]),
+      reps: null,
+      units: "s",
+    };
+  }
+
+  const duration = trimmed.match(
+    /^(\d+(?:\.\d+)?)\s*s(?:\/(?:leg|side))?$/i,
+  );
+  if (duration) {
+    return {
+      raw: trimmed,
+      kind: "duration",
+      load: Number(duration[1]),
+      reps: null,
+      units: "s",
+    };
+  }
+
+  // Side/count doses: "15/side" — reps kind, not volume load_reps
+  const sideReps = trimmed.match(/^(\d+)\s*\/\s*side$/i);
+  if (sideReps) {
+    return {
+      raw: trimmed,
+      kind: "reps",
+      load: null,
+      reps: Number(sideReps[1]),
+      units: null,
+    };
+  }
+
+  // Times-only reps: "×15", "x15"
+  const timesReps = trimmed.match(/^[x×]\s*(\d+)$/i);
+  if (timesReps) {
+    return {
+      raw: trimmed,
+      kind: "reps",
+      load: null,
+      reps: Number(timesReps[1]),
+      units: null,
+    };
+  }
+
   const inches = trimmed.match(/^(\d+(?:\.\d+)?)\s*in$/i);
   if (inches) {
     return {

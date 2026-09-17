@@ -84,7 +84,7 @@ export type SetResult = {
 
 export type ParsedLoadReps = {
   raw: string;
-  kind: "load_reps" | "bw" | "amrap" | "output" | "unknown";
+  kind: "load_reps" | "bw" | "amrap" | "output" | "duration" | "reps" | "unknown";
   load: number | null;
   reps: number | null;
   units: string | null;

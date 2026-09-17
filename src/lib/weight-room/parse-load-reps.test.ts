@@ -60,4 +60,44 @@ describe("parseLoadReps", () => {
     expect(multiply.load).toBe(185);
     expect(multiply.reps).toBe(5);
   });
+
+  it("parses duration seconds including /leg and ranges", () => {
+    expect(parseLoadReps("45s")).toMatchObject({
+      kind: "duration",
+      load: 45,
+      units: "s",
+    });
+    expect(parseLoadReps("45s/leg")).toMatchObject({
+      kind: "duration",
+      load: 45,
+      units: "s",
+    });
+    // Ranges: use the upper bound so progression charts see the prescription ceiling
+    expect(parseLoadReps("45–60s")).toMatchObject({
+      kind: "duration",
+      load: 60,
+      units: "s",
+    });
+    expect(parseLoadReps("45-60s")).toMatchObject({
+      kind: "duration",
+      load: 60,
+      units: "s",
+    });
+  });
+
+  it("parses side/count doses as reps kind (not volume load_reps)", () => {
+    expect(parseLoadReps("15/side")).toMatchObject({
+      kind: "reps",
+      reps: 15,
+      load: null,
+    });
+    expect(parseLoadReps("×15")).toMatchObject({
+      kind: "reps",
+      reps: 15,
+    });
+    expect(parseLoadReps("x15")).toMatchObject({
+      kind: "reps",
+      reps: 15,
+    });
+  });
 });
