@@ -110,6 +110,50 @@ export function buildWarmupExpandInserts(
   }));
 }
 
+/**
+ * Pair client temp movement ids with inserted UUIDs (same order).
+ * Null/empty/whitespace temp ids are skipped.
+ */
+export function buildTempIdRemap(
+  tempIds: (string | null | undefined)[],
+  insertedIds: string[]
+): Map<string, string> {
+  const remap = new Map<string, string>();
+  const len = Math.min(tempIds.length, insertedIds.length);
+  for (let i = 0; i < len; i++) {
+    const temp = tempIds[i];
+    if (typeof temp !== "string") continue;
+    const trimmed = temp.trim();
+    if (!trimmed) continue;
+    remap.set(trimmed, insertedIds[i]!);
+  }
+  return remap;
+}
+
+/**
+ * Rewrite cell keys `movementId:setIndex` when movementId is in remap.
+ * Keys without a colon, or whose movementId is not remapped, are left as-is.
+ */
+export function remapCellKeys(
+  remap: Map<string, string>,
+  cells: Record<string, string>
+): Record<string, string> {
+  if (remap.size === 0) return { ...cells };
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(cells)) {
+    const colon = key.indexOf(":");
+    if (colon <= 0) {
+      out[key] = value;
+      continue;
+    }
+    const movementId = key.slice(0, colon);
+    const setIndex = key.slice(colon + 1);
+    const realId = remap.get(movementId);
+    out[realId != null ? `${realId}:${setIndex}` : key] = value;
+  }
+  return out;
+}
+
 export type ManualLogAthleteInput = {
   athleteId: string;
   cells: Record<string, string>;

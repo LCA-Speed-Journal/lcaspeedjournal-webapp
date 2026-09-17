@@ -4,6 +4,8 @@ import {
   buildManualLogAthletePayload,
   buildGridRowsFromTemplate,
   buildWarmupExpandInserts,
+  buildTempIdRemap,
+  remapCellKeys,
 } from "./manual-log";
 import { splitWarmupDrills } from "./split-warmup-drills";
 
@@ -100,6 +102,54 @@ describe("buildWarmupExpandInserts", () => {
       set_count: 1,
       label: "W",
     });
+  });
+});
+
+describe("buildTempIdRemap", () => {
+  it("maps client temp ids to inserted ids by index", () => {
+    const remap = buildTempIdRemap(
+      ["temp-warmup-1", "temp-warmup-2", null],
+      ["aaaa", "bbbb", "cccc"]
+    );
+    expect(remap.get("temp-warmup-1")).toBe("aaaa");
+    expect(remap.get("temp-warmup-2")).toBe("bbbb");
+    expect(remap.has("temp-warmup-3")).toBe(false);
+    expect(remap.size).toBe(2);
+  });
+
+  it("skips empty or whitespace temp ids", () => {
+    const remap = buildTempIdRemap(["", "  ", "temp-1"], ["a", "b", "c"]);
+    expect(remap.size).toBe(1);
+    expect(remap.get("temp-1")).toBe("c");
+  });
+});
+
+describe("remapCellKeys", () => {
+  it("rewrites movementId portion when present in remap", () => {
+    const remap = new Map([
+      ["temp-warmup-1", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
+    ]);
+    const cells = {
+      "temp-warmup-1:0": "45s/leg",
+      [`${MOVEMENT_ID}:0`]: "185x5",
+      "temp-warmup-1:1": "60s",
+    };
+    expect(remapCellKeys(remap, cells)).toEqual({
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:0": "45s/leg",
+      [`${MOVEMENT_ID}:0`]: "185x5",
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:1": "60s",
+    });
+  });
+
+  it("leaves keys unchanged when movementId is not in remap", () => {
+    const remap = new Map([["temp-other", "bbbb"]]);
+    const cells = { "temp-warmup-1:0": "45s/leg", [`${MOVEMENT_ID}:1`]: "x" };
+    expect(remapCellKeys(remap, cells)).toEqual(cells);
+  });
+
+  it("leaves keys without a colon unchanged", () => {
+    const remap = new Map([["temp-warmup-1", "aaaa"]]);
+    expect(remapCellKeys(remap, { orphan: "v" })).toEqual({ orphan: "v" });
   });
 });
 

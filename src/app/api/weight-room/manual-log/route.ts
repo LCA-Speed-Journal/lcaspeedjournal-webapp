@@ -13,7 +13,11 @@ import {
   type MovementInsertInput,
   type WorkoutMovementRow,
 } from "@/lib/weight-room/insert-template";
-import { buildManualLogAthletePayload } from "@/lib/weight-room/manual-log";
+import {
+  buildManualLogAthletePayload,
+  buildTempIdRemap,
+  remapCellKeys,
+} from "@/lib/weight-room/manual-log";
 import { loadRoster } from "@/lib/weight-room/report-load";
 
 type ManualLogResult = {
@@ -283,8 +287,40 @@ export async function POST(request: NextRequest) {
     }
 
     let newMovements: MovementInsertInput[] = [];
+    let clientTempIds: (string | null)[] = [];
     if ("new_movements" in body && body.new_movements != null) {
-      const parsed = parseMovements(body.new_movements);
+      if (!Array.isArray(body.new_movements)) {
+        return NextResponse.json(
+          { error: "new_movements: movements must be an array" },
+          { status: 400 }
+        );
+      }
+      const stripped: unknown[] = [];
+      for (let i = 0; i < body.new_movements.length; i++) {
+        const item = body.new_movements[i];
+        if (!item || typeof item !== "object" || Array.isArray(item)) {
+          stripped.push(item);
+          clientTempIds.push(null);
+          continue;
+        }
+        const rec = { ...(item as Record<string, unknown>) };
+        const rawTemp = rec.client_temp_id;
+        delete rec.client_temp_id;
+        if (rawTemp === undefined || rawTemp === null) {
+          clientTempIds.push(null);
+        } else if (typeof rawTemp === "string") {
+          clientTempIds.push(rawTemp);
+        } else {
+          return NextResponse.json(
+            {
+              error: `new_movements[${i}].client_temp_id must be a string`,
+            },
+            { status: 400 }
+          );
+        }
+        stripped.push(rec);
+      }
+      const parsed = parseMovements(stripped);
       if (!parsed.ok) {
         return NextResponse.json(
           { error: `new_movements: ${parsed.error}` },
@@ -318,6 +354,16 @@ export async function POST(request: NextRequest) {
       template = reloaded;
     }
 
+    const tempRemap = buildTempIdRemap(
+      clientTempIds,
+      inserted_movements.map((m) => m.id)
+    );
+    const remappedDefaults = remapCellKeys(tempRemap, defaults);
+    const remappedAthletes = athletes.map((a) => ({
+      athleteId: a.athlete_id,
+      cells: remapCellKeys(tempRemap, a.cells),
+    }));
+
     const batch = buildManualLogAthletePayload({
       templateId,
       sessionDate: template.session_date,
@@ -326,11 +372,8 @@ export async function POST(request: NextRequest) {
         id: m.id,
         set_count: m.set_count,
       })),
-      defaults,
-      athletes: athletes.map((a) => ({
-        athleteId: a.athlete_id,
-        cells: a.cells,
-      })),
+      defaults: remappedDefaults,
+      athletes: remappedAthletes,
     });
 
     const logs: ReturnType<typeof serializeLog>[] = [];
