@@ -601,6 +601,15 @@ export async function replaceTemplateMovements(
   return insertMovements(templateId, movements);
 }
 
+/** Append movements without deleting existing ones (manual-log expands / adds). */
+export async function appendTemplateMovements(
+  templateId: string,
+  movements: MovementInsertInput[]
+): Promise<WorkoutMovementRow[]> {
+  if (movements.length === 0) return [];
+  return insertMovements(templateId, movements);
+}
+
 export async function getTemplateWithMovements(
   id: string
 ): Promise<TemplateWithMovements | null> {

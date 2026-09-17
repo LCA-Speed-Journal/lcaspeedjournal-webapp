@@ -3,7 +3,9 @@ import {
   resolveAthleteCell,
   buildManualLogAthletePayload,
   buildGridRowsFromTemplate,
+  buildWarmupExpandInserts,
 } from "./manual-log";
+import { splitWarmupDrills } from "./split-warmup-drills";
 
 const MOVEMENT_ID = "11111111-1111-4111-8111-111111111111";
 const WARMUP_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -51,6 +53,53 @@ describe("buildGridRowsFromTemplate", () => {
     expect(rows.filter((r) => r.source === "warmup_expand")).toHaveLength(2);
     expect(rows.some((r) => r.movementId === MOVEMENT_ID && r.setIndex === 0)).toBe(true);
     expect(rows.find((r) => r.defaultText === "45s/leg")?.name).toContain("Spring ankle");
+  });
+});
+
+describe("buildWarmupExpandInserts", () => {
+  it("maps drills to MovementInsertInput with sequential sort_index", () => {
+    const drills = splitWarmupDrills(
+      "Spring ankle (bent-knee) 45s/leg · hip hike 15/side"
+    );
+    const inserts = buildWarmupExpandInserts(drills, 10);
+
+    expect(inserts).toHaveLength(2);
+    expect(inserts[0]).toEqual({
+      sort_index: 10,
+      label: "W",
+      name: "Spring ankle (bent-knee)",
+      block: "Warmup",
+      set_count: 1,
+      targets: ["45s/leg"],
+      notes: "",
+      from_pair: false,
+      speed_journal_metric_key: null,
+      speed_journal_component: null,
+    });
+    expect(inserts[1]).toMatchObject({
+      sort_index: 11,
+      label: "W",
+      name: "hip hike",
+      set_count: 1,
+      targets: ["15/side"],
+      block: "Warmup",
+    });
+  });
+
+  it("uses empty string target when dose is missing", () => {
+    const inserts = buildWarmupExpandInserts(
+      [{ name: "Prime-times", dose: "" }],
+      0,
+      "Prep"
+    );
+    expect(inserts[0]).toMatchObject({
+      sort_index: 0,
+      name: "Prime-times",
+      block: "Prep",
+      targets: [""],
+      set_count: 1,
+      label: "W",
+    });
   });
 });
 

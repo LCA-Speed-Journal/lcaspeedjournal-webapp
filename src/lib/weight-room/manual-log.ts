@@ -5,6 +5,7 @@ import {
   type ConfirmLogPayload,
   type ConfirmResultPayload,
 } from "./confirm-scan";
+import type { MovementInsertInput } from "./insert-template";
 
 export type ManualLogGridRow = {
   source: "template" | "warmup_expand";
@@ -83,6 +84,30 @@ export function buildGridRowsFromTemplate(
   }
 
   return rows;
+}
+
+/**
+ * Build MovementInsertInput rows for warmup drills expanded from notes
+ * (or other on-the-day adds). Does not touch the DB — caller appends via
+ * appendTemplateMovements.
+ */
+export function buildWarmupExpandInserts(
+  drills: { name: string; dose: string }[],
+  sortIndexStart: number,
+  block = "Warmup"
+): MovementInsertInput[] {
+  return drills.map((drill, i) => ({
+    sort_index: sortIndexStart + i,
+    label: "W",
+    name: drill.name,
+    block,
+    set_count: 1,
+    targets: [drill.dose || ""],
+    notes: "",
+    from_pair: false,
+    speed_journal_metric_key: null,
+    speed_journal_component: null,
+  }));
 }
 
 export type ManualLogAthleteInput = {
