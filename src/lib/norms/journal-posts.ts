@@ -41,6 +41,14 @@ function isUsableOutput(cell: CellOutput): boolean {
   if (cell.kind === "output" && Number.isFinite(cell.load)) return true;
   // Sprint / timed tests entered as "1.32s" parse as duration
   if (cell.kind === "duration" && Number.isFinite(cell.load)) return true;
+  // Broad jump entered as "8.25ft" may still be stored as distance from older parses
+  if (
+    cell.kind === "distance" &&
+    Number.isFinite(cell.load) &&
+    (cell.units === "ft" || cell.units === "cm")
+  ) {
+    return true;
+  }
   return false;
 }
 

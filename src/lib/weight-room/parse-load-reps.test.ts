@@ -155,16 +155,39 @@ describe("parseLoadReps", () => {
     });
   });
 
-  it("parses drill distance volume ft/yd/m", () => {
+  it("parses single feet/cm marks as outputs (broad jump style)", () => {
+    expect(parseLoadReps("8.25ft")).toMatchObject({
+      kind: "output",
+      load: 8.25,
+      units: "ft",
+    });
+    expect(parseLoadReps("8.25 ft")).toMatchObject({
+      kind: "output",
+      load: 8.25,
+      units: "ft",
+    });
+    expect(parseLoadReps("7ft")).toMatchObject({
+      kind: "output",
+      load: 7,
+      units: "ft",
+    });
+    expect(parseLoadReps("250cm")).toMatchObject({
+      kind: "output",
+      load: 250,
+      units: "cm",
+    });
+    expect(parseLoadReps("250 cm")).toMatchObject({
+      kind: "output",
+      load: 250,
+      units: "cm",
+    });
+  });
+
+  it("parses drill distance volume yd/m and set×distance (not bare feet)", () => {
     expect(parseLoadReps("10yd")).toMatchObject({
       kind: "distance",
       load: 10,
       units: "yd",
-    });
-    expect(parseLoadReps("30 ft")).toMatchObject({
-      kind: "distance",
-      load: 30,
-      units: "ft",
     });
     expect(parseLoadReps("5m")).toMatchObject({
       kind: "distance",
@@ -182,6 +205,13 @@ describe("parseLoadReps", () => {
       load: 30,
       reps: 2,
       units: "yd",
+    });
+    // Sets × feet stays drill distance; bare feet is an output mark.
+    expect(parseLoadReps("2x30ft")).toMatchObject({
+      kind: "distance",
+      load: 30,
+      reps: 2,
+      units: "ft",
     });
   });
 });

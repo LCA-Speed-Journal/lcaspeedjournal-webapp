@@ -326,6 +326,42 @@ describe("aggregateWeightRoomReport", () => {
     expect(names).toContain("Broad Jump");
   });
 
+  it("includes standing broad jumps stored as distance ft in Outputs", () => {
+    const bj: ReportMovement = {
+      id: "mov-bj",
+      name: "Standing Broad",
+      speed_journal_metric_key: "Standing-Broad",
+    };
+    const report = aggregateWeightRoomReport({
+      hugo_group: "volleyball",
+      from: "2026-09-08",
+      to: "2026-09-14",
+      athletes: [ada],
+      movements: [bj],
+      logs: [log("log-bj", ada.id, "2026-09-10")],
+      results: [
+        result({
+          session_log_id: "log-bj",
+          movement_id: bj.id,
+          raw_text: "8.25ft",
+          kind: "distance",
+          load: 8.25,
+          reps: null,
+          units: "ft",
+        }),
+      ],
+    });
+
+    expect(report.athletes[0].outputs).toEqual([
+      expect.objectContaining({
+        movement_name: "Standing Broad",
+        load: 8.25,
+        units: "ft",
+        raw_text: "8.25ft",
+      }),
+    ]);
+  });
+
   it("counts Speed Journal testing days toward weekly attendance", () => {
     const source = mergeJournalAttendance(
       {

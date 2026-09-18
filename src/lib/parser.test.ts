@@ -86,6 +86,21 @@ describe("parseEntry throw metrics in feet", () => {
     expect(discusPwrRow.display_value).toBe(111.25);
     expect(discusPwrRow.units).toBe("ft");
   });
+
+  it("accepts Standing-Broad in feet (display units) as well as cm", () => {
+    const [fromCm] = parseEntry("Standing-Broad", "251.46");
+    expect(fromCm.display_value).toBeCloseTo(8.25, 2);
+    expect(fromCm.units).toBe("ft");
+
+    const [fromFt] = parseEntry("Standing-Broad", "8.25ft");
+    expect(fromFt.display_value).toBeCloseTo(8.25, 5);
+    expect(fromFt.value).toBeCloseTo(8.25 * 30.48, 5);
+    expect(fromFt.units).toBe("ft");
+
+    const [fromFtSpaced] = parseEntry("Standing-Broad", "8.25 ft");
+    expect(fromFtSpaced.display_value).toBeCloseTo(8.25, 5);
+    expect(fromFtSpaced.units).toBe("ft");
+  });
 });
 
 describe("parseEntry agility metrics (single-interval seconds)", () => {

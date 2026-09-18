@@ -106,7 +106,13 @@ export const ISO_ROCKS: readonly IsoRockDef[] = [
   {
     id: "iso_lunge",
     label: "ISO-Lunge",
-    aliases: ["iso-lunge", "lunge iso", "split-squat iso", "split squat iso"],
+    aliases: [
+      "iso-lunge",
+      "iso lunge",
+      "lunge iso",
+      "split-squat iso",
+      "split squat iso",
+    ],
   },
   {
     id: "spring_ankle",

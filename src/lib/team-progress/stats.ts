@@ -62,3 +62,53 @@ export function isoWeekStart(dateStr: string): string {
   d.setUTCDate(d.getUTCDate() + diff);
   return d.toISOString().slice(0, 10);
 }
+
+/** Earliest YYYY-MM-DD, or null if empty. */
+export function earliestDate(dates: readonly string[]): string | null {
+  const sorted = [...dates].filter(Boolean).sort();
+  return sorted[0] ?? null;
+}
+
+/**
+ * Season week/day relative to the team's first logged session (W1D1).
+ * Week = ISO-week index from the anchor's week (1-based).
+ * Day = order of this date among `teamSessionDates` in that ISO week (1-based).
+ */
+export function seasonWeekDay(
+  date: string,
+  anchor: string,
+  teamSessionDates: readonly string[]
+): { week: number; day: number } | null {
+  if (!date || !anchor || date < anchor) return null;
+  const anchorMonday = isoWeekStart(anchor);
+  const dateMonday = isoWeekStart(date);
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const week =
+    1 +
+    Math.round(
+      (Date.parse(`${dateMonday}T12:00:00.000Z`) -
+        Date.parse(`${anchorMonday}T12:00:00.000Z`)) /
+        msPerWeek
+    );
+  if (week < 1) return null;
+
+  const inWeek = [
+    ...new Set(teamSessionDates.filter((d) => d >= anchor)),
+  ]
+    .filter((d) => isoWeekStart(d) === dateMonday)
+    .sort();
+  const day = inWeek.indexOf(date) + 1;
+  if (day < 1) return null;
+  return { week, day };
+}
+
+export function formatSeasonWeekDay(
+  date: string,
+  anchor: string | null | undefined,
+  teamSessionDates: readonly string[]
+): string | null {
+  if (!anchor) return null;
+  const wd = seasonWeekDay(date, anchor, teamSessionDates);
+  if (!wd) return null;
+  return `W${wd.week}D${wd.day}`;
+}

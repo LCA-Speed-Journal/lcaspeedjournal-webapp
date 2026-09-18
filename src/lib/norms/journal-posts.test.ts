@@ -124,6 +124,28 @@ describe("buildJournalPostCandidates", () => {
       units: "s",
     });
   });
+
+  it("treats feet/cm distance cells as usable broad-jump marks", () => {
+    const bj: JournalMovement = {
+      id: "mov-bj",
+      name: "Standing Broad",
+      speed_journal_metric_key: "Standing-Broad",
+    };
+    const rows = buildJournalPostCandidates({
+      movements: [bj],
+      outputs: [
+        { movement_id: "mov-bj", kind: "distance", load: 7.0, units: "ft" },
+        { movement_id: "mov-bj", kind: "distance", load: 8.25, units: "ft" },
+      ],
+      lowerIsBetterFor: () => false,
+    });
+    expect(rows[0]).toMatchObject({
+      mapped: true,
+      suggested_post: true,
+      best_value: 8.25,
+      units: "ft",
+    });
+  });
 });
 
 describe("applyJournalPosts", () => {

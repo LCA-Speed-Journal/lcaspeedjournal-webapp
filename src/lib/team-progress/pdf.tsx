@@ -13,6 +13,7 @@ import {
   PdfF2fTriangle,
 } from "@/lib/norms/testing-day-pdf-triangle";
 import type { TeamProgressPayload } from "./build-payload";
+import { formatSeasonWeekDay } from "./stats";
 
 const styles = StyleSheet.create({
   page: {
@@ -106,7 +107,7 @@ function TeamProgressDocument({ data }: { data: TeamProgressPayload }) {
           ))
         )}
 
-        <Text style={styles.h2}>Lifts (weekly team median load)</Text>
+        <Text style={styles.h2}>Lifts (team median load / day)</Text>
         <View style={[styles.row, styles.th]}>
           <Text style={styles.colMetric}>Lift</Text>
           <Text style={styles.colNum}>First</Text>
@@ -126,22 +127,46 @@ function TeamProgressDocument({ data }: { data: TeamProgressPayload }) {
           ))
         )}
 
-        <Text style={styles.h2}>ISO Rocks (prescribed seconds / week)</Text>
+        <Text style={styles.h2}>ISO Rocks (plan vs logged / day)</Text>
         {data.iso_rocks.length === 0 ? (
-          <Text style={styles.muted}>No ISO Rock prescriptions found.</Text>
+          <Text style={styles.muted}>No ISO Rock plan or logged holds found.</Text>
         ) : (
-          data.iso_rocks.map((rock) => (
-            <View key={rock.rock_id} style={{ marginBottom: 6 }}>
-              <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 2 }}>
-                {rock.label}
-              </Text>
-              <Text style={styles.muted}>
-                {rock.points
-                  .map((p) => `${p.week_start.slice(5)}: ${p.seconds}s`)
-                  .join(" · ")}
-              </Text>
-            </View>
-          ))
+          data.iso_rocks.map((rock) => {
+            const prescribed = rock.prescribed_points ?? rock.points ?? [];
+            const actual = rock.actual_points ?? [];
+            const dates = [
+              ...new Set([
+                ...prescribed.map((p) => p.date),
+                ...actual.map((p) => p.date),
+              ]),
+            ].sort();
+            const lines = dates.map((date) => {
+              const plan = prescribed.find((p) => p.date === date);
+              const logged = actual.find((p) => p.date === date);
+              const planS = plan != null ? `${plan.seconds}s` : "—";
+              const logS = logged != null ? `${logged.seconds}s` : "—";
+              let delta = "";
+              if (plan != null && logged != null) {
+                const d = logged.seconds - plan.seconds;
+                delta = ` (Δ ${d >= 0 ? "+" : ""}${d}s)`;
+              }
+              const wd = formatSeasonWeekDay(
+                date,
+                data.timeline_anchor,
+                data.timeline_dates ?? []
+              );
+              const label = wd ? `${date.slice(5)} ${wd}` : date.slice(5);
+              return `${label}: plan ${planS} / logged ${logS}${delta}`;
+            });
+            return (
+              <View key={rock.rock_id} style={{ marginBottom: 6 }}>
+                <Text style={{ fontFamily: "Helvetica-Bold", marginBottom: 2 }}>
+                  {rock.label}
+                </Text>
+                <Text style={styles.muted}>{lines.join(" · ")}</Text>
+              </View>
+            );
+          })
         )}
 
         <Text

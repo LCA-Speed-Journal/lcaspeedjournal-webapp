@@ -10,6 +10,7 @@
     "test": "vitest run",
     "seed": "node scripts/seed-historical.cjs",
     "validate": "tsx scripts/validate-data.ts",
+    "weekly-brief": "tsx scripts/weekly-coach-brief.ts",
     "migrate:canonical": "tsx scripts/migrate-canonical-cumulative-entries.ts"
   },
   "dependencies": {

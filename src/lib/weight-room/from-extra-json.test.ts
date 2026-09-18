@@ -42,6 +42,38 @@ describe("extraSessionToDraft", () => {
       speedJournalMetricKey: null,
     });
   });
+
+  it("auto-maps Standing Broad Jump to Standing-Broad", () => {
+    const d = extraSessionToDraft({
+      ...monday,
+      movements: [
+        {
+          label: "2",
+          name: "Standing Broad Jump",
+          block: "Main",
+          set_count: 3,
+          targets: ["Best"],
+          notes: "",
+          from_pair: false,
+          exercise_html: null,
+          cluster_pct_targets: false,
+        },
+        {
+          label: "3",
+          name: "Standing Broad Jump — Submax",
+          block: "Main",
+          set_count: 2,
+          targets: [],
+          notes: "",
+          from_pair: false,
+          exercise_html: null,
+          cluster_pct_targets: false,
+        },
+      ],
+    });
+    expect(d.movements[0].speedJournalMetricKey).toBe("Standing-Broad");
+    expect(d.movements[1].speedJournalMetricKey).toBeNull();
+  });
 });
 
 describe("assignTermDates", () => {

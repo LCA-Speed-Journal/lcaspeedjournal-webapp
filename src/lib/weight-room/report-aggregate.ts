@@ -155,7 +155,7 @@ export type WeightRoomReport = {
   athletes: AthleteReportRow[];
 };
 
-const OUTPUT_HINT = /\bCMJ\b|\b(?:\d+)?RM\b|\btest\b/i;
+const OUTPUT_HINT = /\bCMJ\b|\b(?:\d+)?RM\b|\btest\b|\bbroad\b/i;
 const VOLUME_KINDS = new Set(["load_reps", "amrap"]);
 /** Fly / split labels in movement names: 5-15yd, 10-20yd, etc. */
 const NAME_SPLIT_YARDS = /(\d+)\s*-\s*(\d+)\s*yd/i;
@@ -344,6 +344,14 @@ function isClassicOutputResult(
   }
   if (row.kind === "output" && row.units == null && !isTimedSpeedMark(row, movement)) {
     // inches / generic output without units
+    return true;
+  }
+  // Older broad-jump cells parsed as drill "distance" in feet/cm
+  if (
+    row.kind === "distance" &&
+    (row.units === "ft" || row.units === "cm") &&
+    asNumber(row.load) != null
+  ) {
     return true;
   }
   const name = movement?.name ?? "";

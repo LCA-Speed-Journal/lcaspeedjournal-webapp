@@ -8,13 +8,14 @@ const unknown = (raw: string): ParsedLoadReps => ({
   units: null,
 });
 
-/** Normalize distance unit tokens to yd | ft | m. */
-function normalizeDistanceUnit(raw: string): "yd" | "ft" | "m" | null {
+/** Normalize distance unit tokens to yd | ft | m | cm. */
+function normalizeDistanceUnit(raw: string): "yd" | "ft" | "m" | "cm" | null {
   const u = raw.toLowerCase();
   if (u === "yd" || u === "yard" || u === "yards") return "yd";
   if (u === "ft" || u === "foot" || u === "feet") return "ft";
   if (u === "m" || u === "meter" || u === "meters" || u === "metre" || u === "metres")
     return "m";
+  if (u === "cm" || u === "centimeter" || u === "centimeters") return "cm";
   return null;
 }
 
@@ -124,9 +125,9 @@ export function parseLoadReps(raw: string): ParsedLoadReps {
     };
   }
 
-  // Drill distance: "2x10yd", "2 × 30 yd"
+  // Drill distance with sets: "2x10yd", "2 × 30 yd", "2x30ft"
   const distSets = trimmed.match(
-    /^(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(yd|yard|yards|ft|foot|feet|m|meters?|metres?)$/i
+    /^(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(yd|yard|yards|ft|foot|feet|m|meters?|metres?|cm|centimeters?)$/i
   );
   if (distSets) {
     const units = normalizeDistanceUnit(distSets[3]!);
@@ -141,17 +142,26 @@ export function parseLoadReps(raw: string): ParsedLoadReps {
     }
   }
 
-  // Single distance: "10yd", "30 ft", "5m"
-  const distAlone = trimmed.match(
-    /^(\d+(?:\.\d+)?)\s*(yd|yard|yards|ft|foot|feet|m|meters?|metres?)$/i
+  // Single feet/cm mark → test output (broad jump). yd/m stay drill distance.
+  const markDistance = trimmed.match(
+    /^(\d+(?:\.\d+)?)\s*(yd|yard|yards|ft|foot|feet|m|meters?|metres?|cm|centimeters?)$/i
   );
-  if (distAlone) {
-    const units = normalizeDistanceUnit(distAlone[2]!);
+  if (markDistance) {
+    const units = normalizeDistanceUnit(markDistance[2]!);
+    if (units === "ft" || units === "cm") {
+      return {
+        raw: trimmed,
+        kind: "output",
+        load: Number(markDistance[1]),
+        reps: null,
+        units,
+      };
+    }
     if (units) {
       return {
         raw: trimmed,
         kind: "distance",
-        load: Number(distAlone[1]),
+        load: Number(markDistance[1]),
         reps: null,
         units,
       };

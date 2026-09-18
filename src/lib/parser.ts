@@ -290,23 +290,11 @@ function parseSingleInterval(
     throw new Error(`Cannot parse single_interval input "${rawInput}" as number`);
   }
 
-  const inputValue = parseFloat(values[0] ?? rawInput);
-  if (Number.isNaN(inputValue)) {
-    throw new Error(`Cannot parse single_interval input "${rawInput}" as number`);
-  }
-
-  let intervalDistanceM: number | undefined;
-  const intervalInfo = extractIntervalFromName(metric.display_name);
-  if (intervalInfo) {
-    const [, endM] = intervalInfo;
-    const [startM] = intervalInfo;
-    intervalDistanceM = endM - startM;
-  }
-
-  const displayValue = applyConversion(
-    inputValue,
-    metric.conversion_formula,
-    intervalDistanceM
+  const token = values[0] ?? rawInput;
+  const { inputValue, displayValue } = resolveSingleIntervalMagnitude(
+    metric,
+    token,
+    rawInput
   );
 
   return [
@@ -319,6 +307,90 @@ function parseSingleInterval(
       units: metric.display_units,
     },
   ];
+}
+
+/**
+ * Parse a single-interval token, optionally with a unit suffix.
+ * Bare numbers use metric.input_units. Display-unit suffixes (e.g. `8.25ft`
+ * for Standing-Broad) invert the conversion so value stays in input units.
+ */
+function resolveSingleIntervalMagnitude(
+  metric: MetricDef,
+  token: string,
+  rawInputForError: string
+): { inputValue: number; displayValue: number } {
+  const trimmed = token.trim();
+  const match = trimmed.match(
+    /^(-?\d+(?:\.\d+)?)\s*(ft|feet|foot|cm|m|meters?|metres?|in|inch|inches|s|sec|mph)?$/i
+  );
+  if (!match) {
+    throw new Error(
+      `Cannot parse single_interval input "${rawInputForError}" as number`
+    );
+  }
+  const magnitude = Number(match[1]);
+  if (Number.isNaN(magnitude)) {
+    throw new Error(
+      `Cannot parse single_interval input "${rawInputForError}" as number`
+    );
+  }
+
+  const unitRaw = (match[2] ?? "").toLowerCase();
+  const unit =
+    unitRaw === "feet" || unitRaw === "foot"
+      ? "ft"
+      : unitRaw === "inch" || unitRaw === "inches"
+        ? "in"
+        : unitRaw === "sec"
+          ? "s"
+          : unitRaw.startsWith("meter") || unitRaw.startsWith("metre")
+            ? "m"
+            : unitRaw;
+
+  const formula = metric.conversion_formula as ConversionFormula;
+  const inputUnits = (metric.input_units ?? "").toLowerCase();
+  const displayUnits = (metric.display_units ?? "").toLowerCase();
+
+  let intervalDistanceM: number | undefined;
+  const intervalInfo = extractIntervalFromName(metric.display_name);
+  if (intervalInfo) {
+    const [startM, endM] = intervalInfo;
+    intervalDistanceM = endM - startM;
+  }
+
+  const asInputUnits = () => ({
+    inputValue: magnitude,
+    displayValue: applyConversion(magnitude, formula, intervalDistanceM),
+  });
+
+  if (!unit || unit === inputUnits) {
+    return asInputUnits();
+  }
+
+  // Already in display units (coach typed feet for a cm→ft metric).
+  if (unit === displayUnits) {
+    if (formula === "distance_ft_from_cm" && unit === "ft") {
+      return { inputValue: magnitude * 30.48, displayValue: magnitude };
+    }
+    if (formula === "distance_ft_from_m" && unit === "ft") {
+      return { inputValue: magnitude / 3.281, displayValue: magnitude };
+    }
+    if (inputUnits === displayUnits) {
+      return { inputValue: magnitude, displayValue: magnitude };
+    }
+  }
+
+  // Explicit alternate input unit for distance metrics.
+  if (unit === "cm" && formula === "distance_ft_from_cm") {
+    return asInputUnits();
+  }
+  if (unit === "m" && formula === "distance_ft_from_m") {
+    return asInputUnits();
+  }
+
+  throw new Error(
+    `Cannot parse single_interval input "${rawInputForError}" for ${metric.display_name}`
+  );
 }
 
 function parseCumulative(

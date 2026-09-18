@@ -30,7 +30,7 @@ const TeamProgressLineChart = dynamic(
 );
 
 async function fetcher(url: string) {
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-store" });
   if (res.ok) return res.json() as Promise<{ data: TeamProgressPayload }>;
   let message = res.statusText || `Failed (${res.status})`;
   try {
@@ -449,6 +449,10 @@ export default function TeamProgressClient() {
                 <h2 className="mb-3 text-lg font-semibold text-foreground">
                   Lifts (Squat / Press / Hinge)
                 </h2>
+                <p className="mb-3 text-xs text-foreground-muted">
+                  Team median of each athlete&apos;s best load that day. Tooltip
+                  shows season week/day from the first logged session (W1D1).
+                </p>
                 {payload.lifts.length === 0 ? (
                   <p className="text-sm text-foreground-muted">
                     No matching squat, press, or hinge loads in this window.
@@ -469,6 +473,8 @@ export default function TeamProgressClient() {
                         <TeamProgressLineChart
                           label={lift.label}
                           units="lb"
+                          timelineAnchor={payload.timeline_anchor}
+                          timelineDates={payload.timeline_dates}
                           points={lift.points.map((p) => ({
                             date: p.date,
                             value: p.median,
@@ -483,15 +489,16 @@ export default function TeamProgressClient() {
 
               <section className="mb-8">
                 <h2 className="mb-3 text-lg font-semibold text-foreground">
-                  Weekly ISO Rocks
+                  ISO Rocks
                 </h2>
                 <p className="mb-3 text-xs text-foreground-muted">
-                  Prescribed hold duration from the program cards (not scanned
-                  athlete times).
+                  Plan vs logged holds — one point per lift day. Solid =
+                  prescribed max that day; dashed = team median logged hold.
+                  Tooltip shows W#D# from the first logged session in range.
                 </p>
                 {payload.iso_rocks.length === 0 ? (
                   <p className="text-sm text-foreground-muted">
-                    No ISO Rock prescriptions found in this window.
+                    No ISO Rock plan or logged holds found in this window.
                   </p>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2">
@@ -504,13 +511,25 @@ export default function TeamProgressClient() {
                           {rock.label}
                         </p>
                         <TeamProgressLineChart
-                          label={rock.label}
+                          label="Plan"
+                          secondaryLabel="Logged"
                           units="s"
-                          points={rock.points.map((p) => ({
-                            date: p.week_start,
-                            value: p.seconds,
-                            n: p.n,
-                          }))}
+                          timelineAnchor={payload.timeline_anchor}
+                          timelineDates={payload.timeline_dates}
+                          points={(rock.prescribed_points ?? rock.points).map(
+                            (p) => ({
+                              date: p.date,
+                              value: p.seconds,
+                              n: p.n,
+                            })
+                          )}
+                          secondaryPoints={(rock.actual_points ?? []).map(
+                            (p) => ({
+                              date: p.date,
+                              value: p.seconds,
+                              n: p.n,
+                            })
+                          )}
                         />
                       </div>
                     ))}

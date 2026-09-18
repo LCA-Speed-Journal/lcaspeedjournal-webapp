@@ -1,5 +1,5 @@
-import { ISO_ROCKS, type IsoRockId } from "./headlines";
-import { isoWeekStart } from "./stats";
+import { ISO_ROCKS, matchIsoRock, type IsoRockId } from "./headlines";
+import { median } from "./stats";
 
 export type IsoTemplateRow = {
   session_date: string;
@@ -9,7 +9,8 @@ export type IsoTemplateRow = {
 };
 
 export type IsoRockPoint = {
-  week_start: string;
+  /** Session / template date (YYYY-MM-DD), not week start. */
+  date: string;
   seconds: number;
   n: number;
 };
@@ -17,7 +18,19 @@ export type IsoRockPoint = {
 export type IsoRockSeries = {
   rock_id: IsoRockId;
   label: string;
+  /** Prescribed weekly max (alias of prescribed_points for older callers). */
   points: IsoRockPoint[];
+  prescribed_points: IsoRockPoint[];
+  actual_points: IsoRockPoint[];
+};
+
+export type IsoLogRow = {
+  athlete_id: string;
+  session_date: string;
+  movement_name: string;
+  kind: string | null;
+  load: number | null;
+  units: string | null;
 };
 
 /**
@@ -77,6 +90,25 @@ function textMentionsRock(text: string, rockId: IsoRockId): boolean {
   return def.aliases.some((a) => lower.includes(a));
 }
 
+function maxSecondsInText(text: string | null | undefined): number | null {
+  if (!text) return null;
+  let best: number | null = null;
+  for (const m of text.matchAll(/(\d+(?:\.\d+)?)\s*s\b/gi)) {
+    const n = Number(m[1]);
+    if (Number.isFinite(n) && (best == null || n > best)) best = n;
+  }
+  return best;
+}
+
+function maxSecondsInParts(parts: string[]): number | null {
+  let best: number | null = null;
+  for (const part of parts) {
+    const n = maxSecondsInText(part);
+    if (n != null && (best == null || n > best)) best = n;
+  }
+  return best;
+}
+
 function secondsForRock(row: IsoTemplateRow, rockId: IsoRockId): number | null {
   const def = ISO_ROCKS.find((r) => r.id === rockId);
   if (!def) return null;
@@ -106,6 +138,23 @@ function secondsForRock(row: IsoTemplateRow, rockId: IsoRockId): number | null {
     }
   }
 
+  // Name matched but seconds live only in notes/targets without repeating the alias
+  // (e.g. movement "Sprinter Bridge", notes "60s hold", targets ["45s"]).
+  if (nameMatch) {
+    const fromNotesBare = maxSecondsInText(row.notes);
+    if (fromNotesBare != null && (best == null || fromNotesBare > best)) {
+      best = fromNotesBare;
+    }
+    if (Array.isArray(row.targets)) {
+      const fromTargetsBare = maxSecondsInParts(
+        (row.targets as unknown[]).map(String)
+      );
+      if (fromTargetsBare != null && (best == null || fromTargetsBare > best)) {
+        best = fromTargetsBare;
+      }
+    }
+  }
+
   if (nameMatch && best == null && Array.isArray(row.targets)) {
     best = extractSecondsNearAlias(row.targets as string[], def.aliases[0]!);
   }
@@ -114,15 +163,15 @@ function secondsForRock(row: IsoTemplateRow, rockId: IsoRockId): number | null {
 }
 
 export function aggregateIsoRocks(rows: IsoTemplateRow[]): IsoRockSeries[] {
-  // rockId\0week → max seconds + template count
+  // rockId\0date → max seconds + template count
   const maxBy = new Map<string, { seconds: number; n: number }>();
 
   for (const row of rows) {
-    const week = isoWeekStart(row.session_date);
+    const date = row.session_date;
     for (const rock of ISO_ROCKS) {
       const seconds = secondsForRock(row, rock.id);
       if (seconds == null) continue;
-      const key = `${rock.id}\0${week}`;
+      const key = `${rock.id}\0${date}`;
       const prev = maxBy.get(key);
       if (!prev) {
         maxBy.set(key, { seconds, n: 1 });
@@ -136,17 +185,115 @@ export function aggregateIsoRocks(rows: IsoTemplateRow[]): IsoRockSeries[] {
   }
 
   return ISO_ROCKS.map((rock) => {
-    const points: IsoRockPoint[] = [];
+    const prescribed_points: IsoRockPoint[] = [];
     for (const [key, val] of maxBy) {
       if (!key.startsWith(`${rock.id}\0`)) continue;
-      const week_start = key.slice(rock.id.length + 1);
-      points.push({
-        week_start,
+      const date = key.slice(rock.id.length + 1);
+      prescribed_points.push({
+        date,
         seconds: val.seconds,
         n: val.n,
       });
     }
-    points.sort((a, b) => a.week_start.localeCompare(b.week_start));
-    return { rock_id: rock.id, label: rock.label, points };
-  }).filter((s) => s.points.length > 0);
+    prescribed_points.sort((a, b) => a.date.localeCompare(b.date));
+    return {
+      rock_id: rock.id,
+      label: rock.label,
+      points: prescribed_points,
+      prescribed_points,
+      actual_points: [],
+    };
+  }).filter((s) => s.prescribed_points.length > 0);
+}
+
+function usableHoldSeconds(row: IsoLogRow): number | null {
+  const load = row.load;
+  if (load == null || !Number.isFinite(load) || load <= 0) return null;
+  if (row.kind === "duration") return load;
+  if (row.kind === "output" && (row.units === "s" || row.units == null)) {
+    return load;
+  }
+  return null;
+}
+
+/**
+ * Logged holds → per rock per session date: team median of each athlete's best hold.
+ */
+export function aggregateIsoRockActuals(rows: IsoLogRow[]): IsoRockSeries[] {
+  const bestByAthlete = new Map<string, number>();
+
+  for (const row of rows) {
+    const seconds = usableHoldSeconds(row);
+    if (seconds == null) continue;
+    const rockId = matchIsoRock(row.movement_name);
+    if (!rockId) continue;
+    const key = `${rockId}\0${row.session_date}\0${row.athlete_id}`;
+    const prev = bestByAthlete.get(key);
+    if (prev == null || seconds > prev) bestByAthlete.set(key, seconds);
+  }
+
+  const byDate = new Map<string, number[]>();
+  for (const [key, seconds] of bestByAthlete) {
+    const parts = key.split("\0");
+    const rockId = parts[0]!;
+    const date = parts[1]!;
+    const dateKey = `${rockId}\0${date}`;
+    const list = byDate.get(dateKey);
+    if (list) list.push(seconds);
+    else byDate.set(dateKey, [seconds]);
+  }
+
+  return ISO_ROCKS.map((rock) => {
+    const actual_points: IsoRockPoint[] = [];
+    for (const [key, values] of byDate) {
+      if (!key.startsWith(`${rock.id}\0`)) continue;
+      const date = key.slice(rock.id.length + 1);
+      const med = median(values);
+      if (med == null) continue;
+      actual_points.push({
+        date,
+        seconds: med,
+        n: values.length,
+      });
+    }
+    actual_points.sort((a, b) => a.date.localeCompare(b.date));
+    return {
+      rock_id: rock.id,
+      label: rock.label,
+      points: [],
+      prescribed_points: [],
+      actual_points,
+    };
+  }).filter((s) => s.actual_points.length > 0);
+}
+
+/** Merge prescribed + actual series so each rock appears once. */
+export function combineIsoRockSeries(
+  prescribed: IsoRockSeries[],
+  actual: IsoRockSeries[]
+): IsoRockSeries[] {
+  const byId = new Map<IsoRockId, IsoRockSeries>();
+  for (const rock of ISO_ROCKS) {
+    byId.set(rock.id, {
+      rock_id: rock.id,
+      label: rock.label,
+      points: [],
+      prescribed_points: [],
+      actual_points: [],
+    });
+  }
+  for (const s of prescribed) {
+    const cur = byId.get(s.rock_id);
+    if (!cur) continue;
+    cur.prescribed_points = s.prescribed_points;
+    cur.points = s.prescribed_points;
+  }
+  for (const s of actual) {
+    const cur = byId.get(s.rock_id);
+    if (!cur) continue;
+    cur.actual_points = s.actual_points;
+  }
+  return [...byId.values()].filter(
+    (s) => s.prescribed_points.length > 0 || s.actual_points.length > 0
+  );
 }

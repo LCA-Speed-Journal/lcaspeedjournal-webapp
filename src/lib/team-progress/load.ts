@@ -5,7 +5,7 @@ import { STANDING_BROAD } from "@/lib/norms/f2f/constants";
 import { FORTY_YD_DASH, TWENTY_YD_DASH } from "@/lib/norms/editor-metrics";
 import type { TestEntryRow } from "./test-aggregate";
 import type { LiftLogRow } from "./lift-aggregate";
-import type { IsoTemplateRow } from "./iso-rocks";
+import type { IsoTemplateRow, IsoLogRow } from "./iso-rocks";
 import type { F2fAthleteRow, F2fEntryWithAthlete } from "./f2f-aggregate";
 
 function toNum(value: unknown): number | null {
@@ -166,4 +166,39 @@ export async function loadTeamProgressIsoTemplates(opts: {
       targets,
     };
   });
+}
+
+export async function loadTeamProgressIsoLogRows(opts: {
+  hugoGroup: HugoGroup;
+  from: string;
+  to: string;
+}): Promise<IsoLogRow[]> {
+  const { rows } = await sql`
+    SELECT
+      l.athlete_id::text AS athlete_id,
+      l.session_date,
+      m.name AS movement_name,
+      r.kind,
+      r.load,
+      r.units
+    FROM session_logs l
+    INNER JOIN set_results r ON r.session_log_id = l.id
+    INNER JOIN workout_movements m ON m.id = r.movement_id
+    WHERE l.hugo_group = ${opts.hugoGroup}
+      AND l.session_date >= ${opts.from}::date
+      AND l.session_date <= ${opts.to}::date
+      AND r.load IS NOT NULL
+      AND (
+        r.kind = ${"duration"}
+        OR (r.kind = ${"output"} AND (r.units = ${"s"} OR r.units IS NULL))
+      )
+  `;
+  return (rows as Record<string, unknown>[]).map((r) => ({
+    athlete_id: String(r.athlete_id),
+    session_date: serializeDate(r.session_date),
+    movement_name: String(r.movement_name ?? ""),
+    kind: r.kind == null ? null : String(r.kind),
+    load: toNum(r.load),
+    units: r.units == null ? null : String(r.units),
+  }));
 }

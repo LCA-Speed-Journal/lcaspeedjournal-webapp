@@ -1,4 +1,5 @@
 import type { CardDraft, CardMovement } from "./types";
+import { inferSpeedJournalMetricKey } from "./infer-journal-metric";
 
 export type ExtraMovementJson = {
   label: string;
@@ -47,7 +48,7 @@ function mapMovement(m: ExtraMovementJson): CardMovement {
     notes: m.notes ?? "",
     fromPair: Boolean(m.from_pair),
     exerciseHtml: m.exercise_html ?? null,
-    speedJournalMetricKey: null,
+    speedJournalMetricKey: inferSpeedJournalMetricKey(m.name),
   };
 }
 

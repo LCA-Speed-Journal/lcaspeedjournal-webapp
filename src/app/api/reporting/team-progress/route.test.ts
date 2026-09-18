@@ -28,6 +28,8 @@ describe("GET /api/reporting/team-progress", () => {
       hugo_group: "football",
       from: "2026-08-01",
       to: "2026-11-30",
+      timeline_anchor: null,
+      timeline_dates: [],
       roster_count: 0,
       athletes_with_tests: 0,
       tests: [],

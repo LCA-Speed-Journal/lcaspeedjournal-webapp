@@ -285,12 +285,16 @@ export async function dualWriteWeightRoomJournal(input: {
 
   for (const item of posted) {
     try {
+      const rawInput =
+        item.units && String(item.units).trim()
+          ? `${item.best_value}${String(item.units).trim()}`
+          : String(item.best_value);
       const rows =
         item.metric_key === "40yd_Dash"
           ? isFortyYardComponent(item.component)
             ? [parseFortyYardComponent(String(item.best_value), item.component)]
             : []
-          : parseEntry(item.metric_key, String(item.best_value));
+          : parseEntry(item.metric_key, rawInput);
       if (item.metric_key === "40yd_Dash" && rows.length === 0) {
         journal_warnings.push(`${item.metric_key}: pick a 40yd split`);
         continue;
@@ -304,7 +308,7 @@ export async function dualWriteWeightRoomJournal(input: {
         sessionId,
         athleteId: input.athleteId,
         parsed: row,
-        rawInput: String(item.best_value),
+        rawInput,
       });
       journal_entry_ids.push(id);
     } catch (err) {
@@ -313,4 +317,133 @@ export async function dualWriteWeightRoomJournal(input: {
   }
 
   return { journal_warnings, journal_entry_ids };
+}
+
+export type BackfillJournalFromSetResultsResult = {
+  groups: number;
+  entry_ids: string[];
+  warnings: string[];
+  movements_mapped: number;
+};
+
+/**
+ * Dual-write mapped weight-room set_results into Speed Journal when missing.
+ * Also fills null speed_journal_metric_key on known test movement names.
+ */
+export async function backfillJournalFromMappedSetResults(opts?: {
+  from?: string;
+  to?: string;
+}): Promise<BackfillJournalFromSetResultsResult> {
+  const { inferSpeedJournalMetricKey } = await import(
+    "@/lib/weight-room/infer-journal-metric"
+  );
+
+  const { rows: unmapped } = await sql`
+    SELECT id, name
+    FROM workout_movements
+    WHERE speed_journal_metric_key IS NULL
+  `;
+  let movements_mapped = 0;
+  for (const row of unmapped as Array<{ id: string; name: string }>) {
+    const key = inferSpeedJournalMetricKey(row.name);
+    if (!key) continue;
+    await sql`
+      UPDATE workout_movements
+      SET speed_journal_metric_key = ${key}
+      WHERE id = ${row.id} AND speed_journal_metric_key IS NULL
+    `;
+    movements_mapped += 1;
+  }
+
+  const from = opts?.from ?? "2000-01-01";
+  const to = opts?.to ?? "2100-01-01";
+  const { rows } = await sql`
+    SELECT
+      l.athlete_id,
+      l.session_date,
+      m.id AS movement_id,
+      m.name AS movement_name,
+      m.speed_journal_metric_key,
+      m.speed_journal_component,
+      r.kind,
+      r.load,
+      r.units,
+      r.raw_text
+    FROM set_results r
+    INNER JOIN session_logs l ON l.id = r.session_log_id
+    INNER JOIN workout_movements m ON m.id = r.movement_id
+    WHERE m.speed_journal_metric_key IS NOT NULL
+      AND l.session_date BETWEEN ${from}::date AND ${to}::date
+      AND r.raw_text IS NOT NULL
+      AND trim(r.raw_text) <> ${""}
+    ORDER BY l.athlete_id, l.session_date, m.id
+  `;
+
+  type Group = {
+    athleteId: string;
+    sessionDate: string;
+    movements: JournalMovement[];
+    outputs: CellOutput[];
+    seenMovements: Set<string>;
+  };
+  const groups = new Map<string, Group>();
+
+  for (const row of rows as Array<Record<string, unknown>>) {
+    const athleteId = String(row.athlete_id);
+    const sessionDate =
+      typeof row.session_date === "string"
+        ? row.session_date.slice(0, 10)
+        : new Date(String(row.session_date)).toISOString().slice(0, 10);
+    const key = `${athleteId}\0${sessionDate}`;
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        athleteId,
+        sessionDate,
+        movements: [],
+        outputs: [],
+        seenMovements: new Set(),
+      };
+      groups.set(key, group);
+    }
+    const movementId = String(row.movement_id);
+    if (!group.seenMovements.has(movementId)) {
+      group.seenMovements.add(movementId);
+      group.movements.push({
+        id: movementId,
+        name: String(row.movement_name ?? ""),
+        speed_journal_metric_key: String(row.speed_journal_metric_key),
+        speed_journal_component:
+          row.speed_journal_component == null
+            ? null
+            : String(row.speed_journal_component),
+      });
+    }
+    group.outputs.push({
+      movement_id: movementId,
+      kind: row.kind == null ? "" : String(row.kind),
+      load: row.load == null ? null : Number(row.load),
+      units: row.units == null ? null : String(row.units),
+    });
+  }
+
+  const entry_ids: string[] = [];
+  const warnings: string[] = [];
+  for (const group of groups.values()) {
+    const result = await dualWriteWeightRoomJournalFillIfMissing({
+      sessionDate: group.sessionDate,
+      athleteId: group.athleteId,
+      movements: group.movements,
+      outputs: group.outputs,
+    });
+    entry_ids.push(...result.journal_entry_ids);
+    warnings.push(...result.journal_warnings);
+  }
+
+  return {
+    groups: groups.size,
+    entry_ids,
+    warnings,
+    movements_mapped,
+  };
 }

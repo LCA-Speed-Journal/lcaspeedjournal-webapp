@@ -75,11 +75,13 @@ const rows: LiftLogRow[] = [
 ];
 
 describe("aggregateLiftSeries", () => {
-  it("builds weekly medians for squat/press/hinge and ignores trap-bar", () => {
+  it("builds daily medians for squat/press/hinge and ignores trap-bar", () => {
     const series = aggregateLiftSeries(rows, 2);
     const squat = series.find((s) => s.lift_id === "squat")!;
     expect(squat.points.length).toBe(2);
+    expect(squat.points[0]!.date).toBe("2026-08-11");
     expect(squat.points[0]!.median).toBe(60);
+    expect(squat.points[1]!.date).toBe("2026-08-18");
     expect(squat.points[1]!.median).toBe(65);
     expect(squat.delta).toBe(5);
 
