@@ -268,7 +268,7 @@ async function main() {
       INNER JOIN sessions s ON s.id = e.session_id
       INNER JOIN athletes a ON a.id = e.athlete_id
       WHERE s.session_date BETWEEN ${from}::date AND ${to}::date
-        AND e.metric_key = ANY(${metricKeys})
+        AND e.metric_key = ANY(${metricKeys as unknown as string}::text[])
         AND (
           EXISTS (
             SELECT 1

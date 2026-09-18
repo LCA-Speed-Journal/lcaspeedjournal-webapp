@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { aggregateWeightRoomReport } from "./report-aggregate";
+import {
+  aggregateWeightRoomReport,
+  type ReportMovement,
+} from "./report-aggregate";
 import {
   buildWeightRoomOverview,
   groupOverviewOutputs,
