@@ -1,7 +1,17 @@
+export type StatBox = {
+  min: number;
+  mean: number;
+  median: number;
+  max: number;
+};
+
 export type SeriesPoint = {
   date: string;
   median: number;
   n: number;
+  median_change_pct?: number | null;
+  output?: StatBox;
+  change?: StatBox;
 };
 
 export function median(values: number[]): number | null {
@@ -10,6 +20,28 @@ export function median(values: number[]): number | null {
   const mid = Math.floor(sorted.length / 2);
   if (sorted.length % 2 === 1) return sorted[mid]!;
   return (sorted[mid - 1]! + sorted[mid]!) / 2;
+}
+
+export function summarize(values: number[]): StatBox | null {
+  if (values.length === 0) return null;
+  const med = median(values);
+  if (med == null) return null;
+  let min = values[0]!;
+  let max = values[0]!;
+  let sum = 0;
+  for (const v of values) {
+    if (v < min) min = v;
+    if (v > max) max = v;
+    sum += v;
+  }
+  return { min, mean: sum / values.length, median: med, max };
+}
+
+export function percentChange(value: number, baseline: number): number | null {
+  if (!Number.isFinite(value) || !Number.isFinite(baseline) || baseline === 0) {
+    return null;
+  }
+  return ((value - baseline) / Math.abs(baseline)) * 100;
 }
 
 /** Signed change last − first. For time metrics, negative is improvement. */
