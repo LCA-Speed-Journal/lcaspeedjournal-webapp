@@ -3,19 +3,43 @@
 import {
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import { formatSeasonWeekDay } from "@/lib/team-progress/stats";
+import { formatSeasonWeekDay, type StatBox } from "@/lib/team-progress/stats";
 
-type Point = { date: string; value: number; n?: number };
+type Point = {
+  date: string;
+  value: number;
+  n?: number;
+  output?: StatBox;
+  change?: StatBox;
+};
+
+type ChartRow = {
+  date: string;
+  n?: number;
+  n2?: number;
+  output?: StatBox;
+  change?: StatBox;
+  [key: string]: string | number | StatBox | undefined;
+};
 
 function normalizeDate(raw: unknown): string | null {
   if (raw == null) return null;
   const s = String(raw).slice(0, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+}
+
+function fmtStat(n: number): string {
+  return n.toFixed(2);
+}
+
+function formatStatBox(box: StatBox): string {
+  return `${fmtStat(box.min)} / ${fmtStat(box.mean)} / ${fmtStat(box.median)} / ${fmtStat(box.max)}`;
 }
 
 function buildChartRows(
@@ -24,8 +48,8 @@ function buildChartRows(
   valueKey: string,
   secondaryKey: string,
   timelineDates: readonly string[] | undefined
-): Array<Record<string, string | number | undefined>> {
-  const byDate = new Map<string, Record<string, string | number | undefined>>();
+): ChartRow[] {
+  const byDate = new Map<string, ChartRow>();
 
   const ensure = (date: string) => {
     let row = byDate.get(date);
@@ -46,6 +70,8 @@ function buildChartRows(
     const row = ensure(date);
     row[valueKey] = p.value;
     row.n = p.n;
+    if (p.output) row.output = p.output;
+    if (p.change) row.change = p.change;
   }
   if (secondary) {
     for (const p of secondary) {
@@ -62,6 +88,72 @@ function buildChartRows(
   );
 }
 
+function StatsTooltip({
+  active,
+  payload,
+  label,
+  units,
+  valueKey,
+  secondaryKey,
+  secondaryLabel,
+  primaryLabel,
+  timelineAnchor,
+  timelineDates,
+}: {
+  active?: boolean;
+  payload?: Array<{ dataKey?: string | number; value?: unknown; payload?: ChartRow }>;
+  label?: unknown;
+  units?: string;
+  valueKey: string;
+  secondaryKey: string;
+  secondaryLabel: string;
+  primaryLabel: string;
+  timelineAnchor?: string | null;
+  timelineDates: readonly string[];
+}) {
+  if (!active || !payload?.length) return null;
+  const row = payload[0]?.payload;
+  const date = normalizeDate(label) ?? String(label ?? "");
+  const wd = formatSeasonWeekDay(date, timelineAnchor, timelineDates);
+  const unitSuffix = units ? ` ${units}` : "";
+  const primaryVal = row?.[valueKey];
+  const secondaryVal = row?.[secondaryKey];
+
+  return (
+    <div
+      className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-xs text-foreground shadow-lg"
+      style={{ maxWidth: 260 }}
+    >
+      <p className="mb-1 font-medium">
+        {wd ? `${date} · ${wd}` : date}
+      </p>
+      {typeof primaryVal === "number" ? (
+        <p>
+          {primaryLabel}: {primaryVal.toFixed(2)}
+          {unitSuffix}
+        </p>
+      ) : null}
+      {typeof secondaryVal === "number" ? (
+        <p>
+          {secondaryLabel}: {secondaryVal.toFixed(2)}
+          {unitSuffix}
+        </p>
+      ) : null}
+      {row?.n != null ? <p className="text-foreground-muted">n = {row.n}</p> : null}
+      {row?.output ? (
+        <p className="mt-1 tabular-nums text-foreground-muted">
+          Output: {formatStatBox(row.output)}
+        </p>
+      ) : null}
+      {row?.change ? (
+        <p className="tabular-nums text-foreground-muted">
+          Change %: {formatStatBox(row.change)}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function TeamProgressLineChart({
   points,
   label,
@@ -72,6 +164,7 @@ export function TeamProgressLineChart({
   secondaryKey = "actual",
   timelineAnchor,
   timelineDates,
+  showZeroLine = false,
 }: {
   points: Point[];
   label: string;
@@ -83,6 +176,7 @@ export function TeamProgressLineChart({
   /** First logged session (W1D1). */
   timelineAnchor?: string | null;
   timelineDates?: readonly string[];
+  showZeroLine?: boolean;
 }) {
   const data = buildChartRows(
     points,
@@ -96,6 +190,7 @@ export function TeamProgressLineChart({
   const hasValues = data.some(
     (row) => row[valueKey] != null || (hasSecondary && row[secondaryKey] != null)
   );
+  const hasStats = data.some((row) => row.output != null || row.change != null);
 
   if (!hasValues) {
     return (
@@ -129,7 +224,17 @@ export function TeamProgressLineChart({
               tick={{ fontSize: 10, fill: "var(--foreground-muted)" }}
               width={40}
               domain={["auto", "auto"]}
+              tickFormatter={(v: number) =>
+                units === "%" ? Number(v).toFixed(1) : String(v)
+              }
             />
+            {showZeroLine ? (
+              <ReferenceLine
+                y={0}
+                stroke="var(--foreground-muted)"
+                strokeDasharray="3 3"
+              />
+            ) : null}
             <Tooltip
               contentStyle={{
                 background: "var(--surface-elevated)",
@@ -137,6 +242,22 @@ export function TeamProgressLineChart({
                 borderRadius: 8,
                 fontSize: 12,
               }}
+              content={
+                hasStats
+                  ? (props) => (
+                      <StatsTooltip
+                        {...props}
+                        units={units}
+                        valueKey={valueKey}
+                        secondaryKey={secondaryKey}
+                        secondaryLabel={secondaryLabel}
+                        primaryLabel={label}
+                        timelineAnchor={timelineAnchor}
+                        timelineDates={dates}
+                      />
+                    )
+                  : undefined
+              }
               formatter={(value, name) => [
                 `${Number(value).toFixed(2)}${units ? ` ${units}` : ""}`,
                 name === secondaryKey ? secondaryLabel : label,
