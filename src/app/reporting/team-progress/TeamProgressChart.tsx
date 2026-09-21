@@ -243,20 +243,17 @@ export function TeamProgressLineChart({
                 fontSize: 12,
               }}
               content={
-                hasStats
-                  ? (props) => (
-                      <StatsTooltip
-                        {...props}
-                        units={units}
-                        valueKey={valueKey}
-                        secondaryKey={secondaryKey}
-                        secondaryLabel={secondaryLabel}
-                        primaryLabel={label}
-                        timelineAnchor={timelineAnchor}
-                        timelineDates={dates}
-                      />
-                    )
-                  : undefined
+                hasStats ? (
+                  <StatsTooltip
+                    units={units}
+                    valueKey={valueKey}
+                    secondaryKey={secondaryKey}
+                    secondaryLabel={secondaryLabel}
+                    primaryLabel={label}
+                    timelineAnchor={timelineAnchor}
+                    timelineDates={dates}
+                  />
+                ) : undefined
               }
               formatter={(value, name) => [
                 `${Number(value).toFixed(2)}${units ? ` ${units}` : ""}`,
