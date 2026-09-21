@@ -12,6 +12,8 @@ import {
   improvedPct,
   median,
   metricDelta,
+  percentChange,
+  summarize,
   type SeriesPoint,
 } from "./stats";
 
@@ -107,21 +109,50 @@ export function aggregateTestSeries(opts: {
       velocityKeys
     );
 
-    const byDate = new Map<string, number[]>();
+    const athleteBaseline = new Map<string, { date: string; value: number }>();
     for (const [key, value] of best) {
-      const date = key.split("\0")[0]!;
-      const list = byDate.get(date) ?? [];
-      list.push(value);
-      byDate.set(date, list);
+      const [date, athleteId] = key.split("\0");
+      if (!date || !athleteId) continue;
+      const prev = athleteBaseline.get(athleteId);
+      if (prev == null || date < prev.date) {
+        athleteBaseline.set(athleteId, { date, value });
+      }
+    }
+
+    const byDate = new Map<string, { raw: number[]; change: number[] }>();
+    for (const [key, value] of best) {
+      const [date, athleteId] = key.split("\0");
+      if (!date || !athleteId) continue;
+      const bucket = byDate.get(date) ?? { raw: [], change: [] };
+      bucket.raw.push(value);
+      const baseline = athleteBaseline.get(athleteId);
+      if (baseline && date === baseline.date) {
+        bucket.change.push(0);
+      } else if (baseline) {
+        const pct = percentChange(value, baseline.value);
+        if (pct != null) bucket.change.push(pct);
+      }
+      byDate.set(date, bucket);
     }
 
     const dates = [...byDate.keys()].sort();
     const points: SeriesPoint[] = [];
     for (const date of dates) {
-      const values = byDate.get(date)!;
-      const med = median(values);
+      const { raw, change } = byDate.get(date)!;
+      const med = median(raw);
       if (med == null) continue;
-      points.push({ date, median: med, n: values.length });
+      const point: SeriesPoint = {
+        date,
+        median: med,
+        n: raw.length,
+      };
+      const changeMed = median(change);
+      if (changeMed != null) point.median_change_pct = changeMed;
+      const output = summarize(raw);
+      if (output) point.output = output;
+      const changeBox = summarize(change);
+      if (changeBox) point.change = changeBox;
+      points.push(point);
     }
 
     const fl = firstLastEligible(points, minN);

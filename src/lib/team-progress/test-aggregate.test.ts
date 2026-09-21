@@ -106,10 +106,39 @@ describe("aggregateTestSeries", () => {
     expect(forty.metric_key).toBe("40yd_Dash");
     expect(forty.source).toBe("core");
     expect(forty.lower_is_better).toBe(true);
-    expect(forty.points).toEqual([
-      { date: "2026-08-10", median: 5.2, n: 3 },
-      { date: "2026-10-01", median: 5.0, n: 3 },
-    ]);
+    expect(forty.points).toHaveLength(2);
+
+    expect(forty.points[0]!.date).toBe("2026-08-10");
+    expect(forty.points[0]!.median).toBe(5.2);
+    expect(forty.points[0]!.median_change_pct).toBe(0);
+    expect(forty.points[0]!.n).toBe(3);
+    expect(forty.points[0]!.output?.min).toBe(5.0);
+    expect(forty.points[0]!.output?.median).toBe(5.2);
+    expect(forty.points[0]!.output?.max).toBe(5.4);
+    expect(forty.points[0]!.output?.mean).toBeCloseTo((5.2 + 5.0 + 5.4) / 3);
+    expect(forty.points[0]!.change?.min).toBe(0);
+    expect(forty.points[0]!.change?.median).toBe(0);
+    expect(forty.points[0]!.change?.max).toBe(0);
+    expect(forty.points[0]!.change?.mean).toBe(0);
+
+    const a1Change = ((5.0 - 5.2) / 5.2) * 100;
+    const a2Change = ((4.9 - 5.0) / 5.0) * 100;
+    const a3Change = ((5.1 - 5.4) / 5.4) * 100;
+    expect(forty.points[1]!.date).toBe("2026-10-01");
+    expect(forty.points[1]!.median).toBe(5.0);
+    expect(forty.points[1]!.median_change_pct).toBeCloseTo(a1Change);
+    expect(forty.points[1]!.n).toBe(3);
+    expect(forty.points[1]!.output?.min).toBe(4.9);
+    expect(forty.points[1]!.output?.median).toBe(5.0);
+    expect(forty.points[1]!.output?.max).toBe(5.1);
+    expect(forty.points[1]!.output?.mean).toBeCloseTo((5.0 + 4.9 + 5.1) / 3);
+    expect(forty.points[1]!.change?.min).toBeCloseTo(a3Change);
+    expect(forty.points[1]!.change?.median).toBeCloseTo(a1Change);
+    expect(forty.points[1]!.change?.max).toBeCloseTo(a2Change);
+    expect(forty.points[1]!.change?.mean).toBeCloseTo(
+      (a1Change + a2Change + a3Change) / 3
+    );
+
     expect(forty.first?.median).toBe(5.2);
     expect(forty.last?.median).toBe(5.0);
     expect(forty.delta).toBeCloseTo(-0.2);
