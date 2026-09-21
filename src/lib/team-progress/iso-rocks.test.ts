@@ -162,11 +162,53 @@ describe("aggregateIsoRockActuals", () => {
       },
     ]);
 
-    expect(series.find((s) => s.rock_id === "copenhagen")?.actual_points).toEqual([
+    // One set each: totals median 45, per-set 45. Ignore load_reps lunges.
+    expect(series.find((s) => s.rock_id === "copenhagen")?.total_points).toEqual([
       { date: "2026-09-18", seconds: 45, n: 2 },
     ]);
-    expect(series.find((s) => s.rock_id === "iso_lunge")?.actual_points).toEqual([
+    expect(series.find((s) => s.rock_id === "copenhagen")?.per_set_points).toEqual([
+      { date: "2026-09-18", seconds: 45, n: 2 },
+    ]);
+    expect(series.find((s) => s.rock_id === "iso_lunge")?.total_points).toEqual([
       { date: "2026-09-18", seconds: 60, n: 1 },
     ]);
+    expect(series.find((s) => s.rock_id === "iso_lunge")?.per_set_points).toEqual([
+      { date: "2026-09-18", seconds: 60, n: 1 },
+    ]);
+  });
+});
+
+describe("aggregateIsoRockActuals volume", () => {
+  it("sums logged holds per athlete and medians total vs per-set", () => {
+    const series = aggregateIsoRockActuals([
+      {
+        athlete_id: "a1",
+        session_date: "2026-09-18",
+        movement_name: "Copenhagen Plank",
+        kind: "duration",
+        load: 45,
+        units: "s",
+      },
+      {
+        athlete_id: "a1",
+        session_date: "2026-09-18",
+        movement_name: "Copenhagen Plank",
+        kind: "duration",
+        load: 45,
+        units: "s",
+      },
+      {
+        athlete_id: "a2",
+        session_date: "2026-09-18",
+        movement_name: "Copenhagen Plank",
+        kind: "duration",
+        load: 50,
+        units: "s",
+      },
+    ]);
+    const c = series.find((s) => s.rock_id === "copenhagen")!;
+    // a1 total 90 per-set 45; a2 total 50 per-set 50 → median total 70, median per-set 47.5
+    expect(c.total_points).toEqual([{ date: "2026-09-18", seconds: 70, n: 2 }]);
+    expect(c.per_set_points).toEqual([{ date: "2026-09-18", seconds: 47.5, n: 2 }]);
   });
 });

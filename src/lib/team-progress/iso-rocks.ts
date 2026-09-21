@@ -18,7 +18,9 @@ export type IsoRockPoint = {
 export type IsoRockSeries = {
   rock_id: IsoRockId;
   label: string;
-  /** Prescribed weekly max (alias of prescribed_points for older callers). */
+  total_points: IsoRockPoint[];
+  per_set_points: IsoRockPoint[];
+  /** @deprecated kept empty; prefer total_points */
   points: IsoRockPoint[];
   prescribed_points: IsoRockPoint[];
   actual_points: IsoRockPoint[];
@@ -199,6 +201,8 @@ export function aggregateIsoRocks(rows: IsoTemplateRow[]): IsoRockSeries[] {
     return {
       rock_id: rock.id,
       label: rock.label,
+      total_points: [],
+      per_set_points: [],
       points: prescribed_points,
       prescribed_points,
       actual_points: [],
@@ -217,10 +221,11 @@ function usableHoldSeconds(row: IsoLogRow): number | null {
 }
 
 /**
- * Logged holds → per rock per session date: team median of each athlete's best hold.
+ * Logged holds → per rock per session date: team median of each athlete's
+ * total hold volume and mean per-set duration.
  */
 export function aggregateIsoRockActuals(rows: IsoLogRow[]): IsoRockSeries[] {
-  const bestByAthlete = new Map<string, number>();
+  const holdsByAthlete = new Map<string, number[]>();
 
   for (const row of rows) {
     const seconds = usableHoldSeconds(row);
@@ -228,43 +233,55 @@ export function aggregateIsoRockActuals(rows: IsoLogRow[]): IsoRockSeries[] {
     const rockId = matchIsoRock(row.movement_name);
     if (!rockId) continue;
     const key = `${rockId}\0${row.session_date}\0${row.athlete_id}`;
-    const prev = bestByAthlete.get(key);
-    if (prev == null || seconds > prev) bestByAthlete.set(key, seconds);
+    const list = holdsByAthlete.get(key);
+    if (list) list.push(seconds);
+    else holdsByAthlete.set(key, [seconds]);
   }
 
-  const byDate = new Map<string, number[]>();
-  for (const [key, seconds] of bestByAthlete) {
+  const totalsByDate = new Map<string, number[]>();
+  const perSetsByDate = new Map<string, number[]>();
+  for (const [key, holds] of holdsByAthlete) {
     const parts = key.split("\0");
     const rockId = parts[0]!;
     const date = parts[1]!;
     const dateKey = `${rockId}\0${date}`;
-    const list = byDate.get(dateKey);
-    if (list) list.push(seconds);
-    else byDate.set(dateKey, [seconds]);
+    const total = holds.reduce((sum, s) => sum + s, 0);
+    const perSet = total / holds.length;
+    const totals = totalsByDate.get(dateKey);
+    if (totals) totals.push(total);
+    else totalsByDate.set(dateKey, [total]);
+    const perSets = perSetsByDate.get(dateKey);
+    if (perSets) perSets.push(perSet);
+    else perSetsByDate.set(dateKey, [perSet]);
   }
 
   return ISO_ROCKS.map((rock) => {
-    const actual_points: IsoRockPoint[] = [];
-    for (const [key, values] of byDate) {
+    const total_points: IsoRockPoint[] = [];
+    const per_set_points: IsoRockPoint[] = [];
+    for (const [key, totals] of totalsByDate) {
       if (!key.startsWith(`${rock.id}\0`)) continue;
       const date = key.slice(rock.id.length + 1);
-      const med = median(values);
-      if (med == null) continue;
-      actual_points.push({
-        date,
-        seconds: med,
-        n: values.length,
-      });
+      const totalMed = median(totals);
+      const perSetMed = median(perSetsByDate.get(key) ?? []);
+      if (totalMed != null) {
+        total_points.push({ date, seconds: totalMed, n: totals.length });
+      }
+      if (perSetMed != null) {
+        per_set_points.push({ date, seconds: perSetMed, n: totals.length });
+      }
     }
-    actual_points.sort((a, b) => a.date.localeCompare(b.date));
+    total_points.sort((a, b) => a.date.localeCompare(b.date));
+    per_set_points.sort((a, b) => a.date.localeCompare(b.date));
     return {
       rock_id: rock.id,
       label: rock.label,
+      total_points,
+      per_set_points,
       points: [],
       prescribed_points: [],
-      actual_points,
+      actual_points: total_points,
     };
-  }).filter((s) => s.actual_points.length > 0);
+  }).filter((s) => s.total_points.length > 0 || s.per_set_points.length > 0);
 }
 
 /** Merge prescribed + actual series so each rock appears once. */
@@ -277,6 +294,8 @@ export function combineIsoRockSeries(
     byId.set(rock.id, {
       rock_id: rock.id,
       label: rock.label,
+      total_points: [],
+      per_set_points: [],
       points: [],
       prescribed_points: [],
       actual_points: [],
@@ -291,9 +310,14 @@ export function combineIsoRockSeries(
   for (const s of actual) {
     const cur = byId.get(s.rock_id);
     if (!cur) continue;
+    cur.total_points = s.total_points;
+    cur.per_set_points = s.per_set_points;
     cur.actual_points = s.actual_points;
   }
   return [...byId.values()].filter(
-    (s) => s.prescribed_points.length > 0 || s.actual_points.length > 0
+    (s) =>
+      s.prescribed_points.length > 0 ||
+      s.total_points.length > 0 ||
+      s.per_set_points.length > 0
   );
 }
