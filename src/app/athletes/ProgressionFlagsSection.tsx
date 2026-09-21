@@ -170,7 +170,7 @@ export function ProgressionFlagsSection({ athleteId }: ProgressionFlagsSectionPr
                     Full chart
                   </Link>
                 </div>
-                <div className="h-44 w-full overflow-hidden rounded">
+                <div className="h-52 w-full min-h-[13rem]">
                   <ProgressionChart
                     points={t.points}
                     metricDisplayName={t.display_name}
@@ -189,7 +189,7 @@ export function ProgressionFlagsSection({ athleteId }: ProgressionFlagsSectionPr
                     {lift.label}
                   </span>
                 </div>
-                <div className="h-44 w-full overflow-hidden rounded">
+                <div className="h-52 w-full min-h-[13rem]">
                   <ProgressionChart
                     points={lift.points}
                     metricDisplayName={lift.label}

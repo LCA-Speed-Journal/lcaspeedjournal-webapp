@@ -15,7 +15,7 @@ const entries: LeaderEntryRow[] = [
 ];
 
 describe("buildTeamLeaders", () => {
-  it("splits overall leaders by gender and ignores split components", () => {
+  it("splits overall leaders by gender and keeps full-run 40yd on the parent row", () => {
     const { overall } = buildTeamLeaders({
       athletes: athletes.filter((a) => a.id !== "m2"),
       entries,
@@ -26,6 +26,45 @@ describe("buildTeamLeaders", () => {
     expect(forty.men?.best_value).toBe(5.1);
     expect(forty.women?.athlete_id).toBe("f1");
     expect(forty.women?.best_value).toBe(5.8);
+    const ten = forty.splits?.find((s) => s.component === "0-10yd");
+    expect(ten?.men?.best_value).toBe(1.5);
+    expect(ten?.women).toBeNull();
+  });
+
+  it("adds Max Velocity from mph metrics and 20-40yd fly splits", () => {
+    const { overall } = buildTeamLeaders({
+      athletes: athletes.filter((a) => a.id !== "m2"),
+      entries: [
+        ...entries,
+        {
+          athlete_id: "m1",
+          metric_key: "40yd_Dash",
+          component: "20-40yd",
+          display_value: 2.0,
+          units: "s",
+        },
+        {
+          athlete_id: "f1",
+          metric_key: "10-20m_Split",
+          component: null,
+          display_value: 18.5,
+          units: "mph",
+        },
+      ],
+    });
+    const maxV = overall.find((r) => r.metric_key === "MaxVelocity")!;
+    expect(maxV.display_name).toBe("Max Velocity");
+    expect(maxV.units).toBe("mph");
+    expect(maxV.lower_is_better).toBe(false);
+    // 20 yards in 2.00s → 20.45 mph
+    expect(maxV.men?.best_value).toBeCloseTo(20.45);
+    expect(maxV.women?.best_value).toBe(18.5);
+    expect(overall.some((r) => r.metric_key === "10-20m_Split")).toBe(false);
+    const fly = overall
+      .find((r) => r.metric_key === "40yd_Dash")
+      ?.splits?.find((s) => s.component === "20-40yd");
+    expect(fly?.men?.best_value).toBe(2.0);
+    expect(fly?.units).toBe("s");
   });
 
   it("scopes Hugo sections to membership and can list the same athlete on two teams", () => {

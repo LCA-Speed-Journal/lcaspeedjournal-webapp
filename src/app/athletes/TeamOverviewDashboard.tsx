@@ -4,7 +4,7 @@
  * TeamOverviewDashboard — Team Leaders (men/women + per Hugo team)
  * for the current school year, plus recent coach notes.
  */
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import useSWR from "swr";
 import type {
   HugoLeaderBlock,
@@ -42,6 +42,7 @@ function formatCell(cell: LeaderCell | null, units: string): string {
 }
 
 function LeaderTable({ rows }: { rows: LeaderMetricRow[] }) {
+  const [open, setOpen] = useState<Record<string, boolean>>({});
   if (rows.length === 0) {
     return (
       <p className="text-sm text-foreground-muted">
@@ -60,19 +61,61 @@ function LeaderTable({ rows }: { rows: LeaderMetricRow[] }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.metric_key} className="border-b border-border/60">
-              <td className="py-2 pr-3 font-medium text-foreground">
-                {row.display_name}
-              </td>
-              <td className="py-2 pr-3 tabular-nums text-foreground-muted">
-                {formatCell(row.men, row.units)}
-              </td>
-              <td className="py-2 tabular-nums text-foreground-muted">
-                {formatCell(row.women, row.units)}
-              </td>
-            </tr>
-          ))}
+          {rows.map((row) => {
+            const splits = row.splits ?? [];
+            const expanded = Boolean(open[row.metric_key]);
+            return (
+              <Fragment key={row.metric_key}>
+                <tr className="border-b border-border/60">
+                  <td className="py-2 pr-3 font-medium text-foreground">
+                    {splits.length > 0 ? (
+                      <button
+                        type="button"
+                        aria-expanded={expanded}
+                        onClick={() =>
+                          setOpen((prev) => ({
+                            ...prev,
+                            [row.metric_key]: !prev[row.metric_key],
+                          }))
+                        }
+                        className="inline-flex items-center gap-1 text-left hover:text-accent"
+                      >
+                        <span className="inline-block w-3 text-foreground-muted">
+                          {expanded ? "▾" : "▸"}
+                        </span>
+                        {row.display_name}
+                      </button>
+                    ) : (
+                      row.display_name
+                    )}
+                  </td>
+                  <td className="py-2 pr-3 tabular-nums text-foreground-muted">
+                    {formatCell(row.men, row.units)}
+                  </td>
+                  <td className="py-2 tabular-nums text-foreground-muted">
+                    {formatCell(row.women, row.units)}
+                  </td>
+                </tr>
+                {expanded &&
+                  splits.map((split) => (
+                    <tr
+                      key={`${row.metric_key}-${split.component}`}
+                      className="border-b border-border/40 bg-background/40"
+                    >
+                      <td className="py-1.5 pl-7 pr-3 text-foreground-muted">
+                        {split.display_name}
+                      </td>
+                      <td className="py-1.5 pr-3 tabular-nums text-foreground-muted">
+                        {formatCell(split.men, split.units)}
+                      </td>
+                      <td className="py-1.5 tabular-nums text-foreground-muted">
+                        {formatCell(split.women, split.units)}
+                      </td>
+                    </tr>
+                  ))}
+              </Fragment>
+            );
+          })}
         </tbody>
       </table>
     </div>
