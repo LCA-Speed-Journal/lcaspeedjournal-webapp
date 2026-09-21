@@ -51,6 +51,16 @@ export function schoolYearRange(today: Date = new Date()): DateRange {
   return { from: isoLocal(y - 1, 8, 1), to: isoLocal(y, 7, 31) };
 }
 
+/** Speed Journal school year containing `today` (Aug 1 – June 6). UTC calendar parts. */
+export function speedJournalSchoolYearRange(today: Date = new Date()): DateRange {
+  const y = today.getUTCFullYear();
+  const m = today.getUTCMonth() + 1;
+  if (m >= 8) {
+    return { from: isoLocal(y, 8, 1), to: isoLocal(y + 1, 6, 6) };
+  }
+  return { from: isoLocal(y - 1, 8, 1), to: isoLocal(y, 6, 6) };
+}
+
 /** Inclusive last-N calendar days ending on `today` (UTC date). */
 export function lastNDaysRange(today: Date = new Date(), days = 90): DateRange {
   const to = new Date(
