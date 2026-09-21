@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import type { ProgressionPoint } from "@/types";
+import { speedJournalSchoolYearRange } from "@/lib/team-progress/date-presets";
+import { HUGO_GROUP_META, type HugoGroup } from "@/lib/weight-room/constants";
 
 const ProgressionChart = dynamic(
   () => import("@/app/historical/ProgressionChart").then((m) => m.default),
@@ -22,37 +24,49 @@ type FlagItem = {
   resolved_at?: string | null;
 };
 
+type TestSeries = {
+  metric_key: string;
+  display_name: string;
+  units: string;
+  points: ProgressionPoint[];
+};
+
+type LiftSeries = {
+  lift_id: string;
+  label: string;
+  units: "lb";
+  points: ProgressionPoint[];
+};
+
+type BundleData = {
+  from: string;
+  to: string;
+  hugo_primary: string | null;
+  tests: TestSeries[];
+  lifts: LiftSeries[];
+};
+
 type ProgressionFlagsSectionProps = {
   athleteId: string;
 };
 
-function useProgression(athleteId: string, metric: string | null) {
-  const from = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 90);
-    return d.toISOString().slice(0, 10);
-  }, []);
-  const to = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const url =
-    metric && athleteId
-      ? `/api/progression?athlete_id=${encodeURIComponent(athleteId)}&metric=${encodeURIComponent(metric)}&from=${from}&to=${to}`
-      : null;
-  return useSWR<{ data: { points?: ProgressionPoint[]; metric_display_name: string; units: string } }>(
-    url,
-    fetcher
-  );
-}
-
 export function ProgressionFlagsSection({ athleteId }: ProgressionFlagsSectionProps) {
+  const [range] = useState(speedJournalSchoolYearRange);
+  const from = range.from;
+  const to = range.to;
+
   const { data: flagsData, mutate: mutateFlags } = useSWR<{
     data: FlagItem[];
     stored: FlagItem[];
     system: FlagItem[];
   }>(`/api/athletes/${athleteId}/flags`, fetcher);
-  const { data: metricsData } = useSWR<{ data: { metric_key: string; display_name: string }[] }>(
-    `/api/athletes/${athleteId}/metrics-with-data`,
-    fetcher
-  );
+
+  const bundleUrl = useMemo(() => {
+    if (!athleteId) return null;
+    return `/api/athletes/${athleteId}/dashboard-progression?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+  }, [athleteId, from, to]);
+
+  const { data: bundleRes } = useSWR<{ data: BundleData }>(bundleUrl, fetcher);
 
   const [newFlagTitle, setNewFlagTitle] = useState("");
   const [newFlagDesc, setNewFlagDesc] = useState("");
@@ -61,32 +75,13 @@ export function ProgressionFlagsSection({ athleteId }: ProgressionFlagsSectionPr
 
   const flags = flagsData?.data ?? [];
   const activeFlags = flags.filter((f) => !f.resolved_at);
-  const metricsWithData = metricsData?.data ?? [];
-  const metricKeys = useMemo(() => {
-    const keys: string[] = [];
-    const maxVel = metricsWithData.find((m) => m.metric_key === "MaxVelocity");
-    if (maxVel) keys.push("MaxVelocity");
-    const other = metricsWithData.filter((m) => m.metric_key !== "MaxVelocity").slice(0, 2 - keys.length);
-    other.forEach((m) => keys.push(m.metric_key));
-    return keys.slice(0, 2);
-  }, [metricsWithData]);
-
-  const prog1 = useProgression(athleteId, metricKeys[0] ?? null);
-  const prog2 = useProgression(athleteId, metricKeys[1] ?? null);
-
-  const points1 = prog1.data?.data?.points ?? [];
-  const points2 = prog2.data?.data?.points ?? [];
-  const name1 = prog1.data?.data?.metric_display_name ?? metricKeys[0] ?? "";
-  const name2 = prog2.data?.data?.metric_display_name ?? metricKeys[1] ?? "";
-  const units1 = prog1.data?.data?.units ?? "";
-  const units2 = prog2.data?.data?.units ?? "";
-
-  const from = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 90);
-    return d.toISOString().slice(0, 10);
-  }, []);
-  const to = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const bundle = bundleRes?.data;
+  const tests = bundle?.tests ?? [];
+  const lifts = bundle?.lifts ?? [];
+  const sportLabel = bundle?.hugo_primary
+    ? HUGO_GROUP_META[bundle.hugo_primary as HugoGroup]?.label ??
+      bundle.hugo_primary
+    : null;
 
   async function handleAddFlag(e: React.FormEvent) {
     e.preventDefault();
@@ -97,7 +92,10 @@ export function ProgressionFlagsSection({ athleteId }: ProgressionFlagsSectionPr
       const res = await fetch(`/api/athletes/${athleteId}/flags`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newFlagTitle.trim(), description: newFlagDesc.trim() || undefined }),
+        body: JSON.stringify({
+          title: newFlagTitle.trim(),
+          description: newFlagDesc.trim() || undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -143,19 +141,30 @@ export function ProgressionFlagsSection({ athleteId }: ProgressionFlagsSectionPr
         Progression & Flags
       </h3>
 
-      {/* Mini progression charts */}
-      {(metricKeys[0] || metricKeys[1]) && (
-        <div className="mb-6 space-y-4">
-          <p className="text-xs font-medium uppercase tracking-wider text-foreground-muted">
-            Last 90 days
+      <div className="mb-6 space-y-4">
+        <p className="text-xs font-medium uppercase tracking-wider text-foreground-muted">
+          {sportLabel
+            ? `Primary metrics for ${sportLabel} plus squat / press / hinge`
+            : "Primary metrics plus squat / press / hinge"}{" "}
+          · {from} → {to}
+        </p>
+        {tests.length === 0 && lifts.length === 0 ? (
+          <p className="text-sm text-foreground-muted">
+            No test or lift marks in this window.
           </p>
+        ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            {metricKeys[0] && (
-              <div className="rounded-lg border border-border bg-surface p-3">
+            {tests.map((t) => (
+              <div
+                key={t.metric_key}
+                className="rounded-lg border border-border bg-surface p-3"
+              >
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">{name1}</span>
+                  <span className="text-sm font-medium text-foreground">
+                    {t.display_name}
+                  </span>
                   <Link
-                    href={`/historical?athlete_id=${athleteId}&metric=${encodeURIComponent(metricKeys[0])}&from=${from}&to=${to}`}
+                    href={`/historical?athlete_id=${athleteId}&metric=${encodeURIComponent(t.metric_key)}&from=${from}&to=${to}`}
                     className="text-xs text-accent hover:underline"
                   >
                     Full chart
@@ -163,38 +172,36 @@ export function ProgressionFlagsSection({ athleteId }: ProgressionFlagsSectionPr
                 </div>
                 <div className="h-44 w-full overflow-hidden rounded">
                   <ProgressionChart
-                    points={points1}
-                    metricDisplayName={name1}
-                    units={units1}
+                    points={t.points}
+                    metricDisplayName={t.display_name}
+                    units={t.units}
                   />
                 </div>
               </div>
-            )}
-            {metricKeys[1] && (
-              <div className="rounded-lg border border-border bg-surface p-3">
+            ))}
+            {lifts.map((lift) => (
+              <div
+                key={lift.lift_id}
+                className="rounded-lg border border-border bg-surface p-3"
+              >
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">{name2}</span>
-                  <Link
-                    href={`/historical?athlete_id=${athleteId}&metric=${encodeURIComponent(metricKeys[1])}&from=${from}&to=${to}`}
-                    className="text-xs text-accent hover:underline"
-                  >
-                    Full chart
-                  </Link>
+                  <span className="text-sm font-medium text-foreground">
+                    {lift.label}
+                  </span>
                 </div>
                 <div className="h-44 w-full overflow-hidden rounded">
                   <ProgressionChart
-                    points={points2}
-                    metricDisplayName={name2}
-                    units={units2}
+                    points={lift.points}
+                    metricDisplayName={lift.label}
+                    units={lift.units}
                   />
                 </div>
               </div>
-            )}
+            ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Flags */}
       <div>
         <p className="mb-2 text-xs font-medium uppercase tracking-wider text-foreground-muted">
           Flags
@@ -218,7 +225,9 @@ export function ProgressionFlagsSection({ athleteId }: ProgressionFlagsSectionPr
                 </span>
                 <p className="text-sm font-medium text-foreground">{f.title}</p>
                 {f.description && (
-                  <p className="text-xs text-foreground-muted">{f.description}</p>
+                  <p className="text-xs text-foreground-muted">
+                    {f.description}
+                  </p>
                 )}
               </div>
               {f.flag_type === "coach" && !f.resolved_at && (
