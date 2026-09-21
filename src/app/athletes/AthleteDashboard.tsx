@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { EventsSection } from "./EventsSection";
 import { PRsSection } from "./PRsSection";
 import { ProgressionFlagsSection } from "./ProgressionFlagsSection";
 import { F2fSection } from "./F2fSection";
 import { ArchetypesSection } from "./ArchetypesSection";
 import { SuperpowersKryptoniteSection } from "./SuperpowersKryptoniteSection";
-import { HugoTeamsSection } from "./HugoTeamsSection";
+import { TeamsAndEventsSection } from "./TeamsAndEventsSection";
 
 type Athlete = {
   id: string;
@@ -93,11 +92,10 @@ export function AthleteDashboard({ athleteId }: AthleteDashboardProps) {
           </p>
         </header>
 
-        <HugoTeamsSection athleteId={athleteId} />
+        <TeamsAndEventsSection athleteId={athleteId} />
 
         {/* Sections */}
         <div className="space-y-4">
-          <EventsSection athleteId={athleteId} />
 
           <PRsSection athleteId={athleteId} />
 
