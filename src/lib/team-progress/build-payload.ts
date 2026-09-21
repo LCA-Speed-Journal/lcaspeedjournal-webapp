@@ -2,7 +2,7 @@ import type { HugoGroup } from "@/lib/weight-room/constants";
 import { displayedTestKeys } from "./headlines";
 import { aggregateTestSeries, athleteTestDeltas, listAvailableExtraMetrics } from "./test-aggregate";
 import { aggregateLiftSeries, athleteLiftDeltas } from "./lift-aggregate";
-import { aggregateIsoRocks, aggregateIsoRockActuals, combineIsoRockSeries } from "./iso-rocks";
+import { aggregateIsoRockActuals, combineIsoRockSeries } from "./iso-rocks";
 import { aggregateAthleteF2f } from "./f2f-aggregate";
 import { earliestDate } from "./stats";
 import {
@@ -122,7 +122,7 @@ export async function buildTeamProgressPayload(opts: {
 
   const lifts = aggregateLiftSeries(liftRows, 2);
   const iso_rocks = combineIsoRockSeries(
-    aggregateIsoRocks(isoRows),
+    [],
     aggregateIsoRockActuals(isoLogRows)
   );
   const f2f = aggregateAthleteF2f({
@@ -145,8 +145,8 @@ export async function buildTeamProgressPayload(opts: {
       ...isoRows.map((r) => r.session_date),
       ...lifts.flatMap((l) => l.points.map((p) => p.date)),
       ...iso_rocks.flatMap((r) => [
-        ...r.prescribed_points.map((p) => p.date),
-        ...r.actual_points.map((p) => p.date),
+        ...r.total_points.map((p) => p.date),
+        ...r.per_set_points.map((p) => p.date),
       ]),
     ]),
   ].sort();
