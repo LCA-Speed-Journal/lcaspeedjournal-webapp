@@ -92,30 +92,11 @@ export function TeamOverviewDashboard() {
 
   const { data, error, isLoading } = useSWR<{ data: TeamOverviewData }>(
     url,
-    fetcher
+    fetcher,
+    { keepPreviousData: true }
   );
 
   const overview = data?.data;
-
-  if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-foreground-muted">Loading team overview...</p>
-      </div>
-    );
-  }
-
-  if (error || !overview) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="rounded-2xl border-2 border-danger/50 bg-danger/5 p-6 text-center">
-          <p className="text-danger">
-            {error ? "Failed to load team overview" : "No data"}
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -125,9 +106,13 @@ export function TeamOverviewDashboard() {
           Team Leaders
         </h2>
         <p className="text-sm text-foreground-muted">
-          {overview.active_count} current athlete
-          {overview.active_count !== 1 ? "s" : ""} · {overview.from} →{" "}
-          {overview.to}
+          {overview
+            ? `${overview.active_count} current athlete${
+                overview.active_count !== 1 ? "s" : ""
+              } · ${overview.from} → ${overview.to}`
+            : isLoading
+              ? "Loading team overview..."
+              : "No data"}
         </p>
       </header>
 
@@ -163,6 +148,16 @@ export function TeamOverviewDashboard() {
         </button>
       </div>
 
+      {error && !overview ? (
+        <div className="rounded-2xl border-2 border-danger/50 bg-danger/5 p-6 text-center">
+          <p className="text-danger">Failed to load team overview</p>
+        </div>
+      ) : !overview && isLoading ? (
+        <p className="text-sm text-foreground-muted">Loading team overview...</p>
+      ) : !overview ? (
+        <p className="text-sm text-foreground-muted">No data</p>
+      ) : (
+        <>
       <section className="rounded-xl border border-border bg-surface-elevated p-4">
         <h3 className="mb-3 text-lg font-semibold text-foreground">Overall</h3>
         <LeaderTable rows={overview.overall_leaders} />
@@ -211,6 +206,8 @@ export function TeamOverviewDashboard() {
           </ul>
         )}
       </section>
+        </>
+      )}
 
       <p className="text-center text-xs text-foreground-muted">
         Select an athlete from the roster to view their individual dashboard
