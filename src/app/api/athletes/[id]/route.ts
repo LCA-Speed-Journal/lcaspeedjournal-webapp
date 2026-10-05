@@ -16,7 +16,7 @@ export async function GET(
     let row: Record<string, unknown>;
     try {
       const { rows } = await sql`
-        SELECT id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at, hugo_group
+        SELECT id, first_name, last_name, gender, graduating_class, athlete_type, enrollment, active, created_at, hugo_group
         FROM athletes
         WHERE id = ${id}
         LIMIT 1
@@ -75,6 +75,18 @@ export async function PUT(
     const { first_name, last_name, gender, graduating_class, athlete_type, active } = body;
     const type = athlete_type ?? "athlete";
     const isActive = active !== undefined ? Boolean(active) : true;
+    const enrollmentProvided = Object.prototype.hasOwnProperty.call(body, "enrollment");
+    let enrollmentValue: string | null = null;
+    if (enrollmentProvided) {
+      const raw = (body as { enrollment?: unknown }).enrollment;
+      if (raw === null || raw === "") {
+        enrollmentValue = null;
+      } else if (raw === "liberty" || raw === "homeschool" || raw === "coop") {
+        enrollmentValue = raw;
+      } else {
+        return NextResponse.json({ error: "Invalid enrollment" }, { status: 400 });
+      }
+    }
 
     if (!first_name || !last_name || !gender) {
       return NextResponse.json(
@@ -93,19 +105,48 @@ export async function PUT(
     const gradClass = type === "athlete" ? Number(graduating_class) : null;
 
     try {
-      const { rows } = await sql`
-        UPDATE athletes
-        SET first_name = ${first_name}, last_name = ${last_name},
-            gender = ${gender}, graduating_class = ${gradClass}, athlete_type = ${type}, active = ${isActive}
-        WHERE id = ${id}
-        RETURNING id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at
-      `;
+      const { rows } = enrollmentProvided
+        ? await sql`
+            UPDATE athletes
+            SET first_name = ${first_name}, last_name = ${last_name},
+                gender = ${gender}, graduating_class = ${gradClass}, athlete_type = ${type}, active = ${isActive},
+                enrollment = ${enrollmentValue}::text
+            WHERE id = ${id}
+            RETURNING id, first_name, last_name, gender, graduating_class, athlete_type, enrollment, active, created_at
+          `
+        : await sql`
+            UPDATE athletes
+            SET first_name = ${first_name}, last_name = ${last_name},
+                gender = ${gender}, graduating_class = ${gradClass}, athlete_type = ${type}, active = ${isActive},
+                enrollment = enrollment
+            WHERE id = ${id}
+            RETURNING id, first_name, last_name, gender, graduating_class, athlete_type, enrollment, active, created_at
+          `;
       if (rows.length === 0) {
         return NextResponse.json({ error: "Athlete not found" }, { status: 404 });
       }
       return NextResponse.json({ data: rows[0] });
     } catch (updateErr) {
-      const msg = String((updateErr as Error)?.message ?? "");
+      let err: unknown = updateErr;
+      let msg = String((err as Error)?.message ?? "");
+      if (msg.includes("enrollment")) {
+        try {
+          const { rows } = await sql`
+            UPDATE athletes
+            SET first_name = ${first_name}, last_name = ${last_name},
+                gender = ${gender}, graduating_class = ${gradClass}, athlete_type = ${type}, active = ${isActive}
+            WHERE id = ${id}
+            RETURNING id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at
+          `;
+          if (rows.length === 0) {
+            return NextResponse.json({ error: "Athlete not found" }, { status: 404 });
+          }
+          return NextResponse.json({ data: rows[0] });
+        } catch (enrollmentRetryErr) {
+          err = enrollmentRetryErr;
+          msg = String((enrollmentRetryErr as Error)?.message ?? "");
+        }
+      }
       const isActiveColumnMissing =
         msg.includes("active") && (msg.includes("column") || msg.includes("does not exist"));
       if (isActiveColumnMissing) {
@@ -171,7 +212,7 @@ export async function PUT(
           throw fallbackErr;
         }
       }
-      throw updateErr;
+      throw err;
     }
   } catch (err) {
     console.error("PUT /api/athletes/[id]:", err);

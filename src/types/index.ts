@@ -5,6 +5,7 @@ export type Athlete = {
   gender: string;
   graduating_class: number | null;
   athlete_type: 'athlete' | 'staff' | 'alumni';
+  enrollment: 'liberty' | 'homeschool' | 'coop' | null;
   active: boolean;
   created_at: string;
   hugo_group?: string | null;

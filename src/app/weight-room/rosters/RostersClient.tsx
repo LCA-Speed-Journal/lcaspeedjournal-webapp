@@ -143,6 +143,8 @@ export function RostersClient() {
   const [gradeError, setGradeError] = useState("");
   const [genderBusyId, setGenderBusyId] = useState("");
   const [genderError, setGenderError] = useState("");
+  const [enrollmentBusyId, setEnrollmentBusyId] = useState("");
+  const [enrollmentError, setEnrollmentError] = useState("");
   const hugoGroupRef = useRef(hugoGroup);
   hugoGroupRef.current = hugoGroup;
   const confirmInFlight = useRef(false);
@@ -322,6 +324,36 @@ export function RostersClient() {
     }
   }
 
+  async function onEnrollmentChange(athlete: Athlete, enrollmentRaw: string) {
+    setEnrollmentError("");
+    setEnrollmentBusyId(athlete.id);
+    try {
+      const res = await fetch(`/api/athletes/${athlete.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: athlete.first_name,
+          last_name: athlete.last_name,
+          gender: athlete.gender,
+          athlete_type: athlete.athlete_type || "athlete",
+          active: athlete.active !== false,
+          graduating_class: athlete.graduating_class,
+          enrollment: enrollmentRaw,
+        }),
+      });
+      const json = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        setEnrollmentError(json.error ?? "Failed to update enrollment");
+        return;
+      }
+      await mutate();
+    } catch {
+      setEnrollmentError("Network error — try again");
+    } finally {
+      setEnrollmentBusyId("");
+    }
+  }
+
   async function onGradeChange(athlete: Athlete, gradeRaw: string) {
     const grade = Number.parseInt(gradeRaw, 10);
     const graduatingClass = gradeToGraduatingClass(grade);
@@ -423,7 +455,9 @@ export function RostersClient() {
                 const gender = normalizeAthleteGender(athlete.gender);
                 const canEditGrade = (athlete.athlete_type || "athlete") === "athlete";
                 const rowBusy =
-                  gradeBusyId === athlete.id || genderBusyId === athlete.id;
+                  gradeBusyId === athlete.id ||
+                  genderBusyId === athlete.id ||
+                  enrollmentBusyId === athlete.id;
                 return (
                   <li
                     key={athlete.id}
@@ -467,6 +501,23 @@ export function RostersClient() {
                           <option value="12">12</option>
                         </select>
                       </label>
+                      <label className="flex items-center gap-2 text-sm text-foreground">
+                        Enrollment
+                        <select
+                          value={athlete.enrollment ?? ""}
+                          disabled={rowBusy}
+                          onChange={(e) =>
+                            void onEnrollmentChange(athlete, e.target.value)
+                          }
+                          className="rounded-lg border border-border bg-surface-elevated px-2 py-1.5 text-sm text-foreground disabled:opacity-50"
+                          aria-label={`Enrollment for ${athleteLabel(athlete)}`}
+                        >
+                          <option value="">Unset</option>
+                          <option value="liberty">Liberty</option>
+                          <option value="homeschool">Homeschool</option>
+                          <option value="coop">Co-Op</option>
+                        </select>
+                      </label>
                       <button
                         type="button"
                         disabled={removingId === athlete.id}
@@ -489,6 +540,9 @@ export function RostersClient() {
           ) : null}
           {genderError ? (
             <p className="mt-2 text-sm text-danger">{genderError}</p>
+          ) : null}
+          {enrollmentError ? (
+            <p className="mt-2 text-sm text-danger">{enrollmentError}</p>
           ) : null}
         </section>
 

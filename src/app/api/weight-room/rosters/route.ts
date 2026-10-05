@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
         a.gender,
         a.graduating_class,
         a.athlete_type,
+        a.enrollment,
         a.active,
         m.hugo_group
       FROM athlete_hugo_memberships m
@@ -50,6 +51,7 @@ export async function GET(request: NextRequest) {
         gender: string;
         graduating_class: number | null;
         athlete_type: string;
+        enrollment: string | null;
         active: boolean;
         hugo_group: string;
       }>
