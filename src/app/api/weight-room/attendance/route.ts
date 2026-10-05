@@ -25,7 +25,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const input = await loadAttendanceInput(hugoGroup, from, to);
-    return NextResponse.json({ data: buildAttendanceReport(input) });
+    return NextResponse.json({
+      data: buildAttendanceReport(input),
+      weekdays: input.weekdays,
+    });
   } catch (err) {
     console.error("GET /api/weight-room/attendance:", err);
     return NextResponse.json(

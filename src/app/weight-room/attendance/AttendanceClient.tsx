@@ -39,20 +39,47 @@ type UnmatchedGame = { contest_date: string; label: string };
 
 type HeldReport = { report: AttendanceReport };
 
-async function attendanceFetcher(
-  url: string,
-): Promise<{ data: AttendanceReport }> {
+type AttendancePayload = {
+  data: AttendanceReport;
+  weekdays: number[];
+};
+
+function readWeekdays(value: unknown): number[] | null {
+  if (!Array.isArray(value)) return null;
+  const days: number[] = [];
+  for (const item of value) {
+    if (
+      typeof item !== "number" ||
+      !Number.isInteger(item) ||
+      item < 1 ||
+      item > 7 ||
+      days.includes(item)
+    ) {
+      return null;
+    }
+    days.push(item);
+  }
+  return days.sort((a, b) => a - b);
+}
+
+async function attendanceFetcher(url: string): Promise<AttendancePayload> {
   const res = await fetch(url);
-  let json: { data?: AttendanceReport; error?: unknown } = {};
+  let json: { data?: AttendanceReport; weekdays?: unknown; error?: unknown } =
+    {};
   try {
-    json = (await res.json()) as { data?: AttendanceReport; error?: unknown };
+    json = (await res.json()) as {
+      data?: AttendanceReport;
+      weekdays?: unknown;
+      error?: unknown;
+    };
   } catch {
     json = {};
   }
-  if (!res.ok || !json.data) {
+  const weekdays = readWeekdays(json.weekdays);
+  if (!res.ok || !json.data || !weekdays) {
     throw new Error(messageFrom(json, "Failed to load attendance"));
   }
-  return { data: json.data };
+  return { data: json.data, weekdays };
 }
 
 function messageFrom(json: { error?: unknown }, fallback: string): string {
@@ -176,6 +203,7 @@ export function AttendanceClient() {
   const [datesReady, setDatesReady] = useState(false);
   const [held, setHeld] = useState<HeldReport | null>(null);
   const [weekdays, setWeekdays] = useState<number[]>([]);
+  const [weekdayGroup, setWeekdayGroup] = useState<HugoGroup | null>(null);
   const [recentEdits, setRecentEdits] = useState<RecentEdit[]>([]);
   const [sessionDate, setSessionDate] = useState("");
   const [gameDate, setGameDate] = useState("");
@@ -200,13 +228,19 @@ export function AttendanceClient() {
       ? `/api/weight-room/attendance?hugo_group=${encodeURIComponent(hugoGroup)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
       : null;
 
-  const { data, error, isValidating, mutate } = useSWR<{
-    data: AttendanceReport;
-  }>(reportKey, attendanceFetcher, { shouldRetryOnError: false });
+  const { data, error, isValidating, mutate } = useSWR<AttendancePayload>(
+    reportKey,
+    attendanceFetcher,
+    { shouldRetryOnError: false },
+  );
 
   useEffect(() => {
     if (!data?.data) return;
     setHeld({ report: data.data });
+    if (data.data.hugo_group === hugoGroup) {
+      setWeekdays(data.weekdays);
+      setWeekdayGroup(hugoGroup);
+    }
     try {
       localStorage.setItem(
         `attendance-range:v1:${data.data.hugo_group}`,
@@ -215,7 +249,7 @@ export function AttendanceClient() {
     } catch {
       // Private browsing or blocked storage should not break the report.
     }
-  }, [data]);
+  }, [data, hugoGroup]);
 
   const report = data?.data ?? held?.report ?? null;
   const showingLastGood = Boolean(report && !data?.data);
@@ -224,6 +258,7 @@ export function AttendanceClient() {
   function onGroupChange(next: HugoGroup) {
     setHugoGroup(next);
     setWeekdays([]);
+    setWeekdayGroup(null);
     setRecentEdits([]);
     setUnmatched([]);
     setRefreshNote("");
@@ -251,6 +286,7 @@ export function AttendanceClient() {
   }
 
   async function onSaveRhythm() {
+    if (weekdayGroup !== hugoGroup) return;
     setRhythmError("");
     setBusy("rhythm");
     const result = await sendJson("/api/weight-room/attendance/rhythm", {
@@ -513,9 +549,8 @@ export function AttendanceClient() {
                 Practice days
               </h2>
               <p className="mt-2 text-sm text-foreground-muted">
-                Check Monday through Sunday, then save. This form starts blank
-                because the report does not return the saved weekdays.
-                Scheduled dates below show the result.
+                These boxes are the saved practice days. Change them, then
+                save. Scheduled dates below show the result.
               </p>
               <div className="mt-3 flex flex-wrap gap-3">
                 {WEEKDAYS.map((day) => (
@@ -534,7 +569,7 @@ export function AttendanceClient() {
               </div>
               <button
                 type="button"
-                disabled={busy !== ""}
+                disabled={busy !== "" || weekdayGroup !== hugoGroup}
                 onClick={() => void onSaveRhythm()}
                 className="mt-3 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-background disabled:opacity-50"
               >
