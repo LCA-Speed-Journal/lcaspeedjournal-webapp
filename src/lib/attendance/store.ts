@@ -1,0 +1,166 @@
+import { sql } from "@/lib/db";
+import { serializeDate } from "@/lib/weight-room/insert-template";
+import { isHugoGroup, type HugoGroup } from "@/lib/weight-room/constants";
+import { assertAttendanceRange, type ScheduleEdit } from "./dates";
+
+export class AttendanceStoreError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AttendanceStoreError";
+  }
+}
+
+function assertHugoGroup(hugoGroup: string): asserts hugoGroup is HugoGroup {
+  if (!isHugoGroup(hugoGroup)) {
+    throw new AttendanceStoreError("Invalid hugo_group");
+  }
+}
+
+/** Real YYYY-MM-DD only. `2026-02-31` fails the UTC-noon round-trip. */
+function requireSessionDate(value: unknown): string {
+  if (typeof value !== "string") {
+    throw new AttendanceStoreError("Invalid date");
+  }
+  const trimmed = value.trim();
+  const result = assertAttendanceRange(trimmed, trimmed);
+  if (!result.ok) {
+    throw new AttendanceStoreError("Invalid date");
+  }
+  return trimmed;
+}
+
+function requireRange(from: string, to: string): { from: string; to: string } {
+  const start = from.trim();
+  const end = to.trim();
+  const result = assertAttendanceRange(start, end);
+  if (!result.ok) {
+    throw new AttendanceStoreError(result.error);
+  }
+  return { from: start, to: end };
+}
+
+/** Unique ISO weekdays, Monday = 1 through Sunday = 7. Null when any value is invalid. */
+function normalizeWeekdays(value: unknown): number[] | null {
+  if (!Array.isArray(value)) return null;
+  const seen = new Set<number>();
+  for (const item of value) {
+    if (typeof item !== "number" || !Number.isInteger(item) || item < 1 || item > 7) {
+      return null;
+    }
+    seen.add(item);
+  }
+  return [...seen].sort((a, b) => a - b);
+}
+
+function weekdayArrayLiteral(weekdays: number[]): string {
+  return `{${weekdays.join(",")}}`;
+}
+
+function readWeekdays(value: unknown): number[] {
+  const parts: unknown[] = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value
+          .replace(/^\{|\}$/g, "")
+          .split(",")
+          .map((part) => part.trim())
+          .filter((part) => part !== "")
+      : [];
+  const seen = new Set<number>();
+  for (const part of parts) {
+    const n = typeof part === "number" ? part : Number(part);
+    if (Number.isInteger(n) && n >= 1 && n <= 7) seen.add(n);
+  }
+  return [...seen].sort((a, b) => a - b);
+}
+
+function isEditAction(value: unknown): value is ScheduleEdit["action"] {
+  return value === "add" || value === "cancel";
+}
+
+export async function getRhythm(hugoGroup: string): Promise<number[]> {
+  assertHugoGroup(hugoGroup);
+  const { rows } = await sql`
+    SELECT weekdays
+    FROM sport_practice_rhythms
+    WHERE hugo_group = ${hugoGroup}
+    LIMIT 1
+  `;
+  if (rows.length === 0) return [];
+  const row = rows[0] as { weekdays: unknown };
+  return readWeekdays(row.weekdays);
+}
+
+export async function saveRhythm(
+  hugoGroup: string,
+  weekdays: unknown,
+): Promise<number[]> {
+  assertHugoGroup(hugoGroup);
+  const normalized = normalizeWeekdays(weekdays);
+  if (!normalized) {
+    throw new AttendanceStoreError("Invalid weekdays");
+  }
+  const literal = weekdayArrayLiteral(normalized);
+  await sql`
+    INSERT INTO sport_practice_rhythms (hugo_group, weekdays)
+    VALUES (${hugoGroup}, ${literal}::smallint[])
+    ON CONFLICT (hugo_group)
+    DO UPDATE SET weekdays = EXCLUDED.weekdays
+  `;
+  return normalized;
+}
+
+export async function listEdits(
+  hugoGroup: string,
+  from: string,
+  to: string,
+): Promise<ScheduleEdit[]> {
+  assertHugoGroup(hugoGroup);
+  const range = requireRange(from, to);
+  const { rows } = await sql`
+    SELECT to_char(session_date, 'YYYY-MM-DD') AS session_date, action
+    FROM attendance_session_edits
+    WHERE hugo_group = ${hugoGroup}
+      AND session_date BETWEEN ${range.from}::date AND ${range.to}::date
+    ORDER BY session_date
+  `;
+  const edits: ScheduleEdit[] = [];
+  for (const row of rows as Array<{ session_date: unknown; action: unknown }>) {
+    if (!isEditAction(row.action)) continue;
+    const sessionDate = serializeDate(row.session_date);
+    if (!assertAttendanceRange(sessionDate, sessionDate).ok) continue;
+    edits.push({ session_date: sessionDate, action: row.action });
+  }
+  return edits;
+}
+
+export async function saveEdit(
+  hugoGroup: string,
+  sessionDate: unknown,
+  action: unknown,
+): Promise<void> {
+  assertHugoGroup(hugoGroup);
+  if (!isEditAction(action)) {
+    throw new AttendanceStoreError("Invalid action");
+  }
+  const date = requireSessionDate(sessionDate);
+  await sql`
+    INSERT INTO attendance_session_edits (hugo_group, session_date, action)
+    VALUES (${hugoGroup}, ${date}::date, ${action})
+    ON CONFLICT (hugo_group, session_date)
+    DO UPDATE SET action = EXCLUDED.action
+  `;
+}
+
+export async function clearEdit(
+  hugoGroup: string,
+  sessionDate: unknown,
+): Promise<void> {
+  assertHugoGroup(hugoGroup);
+  const date = requireSessionDate(sessionDate);
+  await sql`
+    DELETE FROM attendance_session_edits
+    WHERE hugo_group = ${hugoGroup}
+      AND session_date = ${date}::date
+  `;
+}
