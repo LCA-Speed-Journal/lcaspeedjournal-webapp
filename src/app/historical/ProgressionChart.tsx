@@ -43,29 +43,28 @@ function athleteLabel(s: SeriesItem): string {
   return [first, last].filter(Boolean).join(" ") || s.athlete_id.slice(0, 8);
 }
 
-/** Y-axis domain: ±10% padding from min/max values in data */
-function yDomainFromData(data: Record<string, unknown>[]): [number, number] {
-  const values: number[] = [];
-  for (const row of data) {
-    for (const key of Object.keys(row)) {
-      if (key === "session_date" || key === "date") continue;
-      const v = Number((row as Record<string, unknown>)[key]);
-      if (!Number.isNaN(v)) values.push(v);
-    }
-  }
-  if (values.length === 0) return [0, 10];
-  const dataMin = Math.min(...values);
-  const dataMax = Math.max(...values);
+/** Y-axis domain padded from the athlete's actual marks so no point is clipped. */
+export function yDomainFromValues(values: number[]): [number, number] {
+  const nums = values.filter((v) => Number.isFinite(v));
+  if (nums.length === 0) return [0, 10];
+  const dataMin = Math.min(...nums);
+  const dataMax = Math.max(...nums);
   const range = dataMax - dataMin;
   const padding =
-    range > 0 ? range * 0.1 : Math.max(Math.abs(dataMin) * 0.1, Math.abs(dataMax) * 0.1, 1);
+    range > 0
+      ? Math.max(range * 0.15, range < 1 ? 0.05 : 0)
+      : Math.max(Math.abs(dataMin) * 0.08, 0.5);
   return [dataMin - padding, dataMax + padding];
 }
 
-/** Y-axis tick label: round to one decimal place */
-function formatYAxisTick(value: number): string {
-  const rounded = Math.round(value * 10) / 10;
-  return rounded % 1 === 0 ? String(Math.round(rounded)) : rounded.toFixed(1);
+function formatYAxisTick(value: number, span: number): string {
+  const decimals = span < 1 ? 2 : span < 20 ? 1 : 0;
+  const rounded =
+    decimals === 0
+      ? Math.round(value)
+      : Number(value.toFixed(decimals));
+  if (decimals === 0) return String(rounded);
+  return rounded.toFixed(decimals);
 }
 
 export default function ProgressionChart({
@@ -115,6 +114,25 @@ export default function ProgressionChart({
     teamAvgMalePoints.length > 0 ||
     teamAvgFemalePoints.length > 0;
 
+  const seriesValues: number[] = [];
+  for (const s of series) {
+    for (const p of s.points) {
+      const n = Number(p.display_value);
+      if (Number.isFinite(n)) seriesValues.push(n);
+    }
+  }
+  for (const p of [...teamAvgMalePoints, ...teamAvgFemalePoints]) {
+    const n = Number(p.display_value);
+    if (Number.isFinite(n)) seriesValues.push(n);
+  }
+  const yDomain = yDomainFromValues(seriesValues);
+  const ySpan = yDomain[1] - yDomain[0];
+  const showLegend =
+    series.length > 1 ||
+    teamAvgMalePoints.length > 0 ||
+    teamAvgFemalePoints.length > 0 ||
+    series.some((s) => s.athlete_id !== "single");
+
   if (!hasAnyPoints) {
     return (
       <p className="text-sm text-foreground-muted">
@@ -124,18 +142,20 @@ export default function ProgressionChart({
   }
 
   return (
-    <div className="h-80 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 8 }}>
+    <div className="h-full min-h-[10rem] w-full">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        <LineChart data={data} margin={{ top: 12, right: 8, left: 4, bottom: 8 }}>
           <XAxis
             dataKey="date"
             tick={{ fontSize: 11, fill: "var(--foreground-muted)" }}
             tickFormatter={(v) => (typeof v === "string" ? v.slice(0, 10) : String(v))}
           />
           <YAxis
-            domain={yDomainFromData(data)}
+            domain={yDomain}
+            allowDataOverflow={false}
             tick={{ fontSize: 11, fill: "var(--foreground-muted)" }}
-            tickFormatter={formatYAxisTick}
+            tickFormatter={(v: number) => formatYAxisTick(v, ySpan)}
+            width={44}
           />
           <Tooltip
             contentStyle={{
@@ -152,7 +172,7 @@ export default function ProgressionChart({
               return [`${str} ${units}`, name];
             }}
           />
-          <Legend />
+          {showLegend ? <Legend /> : null}
           {series.map((s, i) => (
             <Line
               key={s.athlete_id}

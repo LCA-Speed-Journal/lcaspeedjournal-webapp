@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AthletesSidebar } from "./AthletesSidebar";
 import { TeamOverviewDashboard } from "./TeamOverviewDashboard";
 import { AthleteDashboard } from "./AthleteDashboard";
@@ -11,7 +11,6 @@ type AthletesClientProps = {
 
 export function AthletesClient({ selectedAthleteId }: AthletesClientProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const handleAthleteSelect = (id: string | null) => {
     if (id) {
@@ -42,7 +41,7 @@ export function AthletesClient({ selectedAthleteId }: AthletesClientProps) {
 
       {/* Main content: background shows through; center card matches data-entry/settings */}
       <div className="hidden flex-1 overflow-y-auto px-6 py-8 md:block md:px-8 md:py-10">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-6xl">
           <div className={`p-6 ${cardClass}`} style={cardStyle}>
             {selectedAthleteId ? (
               <AthleteDashboard athleteId={selectedAthleteId} />

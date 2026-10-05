@@ -127,36 +127,31 @@ function TeamProgressDocument({ data }: { data: TeamProgressPayload }) {
           ))
         )}
 
-        <Text style={styles.h2}>ISO Rocks (plan vs logged / day)</Text>
+        <Text style={styles.h2}>ISO Rocks (logged total / per-set)</Text>
         {data.iso_rocks.length === 0 ? (
-          <Text style={styles.muted}>No ISO Rock plan or logged holds found.</Text>
+          <Text style={styles.muted}>No ISO Rock logged holds found.</Text>
         ) : (
           data.iso_rocks.map((rock) => {
-            const prescribed = rock.prescribed_points ?? rock.points ?? [];
-            const actual = rock.actual_points ?? [];
+            const totals = rock.total_points ?? [];
+            const perSet = rock.per_set_points ?? [];
             const dates = [
               ...new Set([
-                ...prescribed.map((p) => p.date),
-                ...actual.map((p) => p.date),
+                ...totals.map((p) => p.date),
+                ...perSet.map((p) => p.date),
               ]),
             ].sort();
             const lines = dates.map((date) => {
-              const plan = prescribed.find((p) => p.date === date);
-              const logged = actual.find((p) => p.date === date);
-              const planS = plan != null ? `${plan.seconds}s` : "—";
-              const logS = logged != null ? `${logged.seconds}s` : "—";
-              let delta = "";
-              if (plan != null && logged != null) {
-                const d = logged.seconds - plan.seconds;
-                delta = ` (Δ ${d >= 0 ? "+" : ""}${d}s)`;
-              }
+              const total = totals.find((p) => p.date === date);
+              const set = perSet.find((p) => p.date === date);
+              const totalS = total != null ? `${total.seconds}s` : "—";
+              const setS = set != null ? `${set.seconds}s` : "—";
               const wd = formatSeasonWeekDay(
                 date,
                 data.timeline_anchor,
                 data.timeline_dates ?? []
               );
               const label = wd ? `${date.slice(5)} ${wd}` : date.slice(5);
-              return `${label}: plan ${planS} / logged ${logS}${delta}`;
+              return `${label}: total ${totalS} / set ${setS}`;
             });
             return (
               <View key={rock.rock_id} style={{ marginBottom: 6 }}>

@@ -421,6 +421,11 @@ export default function TeamProgressClient() {
                 <h2 className="mb-3 text-lg font-semibold text-foreground">
                   Testing trends
                 </h2>
+                <p className="mb-3 text-xs text-foreground-muted">
+                  Median change from each athlete&apos;s first mark in this
+                  window. Tooltip shows raw output and % change (min / mean /
+                  median / max).
+                </p>
                 <div className="grid gap-4 md:grid-cols-2">
                   {payload.tests.map((t) => (
                     <div
@@ -432,12 +437,17 @@ export default function TeamProgressClient() {
                         {t.units ? ` (${t.units})` : ""}
                       </p>
                       <TeamProgressLineChart
-                        label={metricLabel(t.metric_key)}
-                        units={t.units}
+                        label="Median change from baseline"
+                        units="%"
+                        showZeroLine
+                        timelineAnchor={payload.timeline_anchor}
+                        timelineDates={payload.timeline_dates}
                         points={t.points.map((p) => ({
                           date: p.date,
-                          value: p.median,
+                          value: p.median_change_pct ?? 0,
                           n: p.n,
+                          output: p.output,
+                          change: p.change,
                         }))}
                       />
                     </div>
@@ -492,13 +502,13 @@ export default function TeamProgressClient() {
                   ISO Rocks
                 </h2>
                 <p className="mb-3 text-xs text-foreground-muted">
-                  Plan vs logged holds — one point per lift day. Solid =
-                  prescribed max that day; dashed = team median logged hold.
-                  Tooltip shows W#D# from the first logged session in range.
+                  Logged holds — solid is team median of each athlete&apos;s
+                  total seconds that day; dashed is median per-set duration.
+                  Extra sets lift the solid line only.
                 </p>
                 {payload.iso_rocks.length === 0 ? (
                   <p className="text-sm text-foreground-muted">
-                    No ISO Rock plan or logged holds found in this window.
+                    No ISO Rock logged holds found in this window.
                   </p>
                 ) : (
                   <div className="grid gap-4 md:grid-cols-2">
@@ -511,19 +521,17 @@ export default function TeamProgressClient() {
                           {rock.label}
                         </p>
                         <TeamProgressLineChart
-                          label="Plan"
-                          secondaryLabel="Logged"
+                          label="Total volume"
+                          secondaryLabel="Per set"
                           units="s"
                           timelineAnchor={payload.timeline_anchor}
                           timelineDates={payload.timeline_dates}
-                          points={(rock.prescribed_points ?? rock.points).map(
-                            (p) => ({
-                              date: p.date,
-                              value: p.seconds,
-                              n: p.n,
-                            })
-                          )}
-                          secondaryPoints={(rock.actual_points ?? []).map(
+                          points={(rock.total_points ?? []).map((p) => ({
+                            date: p.date,
+                            value: p.seconds,
+                            n: p.n,
+                          }))}
+                          secondaryPoints={(rock.per_set_points ?? []).map(
                             (p) => ({
                               date: p.date,
                               value: p.seconds,
