@@ -8,6 +8,7 @@ import { F2fSection } from "./F2fSection";
 import { ArchetypesSection } from "./ArchetypesSection";
 import { SuperpowersKryptoniteSection } from "./SuperpowersKryptoniteSection";
 import { HugoTeamsSection } from "./HugoTeamsSection";
+import { AttendanceSection } from "./AttendanceSection";
 
 type Athlete = {
   id: string;
@@ -94,6 +95,8 @@ export function AthleteDashboard({ athleteId }: AthleteDashboardProps) {
         </header>
 
         <HugoTeamsSection athleteId={athleteId} />
+
+        <AttendanceSection athleteId={athleteId} />
 
         {/* Sections */}
         <div className="space-y-4">
