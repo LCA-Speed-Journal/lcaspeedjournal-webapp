@@ -1,7 +1,16 @@
 import { sql } from "@/lib/db";
 import { serializeDate } from "@/lib/weight-room/insert-template";
 import { isHugoGroup, type HugoGroup } from "@/lib/weight-room/constants";
+import {
+  BoundScheduleError,
+  fetchBoundScheduleHtml,
+  parseBoundSchedule,
+  type BoundContest,
+  type UnmatchedBoundContest,
+} from "./bound";
 import { assertAttendanceRange, type ScheduleEdit } from "./dates";
+
+export { BoundScheduleError };
 
 export class AttendanceStoreError extends Error {
   constructor(message: string) {
@@ -163,4 +172,101 @@ export async function clearEdit(
     WHERE hugo_group = ${hugoGroup}
       AND session_date = ${date}::date
   `;
+}
+
+export type RefreshVarsityResult = {
+  saved: number;
+  unmatched: UnmatchedBoundContest[];
+};
+
+/** Coach-added game. Clears a prior dismiss and marks the row manual. */
+export async function saveManualContest(
+  hugoGroup: string,
+  contestDate: unknown,
+  label: unknown,
+): Promise<void> {
+  assertHugoGroup(hugoGroup);
+  const date = requireSessionDate(contestDate);
+  const labelText = typeof label === "string" && label.trim() ? label.trim() : null;
+  await sql`
+    INSERT INTO varsity_contests (hugo_group, contest_date, source, bound_key, label, dismissed)
+    VALUES (${hugoGroup}, ${date}::date, 'manual', NULL, ${labelText}, false)
+    ON CONFLICT (hugo_group, contest_date)
+    DO UPDATE SET
+      source = 'manual',
+      dismissed = false,
+      label = COALESCE(${labelText}, varsity_contests.label)
+  `;
+}
+
+/** Hide a game without deleting it, so a later Bound refresh cannot bring it back. */
+export async function dismissContest(
+  hugoGroup: string,
+  contestDate: unknown,
+): Promise<void> {
+  assertHugoGroup(hugoGroup);
+  const date = requireSessionDate(contestDate);
+  await sql`
+    UPDATE varsity_contests
+    SET dismissed = true
+    WHERE hugo_group = ${hugoGroup}
+      AND contest_date = ${date}::date
+  `;
+}
+
+/**
+ * Pull varsity dates for one sport from Bound.
+ * A page with no parsed varsity contests fails before any write.
+ * Manual rows and dismissed rows are left as they are.
+ * `unmatched` is every varsity card from that page that mapped to no sport.
+ */
+export async function refreshVarsityContests(
+  hugoGroup: string,
+): Promise<RefreshVarsityResult> {
+  assertHugoGroup(hugoGroup);
+  let html: string;
+  try {
+    html = await fetchBoundScheduleHtml();
+  } catch (err) {
+    console.error(
+      "Bound schedule request failed:",
+      err instanceof Error ? err.message : "unknown",
+    );
+    throw new BoundScheduleError("Bound did not return a schedule");
+  }
+
+  const parsed = parseBoundSchedule(html);
+  if (parsed.contests.length === 0) {
+    throw new BoundScheduleError("Bound did not return a schedule");
+  }
+
+  const mine = parsed.contests.filter((row) => row.hugo_group === hugoGroup);
+  const wrote = await Promise.all(mine.map((row) => upsertBoundContest(row)));
+  return {
+    saved: wrote.filter(Boolean).length,
+    unmatched: parsed.unmatched,
+  };
+}
+
+async function upsertBoundContest(row: BoundContest): Promise<boolean> {
+  const { rows } = await sql`
+    INSERT INTO varsity_contests (hugo_group, contest_date, source, bound_key, label, dismissed)
+    VALUES (
+      ${row.hugo_group},
+      ${row.contest_date}::date,
+      'bound',
+      ${row.bound_key},
+      ${row.label},
+      false
+    )
+    ON CONFLICT (hugo_group, contest_date)
+    DO UPDATE SET
+      source = 'bound',
+      bound_key = EXCLUDED.bound_key,
+      label = EXCLUDED.label
+    WHERE varsity_contests.dismissed = false
+      AND varsity_contests.source = 'bound'
+    RETURNING contest_date
+  `;
+  return rows.length > 0;
 }
