@@ -1,5 +1,6 @@
 import { sql } from "@/lib/db";
 import { serializeDate } from "@/lib/weight-room/insert-template";
+import { loadTeamJournalAttendance } from "@/lib/weight-room/report-load";
 import { isHugoGroup, type HugoGroup } from "@/lib/weight-room/constants";
 import {
   BoundScheduleError,
@@ -9,6 +10,13 @@ import {
   type UnmatchedBoundContest,
 } from "./bound";
 import { assertAttendanceRange, type ScheduleEdit } from "./dates";
+import type {
+  AttendanceGame,
+  AttendanceMember,
+  AttendancePresent,
+  AttendanceReportInput,
+  Enrollment,
+} from "./report";
 
 export { BoundScheduleError };
 
@@ -85,6 +93,13 @@ function readWeekdays(value: unknown): number[] {
 
 function isEditAction(value: unknown): value is ScheduleEdit["action"] {
   return value === "add" || value === "cancel";
+}
+
+function readEnrollment(value: unknown): Enrollment | null {
+  if (value === "liberty" || value === "homeschool" || value === "coop") {
+    return value;
+  }
+  return null;
 }
 
 export async function getRhythm(hugoGroup: string): Promise<number[]> {
@@ -246,6 +261,119 @@ export async function refreshVarsityContests(
     saved: wrote.filter(Boolean).length,
     unmatched: parsed.unmatched,
   };
+}
+
+/**
+ * Inputs for `buildAttendanceReport`. Card logs and testing entries stay
+ * separate rows; the pure function dedupes the same athlete on the same day.
+ */
+export async function loadAttendanceInput(
+  hugoGroup: string,
+  from: string,
+  to: string,
+): Promise<AttendanceReportInput> {
+  assertHugoGroup(hugoGroup);
+  const range = requireRange(from, to);
+
+  const [members, cards, testing, weekdays, edits, games] = await Promise.all([
+    loadAttendanceMembers(hugoGroup),
+    loadCardPresent(hugoGroup, range.from, range.to),
+    loadTestingPresent(hugoGroup, range.from, range.to),
+    getRhythm(hugoGroup),
+    listEdits(hugoGroup, range.from, range.to),
+    loadGames(hugoGroup, range.from, range.to),
+  ]);
+
+  return {
+    hugo_group: hugoGroup,
+    from: range.from,
+    to: range.to,
+    weekdays,
+    edits,
+    members,
+    present: [...cards, ...testing],
+    games,
+  };
+}
+
+async function loadAttendanceMembers(hugoGroup: string): Promise<AttendanceMember[]> {
+  const { rows } = await sql`
+    SELECT
+      a.id AS athlete_id,
+      a.first_name,
+      a.last_name,
+      a.enrollment,
+      to_char(m.created_at AT TIME ZONE 'America/Chicago', 'YYYY-MM-DD') AS joined_on
+    FROM athlete_hugo_memberships m
+    JOIN athletes a ON a.id = m.athlete_id
+    WHERE m.hugo_group = ${hugoGroup}
+    ORDER BY a.last_name, a.first_name, a.id
+  `;
+  return (rows as Array<Record<string, unknown>>).map((row) => ({
+    athlete_id: String(row.athlete_id),
+    first_name: String(row.first_name ?? ""),
+    last_name: String(row.last_name ?? ""),
+    enrollment: readEnrollment(row.enrollment),
+    joined_on:
+      typeof row.joined_on === "string"
+        ? row.joined_on
+        : serializeDate(row.joined_on),
+  }));
+}
+
+async function loadCardPresent(
+  hugoGroup: string,
+  from: string,
+  to: string,
+): Promise<AttendancePresent[]> {
+  const { rows } = await sql`
+    SELECT DISTINCT
+      athlete_id,
+      to_char(session_date, 'YYYY-MM-DD') AS session_date
+    FROM session_logs
+    WHERE hugo_group = ${hugoGroup}
+      AND session_date BETWEEN ${from}::date AND ${to}::date
+  `;
+  return (rows as Array<Record<string, unknown>>).map((row) => ({
+    athlete_id: String(row.athlete_id),
+    session_date: serializeDate(row.session_date),
+  }));
+}
+
+async function loadTestingPresent(
+  hugoGroup: string,
+  from: string,
+  to: string,
+): Promise<AttendancePresent[]> {
+  const rows = await loadTeamJournalAttendance({
+    hugo_group: hugoGroup,
+    from,
+    to,
+  });
+  return rows.map((row) => ({
+    athlete_id: row.athlete_id,
+    session_date: row.session_date,
+  }));
+}
+
+async function loadGames(
+  hugoGroup: string,
+  from: string,
+  to: string,
+): Promise<AttendanceGame[]> {
+  const { rows } = await sql`
+    SELECT
+      to_char(contest_date, 'YYYY-MM-DD') AS contest_date,
+      dismissed
+    FROM varsity_contests
+    WHERE hugo_group = ${hugoGroup}
+      AND contest_date BETWEEN ${from}::date AND ${to}::date
+    ORDER BY contest_date
+  `;
+  return (rows as Array<Record<string, unknown>>).map((row) => ({
+    contest_date: serializeDate(row.contest_date),
+    dismissed: row.dismissed === true,
+  }));
 }
 
 async function upsertBoundContest(row: BoundContest): Promise<boolean> {
