@@ -41,4 +41,28 @@ describe("attendance dates", () => {
       "2026-10-07",
     ]);
   });
+
+  it("rejects a day that is not on the calendar", () => {
+    expect(assertAttendanceRange("2026-02-31", "2026-03-01")).toEqual({
+      ok: false,
+      error: "Invalid date",
+    });
+  });
+
+  it("rejects an empty date", () => {
+    expect(assertAttendanceRange("", "2026-10-05")).toEqual({
+      ok: false,
+      error: "Invalid date",
+    });
+  });
+
+  it("accepts an inclusive span of exactly 366 days", () => {
+    expect(assertAttendanceRange("2026-01-01", "2027-01-01")).toEqual({
+      ok: true,
+    });
+  });
+
+  it("returns no weeks for an invalid date", () => {
+    expect(overlappingWeeks("2026-02-31", "2026-02-31")).toEqual([]);
+  });
 });

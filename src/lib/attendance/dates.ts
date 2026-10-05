@@ -1,4 +1,5 @@
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export type AttendanceRangeResult =
   | { ok: true }
@@ -14,9 +15,14 @@ export type ScheduleEdit = {
   action: "cancel" | "add";
 };
 
-/** Parse YYYY-MM-DD at UTC noon so the calendar day does not shift. */
-function parseIsoDate(iso: string): Date {
-  return new Date(`${iso}T12:00:00.000Z`);
+/** Parse a real YYYY-MM-DD at UTC noon. Invalid calendar days return null. */
+function parseIsoDate(iso: string): Date | null {
+  const t = iso.trim();
+  if (!ISO_DATE.test(t)) return null;
+  const d = new Date(`${t}T12:00:00.000Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  if (d.toISOString().slice(0, 10) !== t) return null;
+  return d;
 }
 
 function formatIso(date: Date): string {
@@ -45,6 +51,9 @@ export function assertAttendanceRange(
 ): AttendanceRangeResult {
   const fromDate = parseIsoDate(from);
   const toDate = parseIsoDate(to);
+  if (!fromDate || !toDate) {
+    return { ok: false, error: "Invalid date" };
+  }
   if (fromDate.getTime() > toDate.getTime()) {
     return { ok: false, error: "from must be on or before to" };
   }
@@ -61,7 +70,7 @@ function mondayOnOrBefore(date: Date): Date {
 export function overlappingWeeks(from: string, to: string): AttendanceWeek[] {
   const fromDate = parseIsoDate(from);
   const toDate = parseIsoDate(to);
-  if (fromDate.getTime() > toDate.getTime()) return [];
+  if (!fromDate || !toDate || fromDate.getTime() > toDate.getTime()) return [];
 
   const weeks: AttendanceWeek[] = [];
   let monday = mondayOnOrBefore(fromDate);
@@ -76,7 +85,7 @@ export function overlappingWeeks(from: string, to: string): AttendanceWeek[] {
 export function enumerateDates(from: string, to: string): string[] {
   const fromDate = parseIsoDate(from);
   const toDate = parseIsoDate(to);
-  if (fromDate.getTime() > toDate.getTime()) return [];
+  if (!fromDate || !toDate || fromDate.getTime() > toDate.getTime()) return [];
 
   const dates: string[] = [];
   for (
@@ -98,20 +107,31 @@ export function scheduledDates(input: {
   const weekdays = new Set(input.weekdays);
   const dates = new Set<string>();
 
+  const fromDate = parseIsoDate(input.from);
+  const toDate = parseIsoDate(input.to);
+  if (!fromDate || !toDate) return [];
+
   for (const iso of enumerateDates(input.from, input.to)) {
-    if (weekdays.has(isoWeekday(parseIsoDate(iso)))) {
+    const parsed = parseIsoDate(iso);
+    if (parsed && weekdays.has(isoWeekday(parsed))) {
       dates.add(iso);
     }
   }
 
   for (const edit of input.edits) {
-    if (edit.session_date < input.from || edit.session_date > input.to) {
+    const editDate = parseIsoDate(edit.session_date);
+    if (!editDate) continue;
+    if (
+      editDate.getTime() < fromDate.getTime() ||
+      editDate.getTime() > toDate.getTime()
+    ) {
       continue;
     }
+    const iso = formatIso(editDate);
     if (edit.action === "cancel") {
-      dates.delete(edit.session_date);
+      dates.delete(iso);
     } else {
-      dates.add(edit.session_date);
+      dates.add(iso);
     }
   }
 
