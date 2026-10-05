@@ -307,6 +307,7 @@ async function loadAttendanceMembers(hugoGroup: string): Promise<AttendanceMembe
     FROM athlete_hugo_memberships m
     JOIN athletes a ON a.id = m.athlete_id
     WHERE m.hugo_group = ${hugoGroup}
+      AND a.active = true
     ORDER BY a.last_name, a.first_name, a.id
   `;
   return (rows as Array<Record<string, unknown>>).map((row) => ({
