@@ -101,6 +101,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Heatmap end color is the other theme's background. A plain custom property
+   inside .dark was dropped from the built CSS, so this rule sets it on the cell. */
+.heat-cell {
+  --heat-end: #0a0a0e;
+}
+html.dark .heat-cell {
+  --heat-end: #fafafa;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

@@ -148,6 +148,63 @@ function formatRate(rate: AttendanceRate): string {
   return `${rate.present} / ${rate.possible} (${formatPct(rate.pct)})`;
 }
 
+function heatMix(t: number): string {
+  const clamped = Math.min(1, Math.max(0, t));
+  if (clamped <= 0.5) {
+    const pct = Math.round((clamped / 0.5) * 100);
+    return `color-mix(in srgb, var(--accent) ${pct}%, var(--background))`;
+  }
+  const pct = Math.round(((clamped - 0.5) / 0.5) * 100);
+    return `color-mix(in srgb, var(--heat-end) ${pct}%, var(--accent))`;
+}
+
+function compareAthletes(
+  a: AttendanceReport["athletes"][number],
+  b: AttendanceReport["athletes"][number],
+): number {
+  const aPct = a.session_rate.pct;
+  const bPct = b.session_rate.pct;
+  if (aPct === null && bPct !== null) return 1;
+  if (aPct !== null && bPct === null) return -1;
+  if (aPct !== null && bPct !== null && aPct !== bPct) return bPct - aPct;
+  const last = a.last_name.localeCompare(b.last_name);
+  if (last !== 0) return last;
+  return a.first_name.localeCompare(b.first_name);
+}
+
+function RateBar({ rate }: { rate: AttendanceRate }) {
+  const width = rate.pct === null ? 0 : Math.min(100, Math.max(0, rate.pct));
+  return (
+    <div
+      className="mt-1 h-2 w-full overflow-hidden rounded-full"
+      style={{ backgroundColor: "#9ca3af" }}
+      aria-hidden="true"
+    >
+      <div
+        className="h-full bg-accent"
+        style={{ width: `${width}%` }}
+      />
+    </div>
+  );
+}
+
+function GameMark() {
+  return (
+    <span
+      className="absolute bottom-1 right-1 rounded-sm bg-background/80 p-0.5 text-accent"
+      title="Game"
+    >
+      <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" aria-hidden="true">
+        <path
+          fill="currentColor"
+          d="M3 1.5h1.2V14.5H3V1.5zm1.2.6h8.3L10.8 5l1.7 2.9H4.2V2.1z"
+        />
+      </svg>
+      <span className="sr-only">Game</span>
+    </span>
+  );
+}
+
 function enrollmentLabel(enrollment: Enrollment | null): string {
   if (enrollment === "liberty") return "Liberty";
   if (enrollment === "homeschool") return "Homeschool";
@@ -188,10 +245,12 @@ function RateBlock({
         <span className="text-foreground-muted">Headcount: </span>
         {formatRate(headcount)}
       </p>
-      <p className="text-sm text-foreground">
+      <RateBar rate={headcount} />
+      <p className="mt-2 text-sm text-foreground">
         <span className="text-foreground-muted">Session fill: </span>
         {formatRate(sessionFill)}
       </p>
+      <RateBar rate={sessionFill} />
     </div>
   );
 }
@@ -419,6 +478,10 @@ export function AttendanceClient() {
   }
 
   const gameDays = report?.days.filter((day) => day.game) ?? [];
+  const heatMax = report?.days.reduce((max, day) => Math.max(max, day.count), 0) ?? 0;
+  const sortedAthletes = report
+    ? report.athletes.toSorted(compareAthletes)
+    : [];
   const leadingBlank =
     report && report.days.length > 0 ? mondayColumn(report.days[0].date) : 0;
   const sameSport = Boolean(report && report.hugo_group === hugoGroup);
@@ -542,6 +605,53 @@ export function AttendanceClient() {
                   Unset enrollment: {report.unset_count}
                 </p>
               ) : null}
+            </section>
+
+            <section className="mt-4 rounded-2xl border border-border bg-surface-elevated p-4">
+              <h2 className="text-sm font-medium uppercase tracking-wider text-foreground-muted">
+                Athletes
+              </h2>
+              {sortedAthletes.length === 0 ? (
+                <p className="mt-3 text-sm text-foreground-muted">
+                  No athletes on this roster.
+                </p>
+              ) : (
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full min-w-[36rem] text-left text-sm">
+                    <thead>
+                      <tr className="text-foreground-muted">
+                        <th className="px-2 py-2 font-medium">Name</th>
+                        <th className="px-2 py-2 font-medium">Enrollment</th>
+                        <th className="px-2 py-2 font-medium">Session rate</th>
+                        <th className="px-2 py-2 font-medium">Week rate</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedAthletes.map((athlete) => (
+                        <tr
+                          key={athlete.athlete_id}
+                          className="border-t border-border text-foreground"
+                        >
+                          <td className="px-2 py-2">
+                            {athlete.last_name}, {athlete.first_name}
+                          </td>
+                          <td className="px-2 py-2">
+                            {enrollmentLabel(athlete.enrollment)}
+                          </td>
+                          <td className="px-2 py-2">
+                            {formatRate(athlete.session_rate)}
+                            <RateBar rate={athlete.session_rate} />
+                          </td>
+                          <td className="px-2 py-2">
+                            {formatRate(athlete.week_rate)}
+                            <RateBar rate={athlete.week_rate} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </section>
 
             <section className="mt-4 rounded-2xl border border-border bg-surface-elevated p-4">
@@ -695,7 +805,7 @@ export function AttendanceClient() {
                 Games
               </h2>
               <p className="mt-2 text-sm text-foreground-muted">
-                Saved games in this range are the dates marked Game on the
+                Saved games in this range are marked with a flag on the
                 heatmap. The report does not include Bound or manual source.
               </p>
               {gameDays.length === 0 ? (
@@ -823,24 +933,21 @@ export function AttendanceClient() {
                     {Array.from({ length: leadingBlank }, (_, index) => (
                       <div key={`pad-${index}`} />
                     ))}
-                    {report.days.map((day) => (
-                      <div
-                        key={day.date}
-                        className="rounded-lg border border-border bg-surface px-1 py-2 text-center"
-                      >
-                        <p className="text-xs text-foreground-muted">
-                          {day.date.slice(5)}
-                        </p>
-                        <p className="text-sm font-medium text-foreground">
-                          {day.count}
-                        </p>
-                        {day.game ? (
-                          <p className="text-xs font-medium text-foreground">
-                            Game
-                          </p>
-                        ) : null}
-                      </div>
-                    ))}
+                    {report.days.map((day) => {
+                      const heat = heatMax === 0 ? 0 : day.count / heatMax;
+                      const ink = heat >= 0.35 ? "var(--background)" : "var(--foreground)";
+                      return (
+                        <div
+                          key={day.date}
+                          className="heat-cell relative min-h-16 rounded-lg border border-border px-1 py-2 text-center"
+                          style={{ backgroundColor: heatMix(heat), color: ink }}
+                        >
+                          <p className="text-xs opacity-80">{day.date.slice(5)}</p>
+                          <p className="text-sm font-medium">{day.count}</p>
+                          {day.game ? <GameMark /> : null}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -851,50 +958,6 @@ export function AttendanceClient() {
               ) : null}
             </section>
 
-            <section className="mt-4 rounded-2xl border border-border bg-surface-elevated p-4">
-              <h2 className="text-sm font-medium uppercase tracking-wider text-foreground-muted">
-                Athletes
-              </h2>
-              {report.athletes.length === 0 ? (
-                <p className="mt-3 text-sm text-foreground-muted">
-                  No athletes on this roster.
-                </p>
-              ) : (
-                <div className="mt-3 overflow-x-auto">
-                  <table className="w-full min-w-[36rem] text-left text-sm">
-                    <thead>
-                      <tr className="text-foreground-muted">
-                        <th className="px-2 py-2 font-medium">Name</th>
-                        <th className="px-2 py-2 font-medium">Enrollment</th>
-                        <th className="px-2 py-2 font-medium">Session rate</th>
-                        <th className="px-2 py-2 font-medium">Week rate</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {report.athletes.map((athlete) => (
-                        <tr
-                          key={athlete.athlete_id}
-                          className="border-t border-border text-foreground"
-                        >
-                          <td className="px-2 py-2">
-                            {athlete.last_name}, {athlete.first_name}
-                          </td>
-                          <td className="px-2 py-2">
-                            {enrollmentLabel(athlete.enrollment)}
-                          </td>
-                          <td className="px-2 py-2">
-                            {formatRate(athlete.session_rate)}
-                          </td>
-                          <td className="px-2 py-2">
-                            {formatRate(athlete.week_rate)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </section>
           </>
         ) : null}
       </main>

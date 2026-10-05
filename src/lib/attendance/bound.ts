@@ -1,7 +1,10 @@
 import type { HugoGroup } from "@/lib/weight-room/constants";
 
 /**
- * Bound school schedule: https://www.gobound.com/mn/schools/lclassical
+ * Varsity schedules come from Bound's per-sport tables when we have one.
+ * Those pages are already the varsity team (`/v/schedule`), so every row
+ * belongs to that sport. Football is the St. Agnes co-op, not Liberty's
+ * school page. Other sports still use the school overview cards.
  *
  * Contest cards are `div.comp-entry` blocks. The heading is the sport and
  * level (`FOOTBALL` / `Varsity`, or `VOLLEYBALL, GIRLS` / `Junior Varsity`).
@@ -11,6 +14,18 @@ import type { HugoGroup } from "@/lib/weight-room/constants";
  */
 const BOUND_SCHOOL_URL = "https://www.gobound.com/mn/schools/lclassical";
 const BOUND_TIMEOUT_MS = 10_000;
+
+/** Sport-specific varsity schedule tables. XC is the boys page; meets are shared. */
+export const VARSITY_SCHEDULE_URLS: Partial<Record<HugoGroup, string>> = {
+  volleyball: "https://www.gobound.com/mn/mshsl/gvb/2026-27/lclassical/v/schedule",
+  soccer: "https://www.gobound.com/mn/mshsl/boyssoccer/2026-27/lclassical/v/schedule",
+  xc: "https://www.gobound.com/mn/mshsl/boyscrosscountry/2026-27/lclassical/v/schedule",
+  football: "https://www.gobound.com/mn/mshsl/fb/2026-27/stagnes/v/schedule",
+};
+
+export function boundScheduleUrl(hugoGroup: HugoGroup): string {
+  return VARSITY_SCHEDULE_URLS[hugoGroup] ?? BOUND_SCHOOL_URL;
+}
 
 const WEEKDAY_UTC: Record<string, number> = {
   sunday: 0,
@@ -76,11 +91,13 @@ export type BoundSchedule = {
   unmatched: UnmatchedBoundContest[];
 };
 
-export async function fetchBoundScheduleHtml(): Promise<string> {
+export async function fetchBoundScheduleHtml(
+  url = BOUND_SCHOOL_URL,
+): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), BOUND_TIMEOUT_MS);
   try {
-    const response = await fetch(BOUND_SCHOOL_URL, {
+    const response = await fetch(url, {
       signal: controller.signal,
       headers: {
         Accept: "text/html",
@@ -99,6 +116,69 @@ export async function fetchBoundScheduleHtml(): Promise<string> {
 
 export function parseBoundContests(html: string): BoundContest[] {
   return parseBoundSchedule(html).contests;
+}
+
+/**
+ * Read a varsity schedule table (`Date` / `Opponent(s)`).
+ * Several rows on one date (a tournament or doubleheader) become one game.
+ * Cancelled and postponed rows are left out.
+ */
+export function parseVarsityScheduleTable(
+  html: string,
+  hugoGroup: HugoGroup,
+): BoundContest[] {
+  const table = html.match(/<table\b[^>]*\btable-sm\b[^>]*>[\s\S]*?<\/table>/i);
+  if (!table) return [];
+
+  const byDate = new Map<string, string[]>();
+  for (const row of table[0].matchAll(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi)) {
+    const cells = [...row[0].matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(
+      (cell) => cell[1],
+    );
+    if (cells.length < 2) continue;
+    if (/cancell?ed|postponed/i.test(visibleText(row[0]))) continue;
+
+    const contestDate = slashSeasonDate(visibleText(cells[0]));
+    if (!contestDate) continue;
+
+    const label = opponentLabel(cells[1]);
+    const labels = byDate.get(contestDate) ?? [];
+    if (label && !labels.includes(label)) labels.push(label);
+    byDate.set(contestDate, labels);
+  }
+
+  return [...byDate.entries()].map(([contestDate, labels]) => ({
+    hugo_group: hugoGroup,
+    contest_date: contestDate,
+    bound_key: `${hugoGroup}:${contestDate}`,
+    label: labels.join(", ") || "Game",
+  }));
+}
+
+function slashSeasonDate(text: string): string | null {
+  const match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  if (!match) return null;
+  const month = Number(match[1]);
+  const day = Number(match[2]);
+  const rawYear = Number(match[3]);
+  const year = rawYear < 100 ? 2000 + rawYear : rawYear;
+  return isoDate(year, month, day);
+}
+
+function opponentLabel(cellHtml: string): string {
+  const names = [
+    ...cellHtml.matchAll(
+      /<a\b[^>]*\/direct\/teams\/[^"]*"[^>]*>([\s\S]*?)<\/a>/gi,
+    ),
+  ]
+    .map((match) => visibleText(match[1]))
+    .filter((name) => name.length > 0);
+  const unique = [...new Set(names)];
+  const side = /<span[^>]*>\s*@\s*<\/span>/i.test(cellHtml) ? "@" : "vs";
+  if (unique.length === 0) {
+    return visibleText(cellHtml).replace(/^(?:vs|@)\s+/i, "");
+  }
+  return unique.map((name) => `${side} ${name}`).join(", ");
 }
 
 export function parseBoundSchedule(html: string, now = new Date()): BoundSchedule {

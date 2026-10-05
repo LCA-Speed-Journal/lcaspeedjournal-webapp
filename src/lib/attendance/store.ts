@@ -4,8 +4,11 @@ import { loadTeamJournalAttendance } from "@/lib/weight-room/report-load";
 import { isHugoGroup, type HugoGroup } from "@/lib/weight-room/constants";
 import {
   BoundScheduleError,
+  boundScheduleUrl,
   fetchBoundScheduleHtml,
   parseBoundSchedule,
+  parseVarsityScheduleTable,
+  VARSITY_SCHEDULE_URLS,
   type BoundContest,
   type UnmatchedBoundContest,
 } from "./bound";
@@ -231,9 +234,11 @@ export async function dismissContest(
 
 /**
  * Pull varsity dates for one sport from Bound.
+ * Volleyball, boys soccer, XC, and football use that sport's schedule table.
+ * Football is the St. Agnes co-op page. Other sports use the school overview.
  * A page with no parsed varsity contests fails before any write.
  * Manual rows and dismissed rows are left as they are.
- * `unmatched` is every varsity card from that page that mapped to no sport.
+ * `unmatched` is every varsity card from the school page that mapped to no sport.
  */
 export async function refreshVarsityContests(
   hugoGroup: string,
@@ -241,7 +246,7 @@ export async function refreshVarsityContests(
   assertHugoGroup(hugoGroup);
   let html: string;
   try {
-    html = await fetchBoundScheduleHtml();
+    html = await fetchBoundScheduleHtml(boundScheduleUrl(hugoGroup));
   } catch (err) {
     console.error(
       "Bound schedule request failed:",
@@ -250,7 +255,9 @@ export async function refreshVarsityContests(
     throw new BoundScheduleError("Bound did not return a schedule");
   }
 
-  const parsed = parseBoundSchedule(html);
+  const parsed = VARSITY_SCHEDULE_URLS[hugoGroup]
+    ? { contests: parseVarsityScheduleTable(html, hugoGroup), unmatched: [] }
+    : parseBoundSchedule(html);
   if (parsed.contests.length === 0) {
     throw new BoundScheduleError("Bound did not return a schedule");
   }
