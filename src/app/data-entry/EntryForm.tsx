@@ -140,17 +140,17 @@ function athleteMembershipGroups(a: AthleteItem): string[] {
   return groups;
 }
 
-/** Guest label for the athlete box. Empty when this sport includes them, or when All sports is selected. */
+/** Guest label for the athlete box. The name already includes home sports, so this is only " · Guest". Empty when this sport includes them, or when All sports is selected. */
 function guestInputSuffix(a: AthleteItem, sportFilter: string): string | null {
   const fields = guestFields(sportFilter, athleteMembershipGroups(a));
   if (!fields.guest) return null;
-  return fields.home_sport_label ? `Guest · ${fields.home_sport_label}` : "Guest";
+  return " · Guest";
 }
 
 function selectedAthleteInputValue(a: AthleteItem, sportFilter: string): string {
   const suffix = guestInputSuffix(a, sportFilter);
   const base = athleteDisplayName(a);
-  return suffix ? `${base} ${suffix}` : base;
+  return suffix ? `${base}${suffix}` : base;
 }
 
 type EntryFormProps = {
