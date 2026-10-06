@@ -38,6 +38,17 @@ export async function loadTeamProgressRoster(
   }));
 }
 
+export async function loadTeamProgressMemberIds(
+  hugoGroup: HugoGroup
+): Promise<string[]> {
+  const { rows } = await sql`
+    SELECT m.athlete_id::text AS athlete_id
+    FROM athlete_hugo_memberships m
+    WHERE m.hugo_group = ${hugoGroup}
+  `;
+  return (rows as Record<string, unknown>[]).map((r) => String(r.athlete_id));
+}
+
 export async function loadTeamProgressTestEntries(opts: {
   athleteIds: string[];
   from: string;

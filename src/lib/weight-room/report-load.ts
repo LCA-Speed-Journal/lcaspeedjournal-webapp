@@ -18,10 +18,7 @@ import {
   priorWeekRange,
 } from "@/lib/weight-room/report-aggregate";
 import type { HugoGroup } from "@/lib/weight-room/constants";
-import {
-  filterReportSourceToMembers,
-  idsOnRoster,
-} from "@/lib/guest-athletes";
+import { filterReportSourceToMembers } from "@/lib/guest-athletes";
 
 export type ReportSource = Pick<
   ReportAggregateInput,
@@ -119,6 +116,19 @@ export async function loadRoster(hugo_group: HugoGroup): Promise<ReportAthlete[]
       first_name: String(row.first_name ?? ""),
       last_name: String(row.last_name ?? ""),
     })
+  );
+}
+
+export async function loadMembershipAthleteIds(
+  hugo_group: HugoGroup
+): Promise<string[]> {
+  const { rows } = await sql`
+    SELECT m.athlete_id::text AS athlete_id
+    FROM athlete_hugo_memberships m
+    WHERE m.hugo_group = ${hugo_group}
+  `;
+  return (rows as Array<{ athlete_id: string }>).map((row) =>
+    String(row.athlete_id)
   );
 }
 
@@ -357,7 +367,7 @@ export async function loadTeamAggregateInput(opts: {
     priorJournal,
     currentSpeed,
     priorSpeed,
-    roster,
+    memberIdList,
   ] = await Promise.all([
     loadTeamReportSource(opts),
     loadTeamReportSource({
@@ -377,9 +387,9 @@ export async function loadTeamAggregateInput(opts: {
       from: prior.from,
       to: prior.to,
     }),
-    loadRoster(opts.hugo_group),
+    loadMembershipAthleteIds(opts.hugo_group),
   ]);
-  const memberIds = idsOnRoster(roster);
+  const memberIds = new Set(memberIdList);
   const currentMembers = filterReportSourceToMembers(current, memberIds);
   const previousMembers = filterReportSourceToMembers(previous, memberIds);
   const withAttendance = mergeJournalAttendance(

@@ -10,6 +10,7 @@ import {
   loadTeamProgressIsoLogRows,
   loadTeamProgressIsoTemplates,
   loadTeamProgressLiftRows,
+  loadTeamProgressMemberIds,
   loadTeamProgressRoster,
   loadTeamProgressTestEntries,
 } from "./load";
@@ -57,33 +58,35 @@ export async function buildTeamProgressPayload(opts: {
   const roster = await loadTeamProgressRoster(opts.hugoGroup);
   const athleteIds = roster.map((a) => a.id);
 
-  const [testRows, liftRows, isoRows, isoLogRows, f2fEntries] = await Promise.all([
-    loadTeamProgressTestEntries({
-      athleteIds,
-      from: opts.from,
-      to: opts.to,
-    }),
-    loadTeamProgressLiftRows({
-      hugoGroup: opts.hugoGroup,
-      from: opts.from,
-      to: opts.to,
-    }),
-    loadTeamProgressIsoTemplates({
-      hugoGroup: opts.hugoGroup,
-      from: opts.from,
-      to: opts.to,
-    }),
-    loadTeamProgressIsoLogRows({
-      hugoGroup: opts.hugoGroup,
-      from: opts.from,
-      to: opts.to,
-    }),
-    loadTeamProgressF2fEntries({
-      athleteIds,
-      from: opts.from,
-      to: opts.to,
-    }),
-  ]);
+  const [testRows, liftRows, isoRows, isoLogRows, f2fEntries, memberIdList] =
+    await Promise.all([
+      loadTeamProgressTestEntries({
+        athleteIds,
+        from: opts.from,
+        to: opts.to,
+      }),
+      loadTeamProgressLiftRows({
+        hugoGroup: opts.hugoGroup,
+        from: opts.from,
+        to: opts.to,
+      }),
+      loadTeamProgressIsoTemplates({
+        hugoGroup: opts.hugoGroup,
+        from: opts.from,
+        to: opts.to,
+      }),
+      loadTeamProgressIsoLogRows({
+        hugoGroup: opts.hugoGroup,
+        from: opts.from,
+        to: opts.to,
+      }),
+      loadTeamProgressF2fEntries({
+        athleteIds,
+        from: opts.from,
+        to: opts.to,
+      }),
+      loadTeamProgressMemberIds(opts.hugoGroup),
+    ]);
 
   const metricKeys = displayedTestKeys(opts.hugoGroup, addedMetrics);
   // If group never ran 40 but ran 20, surface 20yd as core fallback when no 40 data
@@ -120,7 +123,7 @@ export async function buildTeamProgressPayload(opts: {
     addedMetrics
   ).filter((k) => !shownKeys.has(k));
 
-  const memberIds = new Set(athleteIds);
+  const memberIds = new Set(memberIdList);
   const memberLifts = liftRows.filter((row) => memberIds.has(row.athlete_id));
   const memberIsoLogs = isoLogRows.filter((row) => memberIds.has(row.athlete_id));
   const lifts = aggregateLiftSeries(memberLifts, 2);
