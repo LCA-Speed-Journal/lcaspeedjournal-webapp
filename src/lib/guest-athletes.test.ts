@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { guestFields, parseContextHugoGroup } from "./guest-athletes";
+import {
+  contextHugoGroupForSave,
+  guestFields,
+  otherSportMatches,
+  parseContextHugoGroup,
+  shouldClearAthleteOnSportChange,
+} from "./guest-athletes";
+
+const soccer = { id: "s", first_name: "Sue", last_name: "Soccer", hugo_groups: ["soccer"] };
+const ball = { id: "b", first_name: "Sam", last_name: "Ball", hugo_groups: ["mens_basketball"] };
 
 describe("parseContextHugoGroup", () => {
   it("allows null and blank", () => {
@@ -45,5 +54,31 @@ describe("guestFields", () => {
       guest: true,
       home_sport_label: null,
     });
+  });
+});
+
+describe("otherSportMatches", () => {
+  it("returns nothing until a sport is selected and the coach has typed", () => {
+    expect(otherSportMatches([soccer, ball], "", "sam")).toEqual([]);
+    expect(otherSportMatches([soccer, ball], "soccer", "")).toEqual([]);
+    expect(otherSportMatches([soccer, ball], "soccer", "   ")).toEqual([]);
+  });
+
+  it("returns name matches outside the selected sport", () => {
+    expect(otherSportMatches([soccer, ball], "soccer", "sam")).toEqual([ball]);
+    expect(otherSportMatches([soccer, ball], "soccer", "sue")).toEqual([]);
+  });
+});
+
+describe("context and sport changes", () => {
+  it("saves the selected sport and saves null for All sports", () => {
+    expect(contextHugoGroupForSave("soccer")).toBe("soccer");
+    expect(contextHugoGroupForSave("")).toBeNull();
+  });
+
+  it("clears a pick that is outside the new sport and keeps All sports", () => {
+    expect(shouldClearAthleteOnSportChange(ball, "volleyball")).toBe(true);
+    expect(shouldClearAthleteOnSportChange(ball, "mens_basketball")).toBe(false);
+    expect(shouldClearAthleteOnSportChange(ball, "")).toBe(false);
   });
 });

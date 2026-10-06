@@ -19,10 +19,13 @@ import {
   isHugoGroup,
   type HugoGroup,
 } from "@/lib/weight-room/constants";
+import { filterAthletesByHugoGroup } from "@/lib/weight-room/hugo-memberships";
 import {
-  athleteHasHugoGroup,
-  filterAthletesByHugoGroup,
-} from "@/lib/weight-room/hugo-memberships";
+  contextHugoGroupForSave,
+  guestFields,
+  otherSportMatches,
+  shouldClearAthleteOnSportChange,
+} from "@/lib/guest-athletes";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -131,6 +134,25 @@ function athleteDisplayName(a: AthleteItem): string {
   return `${a.first_name} ${a.last_name}${suffix}${sportSuffix}`;
 }
 
+function athleteMembershipGroups(a: AthleteItem): string[] {
+  const groups = a.hugo_groups ? [...a.hugo_groups] : [];
+  if (a.hugo_group && !groups.includes(a.hugo_group)) groups.push(a.hugo_group);
+  return groups;
+}
+
+/** Guest label for the athlete box. Empty when this sport includes them, or when All sports is selected. */
+function guestInputSuffix(a: AthleteItem, sportFilter: string): string | null {
+  const fields = guestFields(sportFilter, athleteMembershipGroups(a));
+  if (!fields.guest) return null;
+  return fields.home_sport_label ? `Guest · ${fields.home_sport_label}` : "Guest";
+}
+
+function selectedAthleteInputValue(a: AthleteItem, sportFilter: string): string {
+  const suffix = guestInputSuffix(a, sportFilter);
+  const base = athleteDisplayName(a);
+  return suffix ? `${base} ${suffix}` : base;
+}
+
 type EntryFormProps = {
   /** When set, session dropdown is hidden and this id is used for POST. */
   sessionId?: string;
@@ -144,7 +166,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const [activeOnly, setActiveOnly] = useState(true);
   const [sportFilter, setSportFilter] = useState<HugoGroup | "">("");
   const [athleteQuery, setAthleteQuery] = useState("");
-  const [selectedAthlete, setSelectedAthlete] = useState<{ id: string; displayName: string } | null>(null);
+  const [selectedAthlete, setSelectedAthlete] = useState<AthleteItem | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [metricKey, setMetricKey] = useState("");
@@ -197,7 +219,10 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const sessions = sessionsRes?.data ?? [];
   const athletes = activeOnly ? (athletesActiveRes?.data ?? []) : (athletesAllRes?.data ?? []);
   const athletesInSport = filterAthletesByHugoGroup(athletes, sportFilter);
-  const athleteId = selectedAthlete?.id ?? "";
+  const selectedRecord = selectedAthlete
+    ? (athletes.find((a) => a.id === selectedAthlete.id) ?? selectedAthlete)
+    : null;
+  const athleteId = selectedRecord?.id ?? "";
   const athleteSearch = athleteQuery.trim().toLowerCase();
   const filteredAthletes = athleteSearch
     ? athletesInSport.filter(
@@ -205,13 +230,16 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           `${a.first_name} ${a.last_name}`.toLowerCase().includes(athleteSearch)
       )
     : athletesInSport;
+  const otherAthletes = otherSportMatches(athletes, sportFilter, athleteQuery);
+  const matchCount = filteredAthletes.length + otherAthletes.length;
   const showAddOption = addOptionVisible(athleteQuery);
-  const optionCount = pickerOptionCount(filteredAthletes.length, athleteQuery);
-  const addHighlighted = isAddOptionIndex(
-    highlightedIndex,
-    filteredAthletes.length,
-    athleteQuery
-  );
+  const optionCount = pickerOptionCount(matchCount, athleteQuery);
+  const addHighlighted = isAddOptionIndex(highlightedIndex, matchCount, athleteQuery);
+  const highlightedAthlete = addHighlighted
+    ? undefined
+    : highlightedIndex < filteredAthletes.length
+      ? filteredAthletes[highlightedIndex]
+      : otherAthletes[highlightedIndex - filteredAthletes.length];
 
   const openDropdown = useCallback(() => setDropdownOpen(true), []);
   const closeDropdown = useCallback(() => {
@@ -219,7 +247,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setHighlightedIndex(0);
   }, []);
   const selectAthlete = useCallback((a: AthleteItem) => {
-    setSelectedAthlete({ id: a.id, displayName: athleteDisplayName(a) });
+    setSelectedAthlete(a);
     setAthleteQuery("");
     setDropdownOpen(false);
   }, []);
@@ -300,13 +328,13 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   useEffect(() => {
     const id = addHighlighted
       ? "entry_athlete_option_add"
-      : filteredAthletes[highlightedIndex]
-        ? `entry_athlete_option_${filteredAthletes[highlightedIndex].id}`
+      : highlightedAthlete
+        ? `entry_athlete_option_${highlightedAthlete.id}`
         : null;
     if (!id) return;
     const el = listboxRef.current?.querySelector(`#${id}`);
     el?.scrollIntoView({ block: "nearest" });
-  }, [highlightedIndex, filteredAthletes, addHighlighted]);
+  }, [highlightedIndex, highlightedAthlete, addHighlighted]);
 
   const effectiveSessionId = sessionIdProp ?? sessionId;
   const allOptions = metricOptions();
@@ -403,6 +431,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           athlete_id: athleteId,
           metric_key: metricKey,
           raw_input: rawToSend,
+          context_hugo_group: contextHugoGroupForSave(sportFilter),
         }),
       });
       const json = await res.json();
@@ -511,12 +540,9 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           onChange={(e) => {
             const next = e.target.value as HugoGroup | "";
             setSportFilter(next);
-            if (selectedAthlete && next) {
-              const selected = athletes.find((a) => a.id === selectedAthlete.id);
-              if (!selected || !athleteHasHugoGroup(selected, next)) {
-                setSelectedAthlete(null);
-                setAthleteQuery("");
-              }
+            if (selectedRecord && shouldClearAthleteOnSportChange(selectedRecord, next)) {
+              setSelectedAthlete(null);
+              setAthleteQuery("");
             }
             setDropdownOpen(false);
           }}
@@ -538,7 +564,11 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             ref={athleteInputRef}
             type="text"
             autoComplete="off"
-            value={selectedAthlete ? selectedAthlete.displayName : athleteQuery}
+            value={
+              selectedRecord
+                ? selectedAthleteInputValue(selectedRecord, sportFilter)
+                : athleteQuery
+            }
             onChange={(e) => {
               setAthleteQuery(e.target.value);
               setSelectedAthlete(null);
@@ -577,9 +607,9 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
                   openQuickCreate();
                   return;
                 }
-                if (filteredAthletes[highlightedIndex]) {
+                if (highlightedAthlete) {
                   e.preventDefault();
-                  selectAthlete(filteredAthletes[highlightedIndex]);
+                  selectAthlete(highlightedAthlete);
                 }
               }
             }}
@@ -595,12 +625,12 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             aria-activedescendant={
               dropdownOpen && addHighlighted
                 ? "entry_athlete_option_add"
-                : dropdownOpen && filteredAthletes[highlightedIndex]
-                  ? `entry_athlete_option_${filteredAthletes[highlightedIndex].id}`
+                : dropdownOpen && highlightedAthlete
+                  ? `entry_athlete_option_${highlightedAthlete.id}`
                   : undefined
             }
           />
-          {selectedAthlete && (
+          {selectedRecord && (
             <button
               type="button"
               onClick={() => {
@@ -621,30 +651,64 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
               role="listbox"
               className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded border border-border bg-surface-elevated py-1 shadow-lg"
             >
-              {filteredAthletes.length === 0 ? (
+              {filteredAthletes.length === 0 && otherAthletes.length === 0 ? (
                 <li className="px-3 py-2 text-sm text-foreground-muted" role="presentation">
                   No athletes match
                 </li>
               ) : (
-                filteredAthletes.map((a, i) => (
-                  <li
-                    key={a.id}
-                    id={`entry_athlete_option_${a.id}`}
-                    role="option"
-                    aria-selected={selectedAthlete?.id === a.id}
-                    className={`cursor-pointer px-3 py-2 text-sm ${
-                      i === highlightedIndex
-                        ? "bg-accent/20 text-foreground"
-                        : "text-foreground hover:bg-surface"
-                    }`}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      selectAthlete(a);
-                    }}
-                  >
-                    {athleteDisplayName(a)}
-                  </li>
-                ))
+                <>
+                  {filteredAthletes.map((a, i) => (
+                    <li
+                      key={a.id}
+                      id={`entry_athlete_option_${a.id}`}
+                      role="option"
+                      aria-selected={selectedRecord?.id === a.id}
+                      className={`cursor-pointer px-3 py-2 text-sm ${
+                        i === highlightedIndex
+                          ? "bg-accent/20 text-foreground"
+                          : "text-foreground hover:bg-surface"
+                      }`}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        selectAthlete(a);
+                      }}
+                    >
+                      {athleteDisplayName(a)}
+                    </li>
+                  ))}
+                  {otherAthletes.length > 0 ? (
+                    <>
+                      <li
+                        role="presentation"
+                        className="px-3 py-1 text-xs font-medium text-foreground-muted"
+                      >
+                        Other sports
+                      </li>
+                      {otherAthletes.map((a, i) => {
+                        const optionIndex = filteredAthletes.length + i;
+                        return (
+                          <li
+                            key={a.id}
+                            id={`entry_athlete_option_${a.id}`}
+                            role="option"
+                            aria-selected={selectedRecord?.id === a.id}
+                            className={`cursor-pointer px-3 py-2 text-sm ${
+                              optionIndex === highlightedIndex
+                                ? "bg-accent/20 text-foreground"
+                                : "text-foreground hover:bg-surface"
+                            }`}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              selectAthlete(a);
+                            }}
+                          >
+                            {athleteDisplayName(a)}
+                          </li>
+                        );
+                      })}
+                    </>
+                  ) : null}
+                </>
               )}
               {showAddOption ? (
                 <li

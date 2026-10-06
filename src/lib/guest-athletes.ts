@@ -1,4 +1,5 @@
 import { HUGO_GROUP_META, isHugoGroup, type HugoGroup } from "@/lib/weight-room/constants";
+import { athleteHasHugoGroup, type HugoTeamAthlete } from "@/lib/weight-room/hugo-memberships";
 
 export function parseContextHugoGroup(
   value: unknown
@@ -25,4 +26,28 @@ export function guestFields(
     guest: true,
     home_sport_label: labels.length > 0 ? labels.join(", ") : null,
   };
+}
+
+export function otherSportMatches<
+  T extends HugoTeamAthlete & { first_name: string; last_name: string }
+>(athletes: T[], sport: string, query: string): T[] {
+  const q = query.trim().toLowerCase();
+  if (!sport || !q) return [];
+  return athletes.filter((athlete) => {
+    if (athleteHasHugoGroup(athlete, sport)) return false;
+    const name = `${athlete.first_name} ${athlete.last_name}`.toLowerCase();
+    return name.includes(q);
+  });
+}
+
+export function contextHugoGroupForSave(sport: string): HugoGroup | null {
+  return isHugoGroup(sport) ? sport : null;
+}
+
+export function shouldClearAthleteOnSportChange(
+  athlete: HugoTeamAthlete,
+  nextSport: string
+): boolean {
+  if (!nextSport) return false;
+  return !athleteHasHugoGroup(athlete, nextSport);
 }
