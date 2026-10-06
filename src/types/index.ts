@@ -34,6 +34,9 @@ export type LeaderboardRow = {
   best_type?: "pb" | "sb";
   /** athlete | staff | alumni; used for name truncation */
   athlete_type?: "athlete" | "staff" | "alumni";
+  /** True when the session sport is not one of this athlete's memberships */
+  guest?: boolean;
+  home_sport_label?: string | null;
   /** Current-stick zone (computed at read time; never stored on entries) */
   zone_label?: string;
   zone_color?: string;

@@ -715,6 +715,11 @@ function LeaderboardCard({
       >
         {displayName}
       </span>
+      {row.guest ? (
+        <span className="truncate text-xs text-foreground-muted">
+          {row.home_sport_label ? `Guest · ${row.home_sport_label}` : "Guest"}
+        </span>
+      ) : null}
       <span className="mt-2 flex min-w-0 flex-wrap items-baseline gap-2">
         <span
           className={`font-mono text-lg font-semibold tabular-nums ${rank === 1 && !hasZone ? "text-gold-text" : ""}`}

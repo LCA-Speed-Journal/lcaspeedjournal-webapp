@@ -5,6 +5,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { guestFields } from "@/lib/guest-athletes";
 import { getMetricsRegistry } from "@/lib/parser";
 import {
   applyLeaderboardZones,
@@ -161,6 +162,7 @@ export async function GET(request: NextRequest) {
       athlete_type: string;
       display_value: number;
       units: string;
+      context_hugo_group: string | null;
     };
 
     let rows: Row[];
@@ -172,6 +174,7 @@ export async function GET(request: NextRequest) {
             e.athlete_id,
             e.display_value,
             e.units,
+            e.context_hugo_group,
             a.first_name,
             a.last_name,
             a.gender,
@@ -207,7 +210,8 @@ export async function GET(request: NextRequest) {
           gender,
           athlete_type,
           display_value,
-          units
+          units,
+          context_hugo_group
         FROM best
         ORDER BY rank
       `;
@@ -219,6 +223,7 @@ export async function GET(request: NextRequest) {
             e.athlete_id,
             e.display_value,
             e.units,
+            e.context_hugo_group,
             a.first_name,
             a.last_name,
             a.gender,
@@ -254,7 +259,8 @@ export async function GET(request: NextRequest) {
           gender,
           athlete_type,
           display_value,
-          units
+          units,
+          context_hugo_group
         FROM best
         ORDER BY rank
       `;
@@ -569,20 +575,53 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const athleteIds = leaderboardRows.map((r) => r.athlete_id);
+    type MembershipRow = {
+      athlete_id: string;
+      hugo_group: string;
+      is_primary: boolean;
+    };
+    let memberships: AttachZonesMembership[] | null = null;
+    try {
+      const memResult =
+        athleteIds.length > 0
+          ? await sql`
+              SELECT athlete_id, hugo_group, is_primary
+              FROM athlete_hugo_memberships
+              WHERE athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
+            `
+          : { rows: [] as MembershipRow[] };
+      const membershipRows = memResult.rows as MembershipRow[];
+      memberships = membershipRows.map((m) => ({
+        athlete_id: m.athlete_id,
+        hugo_group: m.hugo_group,
+        is_primary: Boolean(m.is_primary),
+      }));
+      const groupsByAthlete = new Map<string, string[]>();
+      for (const membership of membershipRows) {
+        const groups = groupsByAthlete.get(membership.athlete_id);
+        if (groups) {
+          groups.push(membership.hugo_group);
+        } else {
+          groupsByAthlete.set(membership.athlete_id, [membership.hugo_group]);
+        }
+      }
+      for (let i = 0; i < leaderboardRows.length; i++) {
+        const fields = guestFields(
+          rows[i]?.context_hugo_group,
+          groupsByAthlete.get(leaderboardRows[i].athlete_id) ?? []
+        );
+        leaderboardRows[i].guest = fields.guest;
+        leaderboardRows[i].home_sport_label = fields.home_sport_label;
+      }
+    } catch (err) {
+      console.error("GET /api/leaderboard memberships:", err);
+    }
+
     let zonedRows: LeaderboardRow[] = leaderboardRows;
-    if (populationsLoaded) {
+    if (populationsLoaded && memberships) {
       try {
-        const athleteIds = leaderboardRows.map((r) => r.athlete_id);
-        const membershipsPromise =
-          athleteIds.length > 0
-            ? sql`
-                SELECT athlete_id, hugo_group, is_primary
-                FROM athlete_hugo_memberships
-                WHERE athlete_id = ANY(${athleteIds as unknown as string}::uuid[])
-              `
-            : Promise.resolve({ rows: [] as unknown[] });
-        const [memResult, defResult, thrResult] = await Promise.all([
-          membershipsPromise,
+        const [defResult, thrResult] = await Promise.all([
           sql`
             SELECT hugo_group, metric_key, population_id
             FROM norm_sport_defaults
@@ -596,11 +635,7 @@ export async function GET(request: NextRequest) {
         ]);
         const applied = applyLeaderboardZones({
           rows: leaderboardRows,
-          memberships: (memResult.rows as AttachZonesMembership[]).map((m) => ({
-            athlete_id: m.athlete_id,
-            hugo_group: m.hugo_group,
-            is_primary: Boolean(m.is_primary),
-          })),
+          memberships,
           defaults: defResult.rows as AttachZonesDefault[],
           thresholds: mapThresholdRows(thrResult.rows as RawThresholdRow[]),
           populations,
