@@ -7,6 +7,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { parseEntry, getMetricsRegistry } from "@/lib/parser";
+import { parseContextHugoGroup } from "@/lib/guest-athletes";
 
 const INSERT_TIMEOUT_MS = 15000;
 
@@ -57,6 +58,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const parsedContext = parseContextHugoGroup(body.context_hugo_group);
+    if (!parsedContext.ok) {
+      return NextResponse.json({ error: parsedContext.error }, { status: 400 });
+    }
+    const contextHugoGroup = parsedContext.value;
 
     const rawInputStr = String(raw_input).trim();
     if (!rawInputStr) {
@@ -115,7 +122,8 @@ export async function POST(request: NextRequest) {
         INSERT INTO entries (
           session_id, athlete_id, metric_key,
           interval_index, component,
-          value, display_value, units, raw_input
+          value, display_value, units, raw_input,
+          context_hugo_group
         )
         VALUES (
           ${session_id},
@@ -126,7 +134,8 @@ export async function POST(request: NextRequest) {
           ${row.value},
           ${row.display_value},
           ${row.units},
-          ${rawInputStr}
+          ${rawInputStr},
+          ${contextHugoGroup}
         )
         RETURNING id
       `;
