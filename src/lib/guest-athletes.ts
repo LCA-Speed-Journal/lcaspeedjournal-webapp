@@ -40,6 +40,43 @@ export function otherSportMatches<
   });
 }
 
+export function loggedGuests<T extends { id: string }>(
+  roster: { id: string }[],
+  loggedAthleteIds: string[],
+  directory: T[]
+): T[] {
+  const onRoster = new Set(roster.map((athlete) => athlete.id));
+  const byId = new Map(directory.map((athlete) => [athlete.id, athlete]));
+  const out: T[] = [];
+  const seen = new Set<string>();
+  for (const id of loggedAthleteIds) {
+    if (onRoster.has(id) || seen.has(id)) continue;
+    const athlete = byId.get(id);
+    if (!athlete) continue;
+    seen.add(id);
+    out.push(athlete);
+  }
+  return out;
+}
+
+export function searchGuests<
+  T extends HugoTeamAthlete & { id: string; first_name: string; last_name: string }
+>(
+  athletes: T[],
+  hugoGroup: string,
+  excludeIds: Set<string>,
+  query: string
+): T[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return athletes.filter((athlete) => {
+    if (excludeIds.has(athlete.id)) return false;
+    if (athleteHasHugoGroup(athlete, hugoGroup)) return false;
+    const name = `${athlete.first_name} ${athlete.last_name}`.toLowerCase();
+    return name.includes(q);
+  });
+}
+
 export function contextHugoGroupForSave(sport: string): HugoGroup | null {
   return isHugoGroup(sport) ? sport : null;
 }

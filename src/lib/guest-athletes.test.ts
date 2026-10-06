@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   contextHugoGroupForSave,
   guestFields,
+  loggedGuests,
   otherSportMatches,
   parseContextHugoGroup,
+  searchGuests,
   shouldClearAthleteOnSportChange,
 } from "./guest-athletes";
 
@@ -67,6 +69,22 @@ describe("otherSportMatches", () => {
   it("returns name matches outside the selected sport", () => {
     expect(otherSportMatches([soccer, ball], "soccer", "sam")).toEqual([ball]);
     expect(otherSportMatches([soccer, ball], "soccer", "sue")).toEqual([]);
+  });
+});
+
+const roster = [{ id: "s", first_name: "Sue", last_name: "Soccer" }];
+const sam = { id: "b", first_name: "Sam", last_name: "Ball", hugo_groups: ["mens_basketball"] };
+const sue = { id: "s", first_name: "Sue", last_name: "Soccer", hugo_groups: ["soccer"] };
+
+describe("weight-room guests", () => {
+  it("returns logged athletes who are not on the roster", () => {
+    expect(loggedGuests(roster, ["s", "b", "b"], [sue, sam])).toEqual([sam]);
+  });
+
+  it("searches active athletes outside the card sport, skipping people already listed", () => {
+    expect(searchGuests([sue, sam], "soccer", new Set(["s"]), "")).toEqual([]);
+    expect(searchGuests([sue, sam], "soccer", new Set(["s"]), "sam")).toEqual([sam]);
+    expect(searchGuests([sue, sam], "soccer", new Set(["b"]), "sam")).toEqual([]);
   });
 });
 

@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
+import { guestFields, searchGuests } from "@/lib/guest-athletes";
 import {
   HUGO_GROUP_META,
   HUGO_GROUPS,
@@ -29,6 +30,8 @@ import type {
 } from "@/lib/weight-room/insert-template";
 import { getMetricsRegistry } from "@/lib/parser";
 import { FORTY_YD_COMPONENTS, FORTY_YD_DASH } from "@/lib/norms/editor-metrics";
+
+const EMPTY_DIRECTORY: DirectoryAthlete[] = [];
 
 const fetcher = (url: string) =>
   fetch(url).then((r) =>
@@ -51,6 +54,13 @@ type RosterAthlete = {
   first_name: string;
   last_name: string;
 };
+
+type GuestAthlete = RosterAthlete & {
+  hugo_groups: string[];
+  hugo_group?: string | null;
+};
+
+type DirectoryAthlete = GuestAthlete;
 
 type ManualLogResult = {
   id: string;
@@ -79,6 +89,7 @@ type ManualLogPayload = {
   template: WorkoutTemplateRow & { movements: WorkoutMovementRow[] };
   roster: RosterAthlete[];
   logs: ManualLog[];
+  guests: GuestAthlete[];
 };
 
 type TemplateListItem = WorkoutTemplateRow & { movement_count?: number };
@@ -113,6 +124,22 @@ function errorText(json: { error?: string }, fallback: string): string {
 
 function athleteLabel(a: RosterAthlete): string {
   return `${a.last_name}, ${a.first_name}`;
+}
+
+function membershipGroups(athlete: {
+  hugo_groups?: string[] | null;
+  hugo_group?: string | null;
+}): string[] {
+  const groups = athlete.hugo_groups ? [...athlete.hugo_groups] : [];
+  if (athlete.hugo_group && !groups.includes(athlete.hugo_group)) {
+    groups.push(athlete.hugo_group);
+  }
+  return groups;
+}
+
+function guestSportLine(hostGroup: string, groups: string[]): string {
+  const label = guestFields(hostGroup, groups).home_sport_label;
+  return label ? `Guest · ${label}` : "Guest";
 }
 
 function previewParsed(raw: string): string {
@@ -289,6 +316,8 @@ export function ManualLogClient() {
   const [hugoGroup, setHugoGroup] = useState<HugoGroup | "">("");
   const [templateId, setTemplateId] = useState("");
   const [selectedAthleteIds, setSelectedAthleteIds] = useState<string[]>([]);
+  const [addedGuests, setAddedGuests] = useState<GuestAthlete[]>([]);
+  const [guestQuery, setGuestQuery] = useState("");
   const [rows, setRows] = useState<ClientRow[]>([]);
   const [defaults, setDefaults] = useState<Record<string, string>>({});
   const [overrides, setOverrides] = useState<
@@ -329,10 +358,16 @@ export function ManualLogClient() {
     mutate: mutateLog,
   } = useSWR<{ data: ManualLogPayload }>(logKey, fetcher);
 
+  const directoryKey = templateId ? "/api/athletes?active=true" : null;
+  const { data: directoryRes, error: directoryError } = useSWR<{
+    data: DirectoryAthlete[];
+  }>(directoryKey, fetcher);
+
   const templates = templatesRes?.data ?? [];
   const payload = logRes?.data;
   const template = payload?.template ?? null;
   const roster = useMemo(() => payload?.roster ?? [], [payload?.roster]);
+  const guests = useMemo(() => payload?.guests ?? [], [payload?.guests]);
   const logs = useMemo(() => payload?.logs ?? [], [payload?.logs]);
 
   const logsByAthlete = useMemo(() => {
@@ -345,6 +380,8 @@ export function ManualLogClient() {
   useEffect(() => {
     setTemplateId("");
     setSelectedAthleteIds([]);
+    setAddedGuests([]);
+    setGuestQuery("");
     setRows([]);
     setDefaults({});
     setOverrides({});
@@ -360,6 +397,8 @@ export function ManualLogClient() {
 
   useEffect(() => {
     setSelectedAthleteIds([]);
+    setAddedGuests([]);
+    setGuestQuery("");
     setRows([]);
     setDefaults({});
     setOverrides({});
@@ -413,13 +452,67 @@ export function ManualLogClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template?.id, template?.movements?.map((m) => m.id).join(",")]);
 
-  const selectedAthletes = useMemo(
-    () =>
-      selectedAthleteIds
-        .map((id) => roster.find((a) => a.id === id))
-        .filter((a): a is RosterAthlete => Boolean(a)),
-    [selectedAthleteIds, roster]
+  const selectedAthletes = useMemo(() => {
+    const rosterById = new Map(roster.map((athlete) => [athlete.id, athlete]));
+    const guestsById = new Map(guests.map((athlete) => [athlete.id, athlete]));
+    const addedById = new Map(addedGuests.map((athlete) => [athlete.id, athlete]));
+    const out: Array<RosterAthlete | GuestAthlete> = [];
+    for (const id of selectedAthleteIds) {
+      const athlete =
+        rosterById.get(id) ?? guestsById.get(id) ?? addedById.get(id);
+      if (athlete) out.push(athlete);
+    }
+    return out;
+  }, [selectedAthleteIds, roster, guests, addedGuests]);
+
+  const rosterIds = useMemo(
+    () => new Set(roster.map((athlete) => athlete.id)),
+    [roster]
   );
+
+  const visibleGuests = useMemo(() => {
+    const seen = new Set<string>();
+    const out: GuestAthlete[] = [];
+    for (const athlete of [...guests, ...addedGuests]) {
+      if (rosterIds.has(athlete.id) || seen.has(athlete.id)) continue;
+      seen.add(athlete.id);
+      out.push({
+        ...athlete,
+        hugo_groups: membershipGroups(athlete),
+      });
+    }
+    return out;
+  }, [guests, addedGuests, rosterIds]);
+
+  const guestExcludeIds = useMemo(() => {
+    const ids = new Set(rosterIds);
+    for (const id of selectedAthleteIds) ids.add(id);
+    return ids;
+  }, [rosterIds, selectedAthleteIds]);
+
+  const directory = directoryRes?.data ?? EMPTY_DIRECTORY;
+  const hostGroup = template?.hugo_group || hugoGroup;
+  const guestResults = useMemo(
+    () => searchGuests(directory, hostGroup, guestExcludeIds, guestQuery),
+    [directory, hostGroup, guestExcludeIds, guestQuery]
+  );
+
+  function addGuest(athlete: DirectoryAthlete) {
+    const next: GuestAthlete = {
+      id: athlete.id,
+      first_name: athlete.first_name,
+      last_name: athlete.last_name,
+      hugo_groups: membershipGroups(athlete),
+      hugo_group: athlete.hugo_group,
+    };
+    setAddedGuests((prev) =>
+      prev.some((item) => item.id === next.id) ? prev : [...prev, next]
+    );
+    setSelectedAthleteIds((prev) =>
+      prev.includes(next.id) ? prev : [...prev, next.id]
+    );
+    setGuestQuery("");
+  }
 
   function toggleAthlete(athleteId: string) {
     setSelectedAthleteIds((prev) => {
@@ -1053,11 +1146,92 @@ export function ManualLogClient() {
                     </label>
                   );
                 })}
-                {roster.length === 0 && (
+                {visibleGuests.map((a) => {
+                  const checked = selectedAthleteIds.includes(a.id);
+                  const hasLog = logsByAthlete.has(a.id);
+                  return (
+                    <label
+                      key={a.id}
+                      className="flex cursor-pointer items-start gap-2 rounded-lg border border-border/60 px-2 py-1.5 text-sm hover:border-accent/40"
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={checked}
+                        onChange={() => toggleAthlete(a.id)}
+                      />
+                      <span className="min-w-0 text-foreground">
+                        <span className="block truncate">
+                          {athleteLabel(a)}
+                          {hasLog ? (
+                            <span className="ml-1 text-xs text-foreground-muted">
+                              (logged)
+                            </span>
+                          ) : null}
+                        </span>
+                        <span className="block truncate text-xs text-foreground-muted">
+                          {guestSportLine(hostGroup, a.hugo_groups)}
+                        </span>
+                      </span>
+                    </label>
+                  );
+                })}
+                {roster.length === 0 && visibleGuests.length === 0 && (
                   <p className="col-span-full text-sm text-foreground-muted">
                     No athletes on this roster.
                   </p>
                 )}
+              </div>
+              <div className="mt-4">
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-foreground-muted">Add guest</span>
+                  <input
+                    className="max-w-sm rounded-lg border border-border bg-background px-3 py-2 text-foreground"
+                    value={guestQuery}
+                    placeholder="Search athletes"
+                    onChange={(e) => setGuestQuery(e.target.value)}
+                  />
+                </label>
+                {directoryError ? (
+                  <p className="mt-2 text-sm text-red-400">
+                    Could not load athletes
+                  </p>
+                ) : null}
+                {!directoryError &&
+                guestQuery.trim() &&
+                guestResults.length === 0 ? (
+                  <p className="mt-2 text-sm text-foreground-muted">
+                    No athletes match
+                  </p>
+                ) : null}
+                {guestResults.length > 0 ? (
+                  <ul className="mt-2 max-h-40 max-w-sm overflow-y-auto rounded-lg border border-border">
+                    {guestResults.map((athlete) => {
+                      const sport = guestFields(
+                        hostGroup,
+                        membershipGroups(athlete)
+                      ).home_sport_label;
+                      return (
+                        <li key={athlete.id}>
+                          <button
+                            type="button"
+                            className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-accent/10"
+                            onClick={() => addGuest(athlete)}
+                          >
+                            <span className="text-foreground">
+                              {athlete.first_name} {athlete.last_name}
+                            </span>
+                            {sport ? (
+                              <span className="text-xs text-foreground-muted">
+                                {sport}
+                              </span>
+                            ) : null}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
               </div>
             </section>
 
@@ -1118,15 +1292,25 @@ export function ManualLogClient() {
                     >
                       Default
                     </th>
-                    {selectedAthletes.map((a) => (
-                      <th
-                        key={a.id}
-                        className="whitespace-nowrap border-r border-border px-3 py-2 font-medium"
-                        style={{ minWidth: "7.5rem" }}
-                      >
-                        {athleteLabel(a)}
-                      </th>
-                    ))}
+                    {selectedAthletes.map((a) => {
+                      const guestLine = rosterIds.has(a.id)
+                        ? null
+                        : guestSportLine(hostGroup, membershipGroups(a));
+                      return (
+                        <th
+                          key={a.id}
+                          className="whitespace-nowrap border-r border-border px-3 py-2 font-medium"
+                          style={{ minWidth: "7.5rem" }}
+                        >
+                          <span className="block">{athleteLabel(a)}</span>
+                          {guestLine ? (
+                            <span className="block text-xs font-normal text-foreground-muted">
+                              {guestLine}
+                            </span>
+                          ) : null}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>

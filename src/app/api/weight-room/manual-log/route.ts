@@ -19,6 +19,11 @@ import {
   buildTempIdRemap,
   remapCellKeys,
 } from "@/lib/weight-room/manual-log";
+import { loggedGuests } from "@/lib/guest-athletes";
+import {
+  attachHugoGroups,
+  fetchMembershipsForAthletes,
+} from "@/lib/weight-room/hugo-memberships";
 import { loadRoster } from "@/lib/weight-room/report-load";
 
 type ManualLogResult = {
@@ -144,6 +149,54 @@ function groupLogRows(rows: Record<string, unknown>[]): ManualLog[] {
   return order.map((id) => byLogId.get(id)!);
 }
 
+type LoggedGuest = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  hugo_groups: string[];
+};
+
+/** Athletes on this card's logs who are not on the active roster, including inactive. */
+async function loadLoggedGuests(
+  roster: { id: string }[],
+  loggedAthleteIds: string[]
+): Promise<LoggedGuest[]> {
+  const onRoster = new Set(roster.map((athlete) => athlete.id));
+  const offRosterIds = [
+    ...new Set(loggedAthleteIds.filter((id) => !onRoster.has(id))),
+  ];
+  if (offRosterIds.length === 0) return [];
+
+  const [athleteResult, memberships] = await Promise.all([
+    sql`
+      SELECT id, first_name, last_name
+      FROM athletes
+      WHERE id = ANY(${offRosterIds as unknown as string}::uuid[])
+    `,
+    fetchMembershipsForAthletes(offRosterIds),
+  ]);
+
+  const directory = (
+    athleteResult.rows as Array<{
+      id: string;
+      first_name: string;
+      last_name: string;
+    }>
+  ).map((row) => ({
+    id: String(row.id),
+    first_name: String(row.first_name ?? ""),
+    last_name: String(row.last_name ?? ""),
+  }));
+  const withGroups = attachHugoGroups(directory, memberships);
+
+  return loggedGuests(roster, loggedAthleteIds, withGroups).map((athlete) => ({
+    id: athlete.id,
+    first_name: athlete.first_name,
+    last_name: athlete.last_name,
+    hugo_groups: athlete.hugo_groups,
+  }));
+}
+
 export async function GET(request: NextRequest) {
   const auth = await requireCoachSession();
   if (!auth.ok) {
@@ -204,9 +257,13 @@ export async function GET(request: NextRequest) {
     ]);
 
     const logs = groupLogRows(logsResult.rows as Record<string, unknown>[]);
+    const guests = await loadLoggedGuests(
+      roster,
+      logs.map((log) => log.athlete_id)
+    );
 
     return NextResponse.json({
-      data: { template, roster, logs },
+      data: { template, roster, logs, guests },
     });
   } catch (err) {
     console.error("GET /api/weight-room/manual-log:", err);
