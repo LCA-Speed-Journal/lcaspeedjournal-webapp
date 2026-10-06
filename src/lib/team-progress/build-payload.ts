@@ -120,10 +120,13 @@ export async function buildTeamProgressPayload(opts: {
     addedMetrics
   ).filter((k) => !shownKeys.has(k));
 
-  const lifts = aggregateLiftSeries(liftRows, 2);
+  const memberIds = new Set(athleteIds);
+  const memberLifts = liftRows.filter((row) => memberIds.has(row.athlete_id));
+  const memberIsoLogs = isoLogRows.filter((row) => memberIds.has(row.athlete_id));
+  const lifts = aggregateLiftSeries(memberLifts, 2);
   const iso_rocks = combineIsoRockSeries(
     [],
-    aggregateIsoRockActuals(isoLogRows)
+    aggregateIsoRockActuals(memberIsoLogs)
   );
   const f2f = aggregateAthleteF2f({
     athletes: roster,
@@ -134,8 +137,8 @@ export async function buildTeamProgressPayload(opts: {
   // W1D1 = first athlete-logged WR session in range (lifts or ISO holds).
   const loggedDates = [
     ...new Set([
-      ...liftRows.map((r) => r.session_date),
-      ...isoLogRows.map((r) => r.session_date),
+      ...memberLifts.map((r) => r.session_date),
+      ...memberIsoLogs.map((r) => r.session_date),
     ]),
   ].sort();
   const timeline_anchor = earliestDate(loggedDates);
@@ -168,7 +171,7 @@ export async function buildTeamProgressPayload(opts: {
       { first: number; last: number; delta: number } | undefined
     > = {};
     for (const lift of lifts) {
-      const map = athleteLiftDeltas(liftRows, lift.lift_id);
+      const map = athleteLiftDeltas(memberLifts, lift.lift_id);
       const d = map.get(a.id);
       if (d) liftDeltas[lift.lift_id] = d;
     }

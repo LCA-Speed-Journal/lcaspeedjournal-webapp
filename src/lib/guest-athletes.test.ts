@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   contextHugoGroupForSave,
+  filterReportSourceToMembers,
   guestFields,
+  idsOnRoster,
   loggedGuests,
   otherSportMatches,
   parseContextHugoGroup,
@@ -98,5 +100,33 @@ describe("context and sport changes", () => {
     expect(shouldClearAthleteOnSportChange(ball, "volleyball")).toBe(true);
     expect(shouldClearAthleteOnSportChange(ball, "mens_basketball")).toBe(false);
     expect(shouldClearAthleteOnSportChange(ball, "")).toBe(false);
+  });
+});
+
+describe("season member filter", () => {
+  it("drops logs, their results, and athlete rows outside the roster", () => {
+    const source = {
+      logs: [
+        { id: "log-member", athlete_id: "sue", template_id: "t", session_date: "2026-10-06", hugo_group: "soccer" },
+        { id: "log-guest", athlete_id: "sam", template_id: "t", session_date: "2026-10-06", hugo_group: "soccer" },
+      ],
+      results: [
+        { session_log_id: "log-member", movement_id: "m", raw_text: "50x5", kind: "load", load: 50, reps: 5, units: "lb" },
+        { session_log_id: "log-guest", movement_id: "m", raw_text: "40x5", kind: "load", load: 40, reps: 5, units: "lb" },
+      ],
+      movements: [],
+      athletes: [
+        { id: "sue", first_name: "Sue", last_name: "Soccer" },
+        { id: "sam", first_name: "Sam", last_name: "Ball" },
+      ],
+    };
+    const filtered = filterReportSourceToMembers(source, new Set(["sue"]));
+    expect(filtered.logs.map((log) => log.id)).toEqual(["log-member"]);
+    expect(filtered.results.map((row) => row.session_log_id)).toEqual(["log-member"]);
+    expect(filtered.athletes.map((athlete) => athlete.id)).toEqual(["sue"]);
+  });
+
+  it("builds a roster id set", () => {
+    expect(idsOnRoster([{ id: "sue" }, { id: "sam" }])).toEqual(new Set(["sue", "sam"]));
   });
 });

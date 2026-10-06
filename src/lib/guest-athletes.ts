@@ -77,6 +77,27 @@ export function searchGuests<
   });
 }
 
+export function idsOnRoster(roster: { id: string }[]): Set<string> {
+  return new Set(roster.map((athlete) => athlete.id));
+}
+
+export function filterReportSourceToMembers<
+  T extends {
+    logs: { id: string; athlete_id: string }[];
+    results: { session_log_id: string }[];
+    athletes: { id: string }[];
+  }
+>(source: T, memberIds: Set<string>): T {
+  const logs = source.logs.filter((log) => memberIds.has(log.athlete_id));
+  const logIds = new Set(logs.map((log) => log.id));
+  return {
+    ...source,
+    logs,
+    results: source.results.filter((row) => logIds.has(row.session_log_id)),
+    athletes: source.athletes.filter((athlete) => memberIds.has(athlete.id)),
+  };
+}
+
 export function contextHugoGroupForSave(sport: string): HugoGroup | null {
   return isHugoGroup(sport) ? sport : null;
 }

@@ -18,6 +18,10 @@ import {
   priorWeekRange,
 } from "@/lib/weight-room/report-aggregate";
 import type { HugoGroup } from "@/lib/weight-room/constants";
+import {
+  filterReportSourceToMembers,
+  idsOnRoster,
+} from "@/lib/guest-athletes";
 
 export type ReportSource = Pick<
   ReportAggregateInput,
@@ -353,6 +357,7 @@ export async function loadTeamAggregateInput(opts: {
     priorJournal,
     currentSpeed,
     priorSpeed,
+    roster,
   ] = await Promise.all([
     loadTeamReportSource(opts),
     loadTeamReportSource({
@@ -372,9 +377,13 @@ export async function loadTeamAggregateInput(opts: {
       from: prior.from,
       to: prior.to,
     }),
+    loadRoster(opts.hugo_group),
   ]);
+  const memberIds = idsOnRoster(roster);
+  const currentMembers = filterReportSourceToMembers(current, memberIds);
+  const previousMembers = filterReportSourceToMembers(previous, memberIds);
   const withAttendance = mergeJournalAttendance(
-    current,
+    currentMembers,
     currentJournal,
     opts.hugo_group
   );
@@ -384,7 +393,7 @@ export async function loadTeamAggregateInput(opts: {
     opts.hugo_group
   );
   const withPriorAttendance = mergeJournalAttendance(
-    previous,
+    previousMembers,
     priorJournal,
     opts.hugo_group
   );
