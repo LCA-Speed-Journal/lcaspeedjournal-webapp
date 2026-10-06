@@ -137,9 +137,10 @@ function membershipGroups(athlete: {
   return groups;
 }
 
-function guestSportLine(hostGroup: string, groups: string[]): string {
-  const label = guestFields(hostGroup, groups).home_sport_label;
-  return label ? `Guest · ${label}` : "Guest";
+function guestSportLine(hostGroup: string, groups: string[]): string | null {
+  const fields = guestFields(hostGroup, groups);
+  if (!fields.guest) return null;
+  return fields.home_sport_label ? `Guest · ${fields.home_sport_label}` : "Guest";
 }
 
 function previewParsed(raw: string): string {
@@ -1149,6 +1150,7 @@ export function ManualLogClient() {
                 {visibleGuests.map((a) => {
                   const checked = selectedAthleteIds.includes(a.id);
                   const hasLog = logsByAthlete.has(a.id);
+                  const guestLine = guestSportLine(hostGroup, a.hugo_groups);
                   return (
                     <label
                       key={a.id}
@@ -1169,9 +1171,11 @@ export function ManualLogClient() {
                             </span>
                           ) : null}
                         </span>
-                        <span className="block truncate text-xs text-foreground-muted">
-                          {guestSportLine(hostGroup, a.hugo_groups)}
-                        </span>
+                        {guestLine ? (
+                          <span className="block truncate text-xs text-foreground-muted">
+                            {guestLine}
+                          </span>
+                        ) : null}
                       </span>
                     </label>
                   );
