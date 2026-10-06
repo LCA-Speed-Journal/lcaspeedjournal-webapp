@@ -141,4 +141,20 @@ describe("buildAttendanceReport", () => {
     expect(report.team.session_fill.pct).toBeNull();
     expect(report.needs_rhythm).toBe(true);
   });
+
+  it("ignores a present mark for someone who is not on the roster", () => {
+    const withoutGuest = buildAttendanceReport(baseInput());
+    const withGuest = buildAttendanceReport(
+      baseInput({
+        present: [
+          ...baseInput().present,
+          { athlete_id: "sam", session_date: "2026-10-05" },
+        ],
+      }),
+    );
+    expect(withGuest.team).toEqual(withoutGuest.team);
+    expect(withGuest.athletes.map((athlete) => athlete.athlete_id)).not.toContain(
+      "sam",
+    );
+  });
 });
