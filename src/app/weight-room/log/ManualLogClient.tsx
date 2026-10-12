@@ -60,6 +60,12 @@ type GuestAthlete = RosterAthlete & {
   hugo_group?: string | null;
 };
 
+function isGuestAthlete(
+  athlete: RosterAthlete | GuestAthlete
+): athlete is GuestAthlete {
+  return "hugo_groups" in athlete;
+}
+
 type DirectoryAthlete = GuestAthlete;
 
 type ManualLogResult = {
@@ -1297,9 +1303,10 @@ export function ManualLogClient() {
                       Default
                     </th>
                     {selectedAthletes.map((a) => {
-                      const guestLine = rosterIds.has(a.id)
-                        ? null
-                        : guestSportLine(hostGroup, membershipGroups(a));
+                      const guestLine =
+                        rosterIds.has(a.id) || !isGuestAthlete(a)
+                          ? null
+                          : guestSportLine(hostGroup, membershipGroups(a));
                       return (
                         <th
                           key={a.id}
