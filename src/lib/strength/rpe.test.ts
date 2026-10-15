@@ -29,6 +29,46 @@ describe("resolveSetRpe", () => {
   it("returns null RPE when the target has no intensity", () => {
     expect(resolveSetRpe({ target: "Max Attempt", rpeOverride: null }).rpe).toBeNull();
   });
+
+  it("uses the high end of a rep range", () => {
+    expect(resolveSetRpe({ target: "6\u20138 @ RPE 7", rpeOverride: null })).toEqual({
+      rpe: 7,
+      prescribedReps: 8,
+      rmAttempt: false,
+    });
+  });
+
+  it("reads a hyphen range with a side qualifier", () => {
+    expect(resolveSetRpe({ target: "6-8/side @ RPE 8", rpeOverride: null })).toEqual({
+      rpe: 8,
+      prescribedReps: 8,
+      rmAttempt: false,
+    });
+  });
+
+  it("reads a plus target", () => {
+    expect(resolveSetRpe({ target: "12+ @ RPE 8", rpeOverride: null })).toEqual({
+      rpe: 8,
+      prescribedReps: 12,
+      rmAttempt: false,
+    });
+  });
+
+  it("reads RPE from an AMRAP target and leaves reps empty", () => {
+    expect(resolveSetRpe({ target: "AMRAP @ RPE 8", rpeOverride: null })).toEqual({
+      rpe: 8,
+      prescribedReps: null,
+      rmAttempt: false,
+    });
+  });
+
+  it("treats a bare RM as an attempt", () => {
+    expect(resolveSetRpe({ target: "5RM", rpeOverride: null })).toEqual({
+      rpe: 10,
+      prescribedReps: 5,
+      rmAttempt: true,
+    });
+  });
 });
 
 describe("applyRpeNudge", () => {
@@ -42,5 +82,9 @@ describe("applyRpeNudge", () => {
   it("clamps to the chart range", () => {
     expect(applyRpeNudge(10, 1.5)).toBe(10);
     expect(applyRpeNudge(3, -1.5)).toBe(3);
+  });
+
+  it("snaps a small negative delta away from zero", () => {
+    expect(applyRpeNudge(8, -0.25)).toBe(7.5);
   });
 });
