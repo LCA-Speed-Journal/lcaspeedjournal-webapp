@@ -276,16 +276,19 @@ function cleanCellKeys(
   return { defaults: nextDefaults, overrides: nextOverrides };
 }
 
-/** Drop cell keys from every athlete map. Used when a set or movement leaves the grid. */
-function dropAthleteKeys<T>(
-  byAthlete: Record<string, Record<string, T>>,
+/**
+ * Mark cell keys as explicitly the prescription for every athlete.
+ * Null stays in the map so a same-fingerprint fill does not copy the server RPE back.
+ */
+function tombstoneAthleteRpe(
+  byAthlete: Record<string, Record<string, number | null>>,
   keys: Iterable<string>
-): Record<string, Record<string, T>> {
-  const drop = new Set(keys);
-  const next: Record<string, Record<string, T>> = {};
+): Record<string, Record<string, number | null>> {
+  const mark = [...keys];
+  const next: Record<string, Record<string, number | null>> = {};
   for (const [athleteId, cells] of Object.entries(byAthlete)) {
     const nextCells = { ...cells };
-    for (const key of drop) delete nextCells[key];
+    for (const key of mark) nextCells[key] = null;
     next[athleteId] = nextCells;
   }
   return next;
@@ -381,7 +384,7 @@ function formatRpe(value: number): string {
 function rpeNudgeForCell(
   defaultText: string,
   resolvedText: string,
-  stored: number | undefined
+  stored: number | null | undefined
 ): {
   prescribed: number;
   effective: number;
@@ -412,9 +415,13 @@ export function ManualLogClient() {
   const [overrides, setOverrides] = useState<
     Record<string, Record<string, string>>
   >({});
-  /** athleteId → cellKey → effective RPE (only when it differs from the prescription) */
+  /**
+   * athleteId → cellKey → effective RPE.
+   * null is a tombstone: this cell is explicitly the prescription, and a
+   * same-fingerprint fill must not copy the server value back.
+   */
   const [rpeByAthlete, setRpeByAthlete] = useState<
-    Record<string, Record<string, number>>
+    Record<string, Record<string, number | null>>
   >({});
   const [focused, setFocused] = useState<FocusedCell>(null);
   const [busy, setBusy] = useState(false);
@@ -733,7 +740,7 @@ export function ManualLogClient() {
         }
 
         // Same log: fill keys this column does not have yet (temp id → real id
-        // after save). Leave keys the coach already edited.
+        // after save). A null tombstone is present, so a cleared cell is left alone.
         let merged = cur;
         for (const [key, value] of Object.entries(plan.rpe)) {
           if (key in cur) continue;
@@ -798,7 +805,7 @@ export function ManualLogClient() {
     setRpeByAthlete((prev) => {
       const athlete = { ...(prev[athleteId] ?? {}) };
       if (prescribed != null && nextRpe === prescribed) {
-        delete athlete[key];
+        athlete[key] = null;
       } else {
         athlete[key] = nextRpe;
       }
@@ -930,7 +937,7 @@ export function ManualLogClient() {
       const { overrides: cleaned } = cleanCellKeys({}, prev, dropKeys);
       return cleaned;
     });
-    setRpeByAthlete((prev) => dropAthleteKeys(prev, dropKeys));
+    setRpeByAthlete((prev) => tombstoneAthleteRpe(prev, dropKeys));
     setJournalLinks((prev) => {
       const next = { ...prev };
       // Drop links for the original row when complex explode replaces it entirely
@@ -1007,7 +1014,7 @@ export function ManualLogClient() {
       const { overrides: cleaned } = cleanCellKeys({}, prev, [key]);
       return cleaned;
     });
-    setRpeByAthlete((prev) => dropAthleteKeys(prev, [key]));
+    setRpeByAthlete((prev) => tombstoneAthleteRpe(prev, [key]));
   }
 
   function removeMovement(rowKey: string) {
@@ -1029,7 +1036,7 @@ export function ManualLogClient() {
       const { overrides: cleaned } = cleanCellKeys({}, prev, keys);
       return cleaned;
     });
-    setRpeByAthlete((prev) => dropAthleteKeys(prev, keys));
+    setRpeByAthlete((prev) => tombstoneAthleteRpe(prev, keys));
     setJournalLinks((prev) => {
       if (!(rowKey in prev)) return prev;
       const next = { ...prev };
