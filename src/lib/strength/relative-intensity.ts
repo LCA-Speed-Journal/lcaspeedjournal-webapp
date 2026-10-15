@@ -15,6 +15,7 @@ const MAX_EFFORT: Record<number, number> = {
 /** Fraction of 1RM for integer reps at an RPE on the chart. */
 export function percentOf1Rm(reps: number, rpe: number): number | null {
   if (!Number.isInteger(reps) || reps < 1 || reps > 10) return null;
+  if (!Number.isFinite(rpe)) return null;
   if (rpe < 3 || rpe > 10) return null;
   const intensity = 1 - 0.05 * (10 - rpe);
   return MAX_EFFORT[reps] * intensity;

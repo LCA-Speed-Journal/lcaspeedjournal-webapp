@@ -14,6 +14,11 @@ describe("percentOf1Rm", () => {
     expect(percentOf1Rm(9, 10)).toBeCloseTo(0.7625, 3);
   });
 
+  it("returns null when RPE is not finite", () => {
+    expect(percentOf1Rm(5, Number.NaN)).toBeNull();
+    expect(percentOf1Rm(5, Number.POSITIVE_INFINITY)).toBeNull();
+  });
+
   it("returns null outside reps 1-10 or RPE 3-10", () => {
     expect(percentOf1Rm(0, 8)).toBeNull();
     expect(percentOf1Rm(11, 8)).toBeNull();

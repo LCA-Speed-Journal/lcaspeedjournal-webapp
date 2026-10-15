@@ -14,6 +14,30 @@ describe("estimateSet", () => {
     expect(est?.exerciseE1rm).toBeCloseTo(185 / (0.925 * 0.9), 1);
   });
 
+  it("rejects a non-finite RPE override", () => {
+    expect(
+      estimateSet({
+        movementName: "Trap-Bar Deadlift",
+        load: 185,
+        reps: 3,
+        target: "3 @ RPE 8",
+        rpeOverride: Number.NaN,
+      })
+    ).toBeNull();
+  });
+
+  it("rejects an infinite load", () => {
+    expect(
+      estimateSet({
+        movementName: "Trap-Bar Deadlift",
+        load: Number.POSITIVE_INFINITY,
+        reps: 3,
+        target: "3 @ RPE 8",
+        rpeOverride: null,
+      })
+    ).toBeNull();
+  });
+
   it("skips a prescription with no load", () => {
     expect(
       estimateSet({
@@ -64,5 +88,17 @@ describe("suggestedLoad", () => {
     });
     expect(pull).toBe(roundTo5Lb(160 * 0.765));
     expect(pull).not.toBe(roundTo5Lb(200 * 0.75 * 0.765));
+  });
+
+  it("rejects a negative pattern reference", () => {
+    expect(
+      suggestedLoad({
+        pattern: "press",
+        referenceE1rm: -200,
+        movementName: "DB Bench",
+        reps: 6,
+        rpe: 8,
+      })
+    ).toBeNull();
   });
 });
