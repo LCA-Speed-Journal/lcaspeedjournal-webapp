@@ -276,6 +276,21 @@ function cleanCellKeys(
   return { defaults: nextDefaults, overrides: nextOverrides };
 }
 
+/** Drop cell keys from every athlete map. Used when a set or movement leaves the grid. */
+function dropAthleteKeys<T>(
+  byAthlete: Record<string, Record<string, T>>,
+  keys: Iterable<string>
+): Record<string, Record<string, T>> {
+  const drop = new Set(keys);
+  const next: Record<string, Record<string, T>> = {};
+  for (const [athleteId, cells] of Object.entries(byAthlete)) {
+    const nextCells = { ...cells };
+    for (const key of drop) delete nextCells[key];
+    next[athleteId] = nextCells;
+  }
+  return next;
+}
+
 function overridesFromLog(
   log: ManualLog | undefined,
   rows: ClientRow[]
@@ -710,9 +725,23 @@ export function ManualLogClient() {
           continue;
         }
 
-        // Same fingerprint: keep in-progress nudges.
         if (cur == null || plan.prevFp !== plan.fp) {
+          // First hydrate, or server log data changed — take log as base.
           next[athleteId] = plan.rpe;
+          changed = true;
+          continue;
+        }
+
+        // Same log: fill keys this column does not have yet (temp id → real id
+        // after save). Leave keys the coach already edited.
+        let merged = cur;
+        for (const [key, value] of Object.entries(plan.rpe)) {
+          if (key in cur) continue;
+          if (merged === cur) merged = { ...cur };
+          merged[key] = value;
+        }
+        if (merged !== cur) {
+          next[athleteId] = merged;
           changed = true;
         }
       }
@@ -901,6 +930,7 @@ export function ManualLogClient() {
       const { overrides: cleaned } = cleanCellKeys({}, prev, dropKeys);
       return cleaned;
     });
+    setRpeByAthlete((prev) => dropAthleteKeys(prev, dropKeys));
     setJournalLinks((prev) => {
       const next = { ...prev };
       // Drop links for the original row when complex explode replaces it entirely
@@ -977,6 +1007,7 @@ export function ManualLogClient() {
       const { overrides: cleaned } = cleanCellKeys({}, prev, [key]);
       return cleaned;
     });
+    setRpeByAthlete((prev) => dropAthleteKeys(prev, [key]));
   }
 
   function removeMovement(rowKey: string) {
@@ -998,6 +1029,7 @@ export function ManualLogClient() {
       const { overrides: cleaned } = cleanCellKeys({}, prev, keys);
       return cleaned;
     });
+    setRpeByAthlete((prev) => dropAthleteKeys(prev, keys));
     setJournalLinks((prev) => {
       if (!(rowKey in prev)) return prev;
       const next = { ...prev };
