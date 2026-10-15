@@ -7,6 +7,7 @@ import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
 import { F2fTriangle } from "@/app/reporting/testing-day/F2fTriangle";
 import { F2fOverlayTriangle } from "@/app/reporting/testing-day/F2fOverlayTriangle";
+import { EstimatedStrengthBlock } from "./EstimatedStrengthBlock";
 import {
   defaultRangeForHugoGroup,
   lastNDaysRange,
@@ -496,6 +497,17 @@ export default function TeamProgressClient() {
                   </div>
                 )}
               </section>
+
+              <EstimatedStrengthBlock
+                hugoGroup={hugoGroup}
+                from={from}
+                to={to}
+                roster={payload.athletes.map((a) => ({
+                  id: a.id,
+                  first_name: a.first_name,
+                  last_name: a.last_name,
+                }))}
+              />
 
               <section className="mb-8">
                 <h2 className="mb-3 text-lg font-semibold text-foreground">
