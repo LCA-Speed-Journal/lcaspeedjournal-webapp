@@ -191,8 +191,11 @@ async function loadGroupSets(opts: {
     INNER JOIN set_results r ON r.session_log_id = l.id
     INNER JOIN workout_movements m ON m.id = r.movement_id
     INNER JOIN athlete_hugo_memberships mem ON mem.athlete_id = l.athlete_id
+    INNER JOIN athletes a ON a.id = l.athlete_id
     WHERE r.kind = ${"load_reps"}
       AND mem.hugo_group = ${opts.hugoGroup}
+      AND l.hugo_group = ${opts.hugoGroup}
+      AND a.active = true
       AND l.session_date >= ${opts.from}::date
       AND l.session_date <= ${opts.to}::date
     ORDER BY l.session_date, r.set_index
@@ -204,7 +207,8 @@ async function loadRosterAthleteIds(hugoGroup: HugoGroup): Promise<string[]> {
   const { rows } = await sql`
     SELECT m.athlete_id::text AS athlete_id
     FROM athlete_hugo_memberships m
-    WHERE m.hugo_group = ${hugoGroup}
+    JOIN athletes a ON a.id = m.athlete_id
+    WHERE m.hugo_group = ${hugoGroup} AND a.active = true
     ORDER BY m.athlete_id
   `;
   return (rows as Array<{ athlete_id: string }>).map((row) =>
