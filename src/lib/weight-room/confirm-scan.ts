@@ -21,6 +21,7 @@ export type ConfirmScanInput = {
     movements: { id: string; set_count: number }[];
   };
   editedCells: Record<string, string>;
+  rpeOverrides?: Record<string, number | null>;
 };
 
 export type ConfirmLogPayload = {
@@ -40,6 +41,7 @@ export type ConfirmResultPayload = {
   reps: number | null;
   units: string | null;
   corrected: boolean;
+  rpe_override: number | null;
 };
 
 export type ConfirmPayloadOk = {
@@ -60,6 +62,10 @@ export type ScanExtraction = {
   parsed: Record<string, ParsedLoadReps>;
   warnings: string[];
 };
+
+function finiteRpe(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -158,6 +164,7 @@ export function buildConfirmPayload(input: ConfirmScanInput): ConfirmPayloadResu
         reps: parsed.reps,
         units: parsed.units,
         corrected: editedTrim !== originalRaw.trim(),
+        rpe_override: finiteRpe(input.rpeOverrides?.[key]),
       });
     }
   }

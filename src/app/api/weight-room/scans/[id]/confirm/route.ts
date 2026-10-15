@@ -200,7 +200,7 @@ export async function POST(
     const log = serializeLog(logRows[0] as Record<string, unknown>);
 
     const { rows: snapshotRows } = await sql`
-      SELECT id, session_log_id, movement_id, set_index, raw_text, kind, load, reps, units, corrected
+      SELECT id, session_log_id, movement_id, set_index, raw_text, kind, load, reps, units, corrected, rpe_override
       FROM set_results
       WHERE session_log_id = ${log.id}
     `;
@@ -213,7 +213,7 @@ export async function POST(
         const resultId = crypto.randomUUID();
         const { rows: resultRows } = await sql`
           INSERT INTO set_results (
-            id, session_log_id, movement_id, set_index, raw_text, kind, load, reps, units, corrected
+            id, session_log_id, movement_id, set_index, raw_text, kind, load, reps, units, corrected, rpe_override
           )
           VALUES (
             ${resultId},
@@ -225,7 +225,8 @@ export async function POST(
             ${result.load},
             ${result.reps},
             ${result.units},
-            ${result.corrected}
+            ${result.corrected},
+            ${result.rpe_override}
           )
           RETURNING id, session_log_id, movement_id, set_index, raw_text, kind, load, reps, units, corrected
         `;
@@ -243,7 +244,7 @@ export async function POST(
         for (const snap of snapshotRows as Record<string, unknown>[]) {
           await sql`
             INSERT INTO set_results (
-              id, session_log_id, movement_id, set_index, raw_text, kind, load, reps, units, corrected
+              id, session_log_id, movement_id, set_index, raw_text, kind, load, reps, units, corrected, rpe_override
             )
             VALUES (
               ${String(snap.id)},
@@ -255,7 +256,8 @@ export async function POST(
               ${snap.load == null ? null : Number(snap.load)},
               ${snap.reps == null ? null : Number(snap.reps)},
               ${snap.units == null ? null : String(snap.units)},
-              ${Boolean(snap.corrected)}
+              ${Boolean(snap.corrected)},
+              ${snap.rpe_override == null ? null : Number(snap.rpe_override)}
             )
           `;
         }

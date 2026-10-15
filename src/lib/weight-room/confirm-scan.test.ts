@@ -160,4 +160,20 @@ describe("buildConfirmPayload", () => {
     if (result.ok) return;
     expect(result.error).toMatch(/template/i);
   });
+
+  it("copies an RPE override onto the matching set", () => {
+    const key = cellKey(MOVEMENT_ID, 0);
+    const result = buildConfirmPayload({
+      scan: baseScan(),
+      template: baseTemplate(),
+      editedCells: { [key]: "185x3" },
+      rpeOverrides: { [key]: 6.5 },
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.results.find((row) => row.set_index === 0)?.rpe_override).toBe(
+      6.5
+    );
+  });
 });

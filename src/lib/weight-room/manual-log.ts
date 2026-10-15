@@ -179,6 +179,7 @@ export function remapCellKeys(
 export type ManualLogAthleteInput = {
   athleteId: string;
   cells: Record<string, string>;
+  rpe_overrides?: Record<string, number | null>;
 };
 
 export type ManualLogBatchInput = {
@@ -233,6 +234,7 @@ export function buildManualLogAthletePayload(
         movements: input.movements,
       },
       editedCells,
+      rpeOverrides: athlete.rpe_overrides,
     });
 
     if (!result.ok) {
