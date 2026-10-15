@@ -36,6 +36,7 @@ type ManualLogResult = {
   reps: number | null;
   units: string | null;
   corrected: boolean;
+  rpe_override: number | null;
 };
 
 type ManualLog = {
@@ -68,6 +69,29 @@ function parseCellsMap(
   for (const [key, value] of Object.entries(raw)) {
     if (typeof value !== "string") {
       return { ok: false, error: "must be an object of strings" };
+    }
+    out[key] = value;
+  }
+  return { ok: true, value: out };
+}
+
+/** Number() only when the result is finite; null, blanks, and NaN stay null. */
+function finiteNumber(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseRpeOverrides(
+  raw: unknown
+): { ok: true; value: Record<string, number> } | { ok: false; error: string } {
+  if (!isRecord(raw)) {
+    return { ok: false, error: "must be an object of finite numbers" };
+  }
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      return { ok: false, error: "must be an object of finite numbers" };
     }
     out[key] = value;
   }
@@ -143,6 +167,7 @@ function groupLogRows(rows: Record<string, unknown>[]): ManualLog[] {
       reps: row.reps == null ? null : Number(row.reps),
       units: row.units == null ? null : String(row.units),
       corrected: Boolean(row.corrected),
+      rpe_override: finiteNumber(row.rpe_override),
     });
   }
 
@@ -248,7 +273,8 @@ export async function GET(request: NextRequest) {
           r.load,
           r.reps,
           r.units,
-          r.corrected
+          r.corrected,
+          r.rpe_override
         FROM session_logs l
         LEFT JOIN set_results r ON r.session_log_id = l.id
         WHERE l.template_id = ${templateId}
@@ -315,8 +341,11 @@ export async function POST(request: NextRequest) {
     }
     const defaults = defaultsParsed.value;
 
-    const athletes: Array<{ athlete_id: string; cells: Record<string, string> }> =
-      [];
+    const athletes: Array<{
+      athlete_id: string;
+      cells: Record<string, string>;
+      rpe_overrides?: Record<string, number>;
+    }> = [];
     for (let i = 0; i < body.athletes.length; i++) {
       const item = body.athletes[i];
       if (!isRecord(item)) {
@@ -338,9 +367,21 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+      let rpe_overrides: Record<string, number> | undefined;
+      if (item.rpe_overrides != null) {
+        const rpeParsed = parseRpeOverrides(item.rpe_overrides);
+        if (!rpeParsed.ok) {
+          return NextResponse.json(
+            { error: `athletes[${i}].rpe_overrides ${rpeParsed.error}` },
+            { status: 400 }
+          );
+        }
+        rpe_overrides = rpeParsed.value;
+      }
       athletes.push({
         athlete_id: item.athlete_id.trim(),
         cells: cellsParsed.value,
+        ...(rpe_overrides ? { rpe_overrides } : {}),
       });
     }
 
@@ -570,6 +611,9 @@ export async function POST(request: NextRequest) {
     const remappedAthletes = athletes.map((a) => ({
       athleteId: a.athlete_id,
       cells: remapCellKeys(tempRemap, a.cells),
+      ...(a.rpe_overrides
+        ? { rpe_overrides: remapCellKeys(tempRemap, a.rpe_overrides) }
+        : {}),
     }));
 
     const batch = buildManualLogAthletePayload({

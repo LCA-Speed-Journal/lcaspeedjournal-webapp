@@ -155,13 +155,14 @@ export function buildTempIdRemap(
 /**
  * Rewrite cell keys `movementId:setIndex` when movementId is in remap.
  * Keys without a colon, or whose movementId is not remapped, are left as-is.
+ * Values are copied as-is (cell text or numeric RPE).
  */
-export function remapCellKeys(
+export function remapCellKeys<T>(
   remap: Map<string, string>,
-  cells: Record<string, string>
-): Record<string, string> {
+  cells: Record<string, T>
+): Record<string, T> {
   if (remap.size === 0) return { ...cells };
-  const out: Record<string, string> = {};
+  const out: Record<string, T> = {};
   for (const [key, value] of Object.entries(cells)) {
     const colon = key.indexOf(":");
     if (colon <= 0) {

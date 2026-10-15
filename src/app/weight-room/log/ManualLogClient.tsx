@@ -30,6 +30,7 @@ import type {
 } from "@/lib/weight-room/insert-template";
 import { getMetricsRegistry } from "@/lib/parser";
 import { FORTY_YD_COMPONENTS, FORTY_YD_DASH } from "@/lib/norms/editor-metrics";
+import { applyRpeNudge, resolveSetRpe } from "@/lib/strength/rpe";
 
 const EMPTY_DIRECTORY: DirectoryAthlete[] = [];
 
@@ -78,6 +79,7 @@ type ManualLogResult = {
   reps: number | null;
   units: string | null;
   corrected: boolean;
+  rpe_override: number | null;
 };
 
 type ManualLog = {
@@ -308,15 +310,80 @@ function overridesFromLog(
   return out;
 }
 
+function finiteRpe(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+/** Stored RPE overrides, keyed the same way as overridesFromLog (row.rowKey). */
+function rpeFromLog(
+  log: ManualLog | undefined,
+  rows: ClientRow[]
+): Record<string, number> {
+  if (!log) return {};
+  const byKey = new Map<string, number>();
+  for (const result of log.results) {
+    const rpe = finiteRpe(result.rpe_override);
+    if (rpe == null) continue;
+    byKey.set(cellKey(result.movement_id, result.set_index), rpe);
+  }
+  const out: Record<string, number> = {};
+  for (const row of rows) {
+    const lookupIds = [
+      row.rowKey,
+      row.movementId,
+      row.parentMovementId ?? undefined,
+    ].filter((id): id is string => typeof id === "string" && id.length > 0);
+
+    for (const id of lookupIds) {
+      if (isTempId(id)) continue;
+      const key = cellKey(id, row.setIndex);
+      if (!byKey.has(key)) continue;
+      const rpe = byKey.get(key);
+      if (rpe == null) continue;
+      out[cellKey(row.rowKey, row.setIndex)] = rpe;
+      break;
+    }
+  }
+  return out;
+}
+
 /** Fingerprint of log results so we re-hydrate when scan/manual data arrives. */
 function logResultsFingerprint(log: ManualLog | undefined): string {
   if (!log) return "";
   return log.results
     .map(
       (r) =>
-        `${r.movement_id}:${r.set_index}=${r.raw_text ?? ""}`
+        `${r.movement_id}:${r.set_index}=${r.raw_text ?? ""}#${r.rpe_override ?? ""}`
     )
     .join("|");
+}
+
+function formatRpe(value: number): string {
+  return String(Math.round(value * 10) / 10);
+}
+
+/** Nudge only when the resolved cell is a load and the default text prescribes an RPE. */
+function rpeNudgeForCell(
+  defaultText: string,
+  resolvedText: string,
+  stored: number | undefined
+): {
+  prescribed: number;
+  effective: number;
+  lower: number;
+  raise: number;
+} | null {
+  if (parseLoadReps(resolvedText).kind !== "load_reps") return null;
+  const prescribed = resolveSetRpe({ target: defaultText, rpeOverride: null }).rpe;
+  if (prescribed == null) return null;
+  const storedRpe = finiteRpe(stored);
+  const effective = storedRpe ?? prescribed;
+  return {
+    prescribed,
+    effective,
+    lower: applyRpeNudge(prescribed, effective - prescribed - 0.5),
+    raise: applyRpeNudge(prescribed, effective - prescribed + 0.5),
+  };
 }
 
 export function ManualLogClient() {
@@ -329,6 +396,10 @@ export function ManualLogClient() {
   const [defaults, setDefaults] = useState<Record<string, string>>({});
   const [overrides, setOverrides] = useState<
     Record<string, Record<string, string>>
+  >({});
+  /** athleteId → cellKey → effective RPE (only when it differs from the prescription) */
+  const [rpeByAthlete, setRpeByAthlete] = useState<
+    Record<string, Record<string, number>>
   >({});
   const [focused, setFocused] = useState<FocusedCell>(null);
   const [busy, setBusy] = useState(false);
@@ -392,6 +463,7 @@ export function ManualLogClient() {
     setRows([]);
     setDefaults({});
     setOverrides({});
+    setRpeByAthlete({});
     setFocused(null);
     setActionError("");
     setActionMessage("");
@@ -409,6 +481,7 @@ export function ManualLogClient() {
     setRows([]);
     setDefaults({});
     setOverrides({});
+    setRpeByAthlete({});
     setFocused(null);
     setActionError("");
     setActionMessage("");
@@ -531,6 +604,12 @@ export function ManualLogClient() {
           delete next[athleteId];
           return next;
         });
+        setRpeByAthlete((o) => {
+          if (!(athleteId in o)) return o;
+          const next = { ...o };
+          delete next[athleteId];
+          return next;
+        });
         return prev.filter((id) => id !== athleteId);
       }
       return [...prev, athleteId];
@@ -541,18 +620,40 @@ export function ManualLogClient() {
   // Re-runs when logs arrive after selection so we never save prescription defaults over real data.
   useEffect(() => {
     if (rows.length === 0) return;
+
+    const plans = new Map<
+      string,
+      {
+        fp: string;
+        prevFp: string | undefined;
+        hasLog: boolean;
+        fromLog: Record<string, string>;
+        rpe: Record<string, number>;
+      }
+    >();
+    for (const athleteId of selectedAthleteIds) {
+      const log = logsByAthlete.get(athleteId);
+      const fp = logResultsFingerprint(log);
+      plans.set(athleteId, {
+        fp,
+        prevFp: hydratedLogFpRef.current.get(athleteId),
+        hasLog: log != null,
+        fromLog: log ? overridesFromLog(log, rows) : {},
+        rpe: log ? rpeFromLog(log, rows) : {},
+      });
+    }
+
     setOverrides((prev) => {
       let changed = false;
       const next = { ...prev };
       const selected = new Set(selectedAthleteIds);
 
       for (const athleteId of selectedAthleteIds) {
-        const log = logsByAthlete.get(athleteId);
-        const fp = logResultsFingerprint(log);
-        const prevFp = hydratedLogFpRef.current.get(athleteId);
+        const plan = plans.get(athleteId);
+        if (!plan) continue;
         const cur = next[athleteId];
 
-        if (!log) {
+        if (!plan.hasLog) {
           if (!(athleteId in next)) {
             next[athleteId] = {};
             changed = true;
@@ -560,19 +661,17 @@ export function ManualLogClient() {
           continue;
         }
 
-        const fromLog = overridesFromLog(log, rows);
-
-        if (cur == null || prevFp !== fp) {
+        if (cur == null || plan.prevFp !== plan.fp) {
           // First hydrate, or server log data changed — take log as base
-          next[athleteId] = fromLog;
-          hydratedLogFpRef.current.set(athleteId, fp);
+          next[athleteId] = plan.fromLog;
+          hydratedLogFpRef.current.set(athleteId, plan.fp);
           changed = true;
           continue;
         }
 
         // Same log: only fill keys the athlete column is still missing (new set rows, etc.)
         let merged = cur;
-        for (const [key, value] of Object.entries(fromLog)) {
+        for (const [key, value] of Object.entries(plan.fromLog)) {
           if (key in cur) continue;
           if (merged === cur) merged = { ...cur };
           merged[key] = value;
@@ -587,6 +686,40 @@ export function ManualLogClient() {
         if (selected.has(athleteId)) continue;
         delete next[athleteId];
         hydratedLogFpRef.current.delete(athleteId);
+        changed = true;
+      }
+
+      return changed ? next : prev;
+    });
+
+    setRpeByAthlete((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      const selected = new Set(selectedAthleteIds);
+
+      for (const athleteId of selectedAthleteIds) {
+        const plan = plans.get(athleteId);
+        if (!plan) continue;
+        const cur = next[athleteId];
+
+        if (!plan.hasLog) {
+          if (!(athleteId in next)) {
+            next[athleteId] = {};
+            changed = true;
+          }
+          continue;
+        }
+
+        // Same fingerprint: keep in-progress nudges.
+        if (cur == null || plan.prevFp !== plan.fp) {
+          next[athleteId] = plan.rpe;
+          changed = true;
+        }
+      }
+
+      for (const athleteId of Object.keys(next)) {
+        if (selected.has(athleteId)) continue;
+        delete next[athleteId];
         changed = true;
       }
 
@@ -627,6 +760,40 @@ export function ManualLogClient() {
       ...prev,
       [athleteId]: { ...(prev[athleteId] ?? {}), [key]: "" },
     }));
+  }
+
+  function setAthleteRpe(athleteId: string, row: ClientRow, nextRpe: number) {
+    const key = cellKey(row.rowKey, row.setIndex);
+    const defaultText = defaults[key] ?? row.defaultText;
+    const prescribed = resolveSetRpe({ target: defaultText, rpeOverride: null }).rpe;
+    setRpeByAthlete((prev) => {
+      const athlete = { ...(prev[athleteId] ?? {}) };
+      if (prescribed != null && nextRpe === prescribed) {
+        delete athlete[key];
+      } else {
+        athlete[key] = nextRpe;
+      }
+      return { ...prev, [athleteId]: athlete };
+    });
+  }
+
+  function rpeOverridesPayload(athleteId: string): Record<string, number> | undefined {
+    const stored = rpeByAthlete[athleteId];
+    if (!stored) return undefined;
+    const out: Record<string, number> = {};
+    for (const row of rows) {
+      const key = cellKey(row.rowKey, row.setIndex);
+      const value = finiteRpe(stored[key]);
+      if (value == null) continue;
+      const defaultText = defaults[key] ?? row.defaultText;
+      const prescribed = resolveSetRpe({
+        target: defaultText,
+        rpeOverride: null,
+      }).rpe;
+      if (prescribed == null || value === prescribed) continue;
+      out[key] = value;
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
   }
 
   function focusedRaw(): string {
@@ -978,10 +1145,14 @@ export function ManualLogClient() {
         });
       }
 
-      const athletesPayload = selectedAthletes.map((a) => ({
-        athlete_id: a.id,
-        cells: { ...(overrides[a.id] ?? {}) },
-      }));
+      const athletesPayload = selectedAthletes.map((a) => {
+        const rpe_overrides = rpeOverridesPayload(a.id);
+        return {
+          athlete_id: a.id,
+          cells: { ...(overrides[a.id] ?? {}) },
+          ...(rpe_overrides ? { rpe_overrides } : {}),
+        };
+      });
 
       const res = await fetch("/api/weight-room/manual-log", {
         method: "POST",
@@ -1462,36 +1633,76 @@ export function ManualLogClient() {
                           const cellOverride = overrides[a.id]?.[dKey];
                           const display =
                             cellOverride !== undefined ? cellOverride : "";
+                          const resolvedText =
+                            cellOverride != null && cellOverride.trim() !== ""
+                              ? cellOverride
+                              : defaultVal;
+                          const nudge = rpeNudgeForCell(
+                            defaultVal,
+                            resolvedText,
+                            rpeByAthlete[a.id]?.[dKey]
+                          );
                           return (
                             <td
                               key={a.id}
                               className="border-r border-border px-2 py-1.5 align-top"
                             >
-                              <div className="flex gap-1">
-                                <input
-                                  className="w-full min-w-[5rem] rounded border border-border bg-background px-2 py-1 text-foreground placeholder:text-foreground-muted/50"
-                                  value={display}
-                                  placeholder={defaultVal || "—"}
-                                  onChange={(e) =>
-                                    setAthleteCell(a.id, row, e.target.value)
-                                  }
-                                  onFocus={() =>
-                                    setFocused({
-                                      kind: "athlete",
-                                      rowKey: row.rowKey,
-                                      setIndex: row.setIndex,
-                                      athleteId: a.id,
-                                    })
-                                  }
-                                />
-                                <button
-                                  type="button"
-                                  title="Clear / skip set"
-                                  className="shrink-0 rounded border border-border px-1.5 text-xs text-foreground-muted hover:border-accent/50 hover:text-foreground"
-                                  onClick={() => clearAthleteCell(a.id, row)}
-                                >
-                                  ⌫
-                                </button>
+                              <div className="flex flex-col gap-1">
+                                <div className="flex gap-1">
+                                  <input
+                                    className="w-full min-w-[5rem] rounded border border-border bg-background px-2 py-1 text-foreground placeholder:text-foreground-muted/50"
+                                    value={display}
+                                    placeholder={defaultVal || "—"}
+                                    onChange={(e) =>
+                                      setAthleteCell(a.id, row, e.target.value)
+                                    }
+                                    onFocus={() =>
+                                      setFocused({
+                                        kind: "athlete",
+                                        rowKey: row.rowKey,
+                                        setIndex: row.setIndex,
+                                        athleteId: a.id,
+                                      })
+                                    }
+                                  />
+                                  <button
+                                    type="button"
+                                    title="Clear / skip set"
+                                    className="shrink-0 rounded border border-border px-1.5 text-xs text-foreground-muted hover:border-accent/50 hover:text-foreground"
+                                    onClick={() => clearAthleteCell(a.id, row)}
+                                  >
+                                    ⌫
+                                  </button>
+                                </div>
+                                {nudge ? (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      aria-label="Lower RPE"
+                                      disabled={nudge.lower === nudge.effective}
+                                      className="rounded border border-border px-1.5 py-0.5 text-xs text-foreground-muted hover:border-accent/50 hover:text-foreground disabled:opacity-30"
+                                      onClick={() =>
+                                        setAthleteRpe(a.id, row, nudge.lower)
+                                      }
+                                    >
+                                      −
+                                    </button>
+                                    <span className="text-xs tabular-nums text-foreground-muted">
+                                      RPE {formatRpe(nudge.effective)}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      aria-label="Raise RPE"
+                                      disabled={nudge.raise === nudge.effective}
+                                      className="rounded border border-border px-1.5 py-0.5 text-xs text-foreground-muted hover:border-accent/50 hover:text-foreground disabled:opacity-30"
+                                      onClick={() =>
+                                        setAthleteRpe(a.id, row, nudge.raise)
+                                      }
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                ) : null}
                               </div>
                             </td>
                           );
