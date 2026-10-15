@@ -8,6 +8,7 @@ import { ArchetypesSection } from "./ArchetypesSection";
 import { SuperpowersKryptoniteSection } from "./SuperpowersKryptoniteSection";
 import { TeamsAndEventsSection } from "./TeamsAndEventsSection";
 import { AttendanceSection } from "./AttendanceSection";
+import { EstimatedStrengthSection } from "./EstimatedStrengthSection";
 
 type Athlete = {
   id: string;
@@ -96,6 +97,8 @@ export function AthleteDashboard({ athleteId }: AthleteDashboardProps) {
         <TeamsAndEventsSection athleteId={athleteId} />
 
         <AttendanceSection athleteId={athleteId} />
+
+        <EstimatedStrengthSection athleteId={athleteId} />
 
         {/* Sections */}
         <div className="space-y-4">
