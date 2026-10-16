@@ -99,4 +99,30 @@ describe("buildWorkingWeights", () => {
     expect(cell?.kind).toBe("ceiling");
     expect(cell?.kind).not.toBe("load");
   });
+
+  it("prints an RM attempt as the ceiling when a warmup comes first", () => {
+    const rows = buildWorkingWeights({
+      sessionDate: "2026-10-15",
+      movements: [
+        {
+          name: "Back Squat",
+          targets: ["6\u20138 @ RPE 7", "1RM Attempt"],
+          set_count: 4,
+        },
+      ],
+      athletes: [
+        {
+          athleteId: "a1",
+          patterns: [],
+          baselines: { squat: 300 },
+        },
+      ],
+    });
+
+    const cell = rows
+      .find((row) => row.name === "Back Squat")
+      ?.cells.find((entry) => entry.athleteId === "a1")?.value;
+    expect(cell).toEqual({ kind: "ceiling", pounds: 300 });
+    expect(cell?.kind).not.toBe("load");
+  });
 });

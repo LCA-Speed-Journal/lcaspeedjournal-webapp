@@ -61,12 +61,15 @@ export function buildWorkingWeights(input: {
   return rows;
 }
 
+/** An RM attempt anywhere in the list is the test ceiling. Otherwise the first RPE target. */
 function firstQualifiedTarget(targets: readonly string[]): ResolvedTarget | null {
+  let opener: ResolvedTarget | null = null;
   for (const target of targets) {
     const resolved = resolveSetRpe({ target, rpeOverride: null });
-    if (resolved.rmAttempt || resolved.rpe != null) return resolved;
+    if (resolved.rmAttempt) return resolved;
+    if (opener == null && resolved.rpe != null) opener = resolved;
   }
-  return null;
+  return opener;
 }
 
 function patternReferenceE1rm(
