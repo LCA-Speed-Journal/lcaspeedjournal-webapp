@@ -6,11 +6,9 @@ import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
 import { EstimatedStrengthBlock } from "@/app/reporting/team-progress/EstimatedStrengthBlock";
 import type { BaselineRow } from "@/lib/strength/baselines";
+import { schoolYearRange } from "@/lib/team-progress/date-presets";
 import type { WorkoutTemplateRow } from "@/lib/weight-room/insert-template";
 import "./print.css";
-
-const SCHOOL_YEAR_FROM = "2025-08-01";
-const SCHOOL_YEAR_TO = "2026-12-31";
 
 const DERIVED_PATTERNS = [
   { pattern: "hinge", label: "Hinge" },
@@ -100,7 +98,13 @@ function formatCell(cell: WorkingWeightCell | undefined): string {
   return "";
 }
 
-function BaselineEditor({ athleteId }: { athleteId: string }) {
+function BaselineEditor({
+  athleteId,
+  onSaved,
+}: {
+  athleteId: string;
+  onSaved: () => void | Promise<unknown>;
+}) {
   const { data, error, isLoading, mutate } = useSWR<BaselinesResponse>(
     `/api/strength/baselines?athlete_id=${encodeURIComponent(athleteId)}`,
     fetcher,
@@ -152,6 +156,7 @@ function BaselineEditor({ athleteId }: { athleteId: string }) {
         return;
       }
       await mutate(json, { revalidate: false });
+      await onSaved();
       setSquatText(undefined);
       setBenchText(undefined);
       setPowerText(undefined);
@@ -190,6 +195,7 @@ function BaselineEditor({ athleteId }: { athleteId: string }) {
         return;
       }
       await mutate(json, { revalidate: false });
+      await onSaved();
       setEditText((current) => {
         const next = { ...current };
         delete next[pattern];
@@ -335,16 +341,16 @@ export function ExtracurricularClient() {
     "/api/weight-room/rosters?hugo_group=extracurricular",
     fetcher
   );
+  const weightsKey = templateId
+    ? `/api/strength/working-weights?template_id=${encodeURIComponent(templateId)}`
+    : null;
   const {
     data: weightsRes,
     error: weightsError,
     isLoading: weightsLoading,
-  } = useSWR<WorkingWeightsResponse>(
-    templateId
-      ? `/api/strength/working-weights?template_id=${encodeURIComponent(templateId)}`
-      : null,
-    fetcher
-  );
+    mutate: refreshWeights,
+  } = useSWR<WorkingWeightsResponse>(weightsKey, fetcher);
+  const range = schoolYearRange();
 
   const templates = templatesRes?.data ?? [];
   const roster = rosterRes?.data ?? [];
@@ -442,8 +448,8 @@ export function ExtracurricularClient() {
           ) : null}
           <EstimatedStrengthBlock
             hugoGroup="extracurricular"
-            from={SCHOOL_YEAR_FROM}
-            to={SCHOOL_YEAR_TO}
+            from={range.from}
+            to={range.to}
             roster={chartRoster}
           />
         </div>
@@ -472,7 +478,13 @@ export function ExtracurricularClient() {
               ))}
             </select>
           </label>
-          {athleteId ? <BaselineEditor key={athleteId} athleteId={athleteId} /> : null}
+          {athleteId ? (
+            <BaselineEditor
+              key={athleteId}
+              athleteId={athleteId}
+              onSaved={() => (weightsKey ? refreshWeights() : undefined)}
+            />
+          ) : null}
         </section>
 
         <section className="extra-print-sheet mt-8 overflow-x-auto rounded-xl border border-border bg-surface-elevated p-4">
