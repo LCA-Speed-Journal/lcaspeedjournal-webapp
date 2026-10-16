@@ -74,6 +74,12 @@ export default async function WeightRoomHubPage() {
             Reports — Overview + PDF
           </Link>
           <Link
+            href="/weight-room/extracurricular"
+            className="rounded-xl border border-border bg-surface-elevated px-4 py-3 text-sm font-medium text-foreground hover:border-accent/50"
+          >
+            Extracurricular strength
+          </Link>
+          <Link
             href="/weight-room/attendance"
             className="rounded-xl border border-border bg-surface-elevated px-4 py-3 text-sm font-medium text-foreground hover:border-accent/50"
           >

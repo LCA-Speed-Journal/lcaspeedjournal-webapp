@@ -1,0 +1,40 @@
+@media print {
+  .extra-template-picker,
+  .extra-growth-chart,
+  .extra-baseline-form,
+  .extra-print-button,
+  .extra-screen-only {
+    display: none !important;
+  }
+
+  @page {
+    size: letter landscape;
+    margin: 0.4in;
+  }
+
+  html,
+  body,
+  .extra-page {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  .extra-print-sheet {
+    overflow: visible !important;
+    border-color: #ccc !important;
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  .extra-print-sheet,
+  .extra-print-sheet * {
+    color: #111 !important;
+  }
+
+  .extra-print-sheet th,
+  .extra-print-sheet td {
+    border: 1px solid #bbb;
+    background: #fff !important;
+    white-space: normal !important;
+  }
+}
