@@ -40,7 +40,7 @@ export const EXERCISES: readonly ExerciseRatio[] = [
   ...rows("squat", "squat", [
     { name: "Back Squat", ratio: 1 },
     { name: "Front Squat", ratio: 0.8 },
-    { name: "Goblet Squat", ratio: 0.64 },
+    { name: "Goblet Squat", ratio: 0.64, aliases: ["DB Goblet Squat"] },
     { name: "Rack squat", ratio: 1.2 },
     { name: "Safety Squat", ratio: 1.33 },
     { name: "Sport Back Squat", ratio: 1 },
@@ -50,19 +50,28 @@ export const EXERCISES: readonly ExerciseRatio[] = [
     { name: "Hex Deadlift", ratio: 1.15, aliases: ["Trap-Bar Deadlift", "Trap Bar Deadlift"] },
     { name: "Deadlift", ratio: 1.2 },
     { name: "Straight Leg DL", ratio: 0.65 },
-    { name: "RDL", ratio: 0.75, aliases: ["BB RDL", "Romanian Deadlift"] },
+    {
+      name: "RDL",
+      ratio: 0.75,
+      aliases: ["BB RDL", "Romanian Deadlift", "Deficit RDL", "BB Deficit RDL", "B-Stance RDL"],
+    },
     { name: "RDL Shrug", ratio: 0.75 },
-    { name: "DB RDL", ratio: 0.33 },
+    { name: "DB RDL", ratio: 0.33, aliases: ["DB B-Stance RDL"] },
     { name: "DB RDL Shrug", ratio: 0.33 },
     { name: "DB RDL InLine", ratio: 0.33 },
   ]),
   ...rows("single_leg", "squat", [
-    { name: "DB Split Squat", ratio: 0.5, aliases: ["Split Squat", "Split-Squat"] },
+    {
+      name: "DB Split Squat",
+      ratio: 0.5,
+      aliases: ["Split Squat", "Split-Squat", "Bulgarian Split-Squat", "Bulgarian Split Squat"],
+    },
     {
       name: "Lunge",
       ratio: 0.4,
       aliases: [
         "Forward-to-Reverse Lunge",
+        "DB Forward-to-Reverse Lunge",
         "DB Reverse Lunge",
         "Reverse Lunge",
         "Walking Lunge",
@@ -77,7 +86,7 @@ export const EXERCISES: readonly ExerciseRatio[] = [
   ...rows("press", "bench", [
     { name: "Bench Press", ratio: 1, aliases: ["BB Bench", "Bench"] },
     { name: "Incline Bench", ratio: 0.8 },
-    { name: "DB Bench", ratio: 0.35 },
+    { name: "DB Bench", ratio: 0.35, aliases: ["DB Bench Press"] },
     { name: "DB Incline Bench", ratio: 0.3 },
     { name: "DB Shoulder Press", ratio: 0.25, aliases: ["Seated DB Shoulder Press"] },
     { name: "Arnold Press", ratio: 0.2 },
@@ -88,7 +97,7 @@ export const EXERCISES: readonly ExerciseRatio[] = [
   ]),
   ...rows("pull", "bench", [
     { name: "Lat Pull Down", ratio: 0.75, aliases: ["Pulldown", "Pull-Up/Pulldown"] },
-    { name: "BB BO Row", ratio: 0.65 },
+    { name: "BB BO Row", ratio: 0.65, aliases: ["Row"] },
     { name: "DB BO Row", ratio: 0.35, aliases: ["1-Arm DB Row"] },
     { name: "DB Prone Row", ratio: 0.35 },
     { name: "Pull Up", ratio: 0.6 },
@@ -132,6 +141,12 @@ function normalizeName(name: string): string {
     .replace(/\([^)]*\)/g, " ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+/** One logged forward-to-reverse rep is a forward lunge plus a reverse lunge. */
+export function isForwardToReverseLunge(name: string): boolean {
+  const key = normalizeName(name);
+  return key.includes("forward") && key.includes("reverse") && key.includes("lunge");
 }
 
 /** Exact normalized equality so a short alias cannot match a longer card name. */

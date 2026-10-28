@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { percentOf1Rm } from "./relative-intensity";
+import { percentOf1Rm, percentOf1RmExtended } from "./relative-intensity";
 
 describe("percentOf1Rm", () => {
   it("matches the Liberty chart at the checked cells", () => {
@@ -25,5 +25,12 @@ describe("percentOf1Rm", () => {
     expect(percentOf1Rm(5, 2.5)).toBeNull();
     expect(percentOf1Rm(5, 10.5)).toBeNull();
     expect(percentOf1Rm(5.5, 8)).toBeNull();
+  });
+
+  it("continues the 8-to-10 drop for a doubled lunge, and stops at 20", () => {
+    expect(percentOf1Rm(12, 10)).toBeNull();
+    expect(percentOf1RmExtended(12, 10)).toBeCloseTo(0.65, 5);
+    expect(percentOf1RmExtended(6, 8)).toBeCloseTo(0.85 * 0.9, 5);
+    expect(percentOf1RmExtended(21, 8)).toBeNull();
   });
 });

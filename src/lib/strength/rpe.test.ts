@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyRpeNudge, resolveSetRpe } from "./rpe";
+import { applyRpeNudge, loadSetRpe, resolveSetRpe } from "./rpe";
 
 describe("resolveSetRpe", () => {
   it("prefers the override over the card", () => {
@@ -46,6 +46,14 @@ describe("resolveSetRpe", () => {
     });
   });
 
+  it("reads RPE written in parentheses", () => {
+    expect(resolveSetRpe({ target: "6/side (RPE 7)", rpeOverride: null })).toEqual({
+      rpe: 7,
+      prescribedReps: 6,
+      rmAttempt: false,
+    });
+  });
+
   it("reads a plus target", () => {
     expect(resolveSetRpe({ target: "12+ @ RPE 8", rpeOverride: null })).toEqual({
       rpe: 8,
@@ -68,6 +76,21 @@ describe("resolveSetRpe", () => {
       prescribedReps: 5,
       rmAttempt: true,
     });
+  });
+});
+
+describe("loadSetRpe", () => {
+  it("uses RPE 6 when a load has no card RPE", () => {
+    expect(loadSetRpe({ target: "55x6", rpeOverride: null })).toBe(6);
+  });
+
+  it("keeps a card RPE and an override", () => {
+    expect(loadSetRpe({ target: "3 @ RPE 8", rpeOverride: null })).toBe(8);
+    expect(loadSetRpe({ target: "55x6", rpeOverride: 7.5 })).toBe(7.5);
+  });
+
+  it("rejects a non-finite override", () => {
+    expect(loadSetRpe({ target: "3 @ RPE 8", rpeOverride: Number.NaN })).toBeNull();
   });
 });
 

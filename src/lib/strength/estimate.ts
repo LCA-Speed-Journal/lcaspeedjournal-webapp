@@ -1,6 +1,21 @@
-import { lookupExercise, patternReference, type StrengthPattern } from "./exercises";
-import { percentOf1Rm } from "./relative-intensity";
-import { resolveSetRpe } from "./rpe";
+import {
+  isForwardToReverseLunge,
+  lookupExercise,
+  patternReference,
+  type StrengthPattern,
+} from "./exercises";
+import { percentOf1RmExtended } from "./relative-intensity";
+import { loadSetRpe } from "./rpe";
+
+/** Reps the Liberty chart should see. Forward-to-reverse counts as two lunges. */
+export function chartReps(movementName: string, reps: number): number {
+  if (!isForwardToReverseLunge(movementName)) return reps;
+  return reps * 2;
+}
+
+export function percentForMovement(movementName: string, reps: number, rpe: number): number | null {
+  return percentOf1RmExtended(chartReps(movementName, reps), rpe);
+}
 
 export function roundTo5Lb(lb: number): number {
   return Math.round(lb / 5) * 5;
@@ -15,11 +30,11 @@ export function estimateSet(input: {
 }): { rpe: number; exerciseE1rm: number } | null {
   if (input.load == null || !Number.isFinite(input.load) || input.load <= 0) return null;
   if (input.reps == null || !Number.isInteger(input.reps) || input.reps < 1) return null;
-  const resolved = resolveSetRpe({ target: input.target, rpeOverride: input.rpeOverride });
-  if (resolved.rpe == null || !Number.isFinite(resolved.rpe)) return null;
-  const pct = percentOf1Rm(input.reps, resolved.rpe);
+  const rpe = loadSetRpe({ target: input.target, rpeOverride: input.rpeOverride });
+  if (rpe == null) return null;
+  const pct = percentForMovement(input.movementName, input.reps, rpe);
   if (pct == null || !Number.isFinite(pct) || pct <= 0) return null;
-  return { rpe: resolved.rpe, exerciseE1rm: input.load / pct };
+  return { rpe, exerciseE1rm: input.load / pct };
 }
 
 export function toPatternReference(
@@ -52,7 +67,7 @@ export function suggestedLoad(input: {
   if (!exercise || exercise.pattern !== input.pattern) return null;
   const reference = patternReference(input.pattern);
   if (exercise.parent !== reference.parent) return null;
-  const pct = percentOf1Rm(input.reps, input.rpe);
+  const pct = percentForMovement(input.movementName, input.reps, input.rpe);
   if (pct == null || !Number.isFinite(pct) || pct <= 0) return null;
   const exerciseMax = input.referenceE1rm * (exercise.ratio / reference.ratio);
   return roundTo5Lb(exerciseMax * pct);

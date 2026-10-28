@@ -1,6 +1,5 @@
 import { lookupExercise, patternReference, type StrengthPattern } from "./exercises";
-import { roundTo5Lb, suggestedLoad } from "./estimate";
-import { percentOf1Rm } from "./relative-intensity";
+import { percentForMovement, roundTo5Lb, suggestedLoad } from "./estimate";
 import { resolveSetRpe } from "./rpe";
 import { latestReferenceBefore } from "./series";
 
@@ -123,7 +122,7 @@ function ceilingCell(
   if (!exercise || exercise.pattern !== pattern) return null;
   const reference = patternReference(pattern);
   if (exercise.parent !== reference.parent) return null;
-  const pct = percentOf1Rm(prescribedReps, 10);
+  const pct = percentForMovement(movementName, prescribedReps, 10);
   if (pct == null || !Number.isFinite(pct) || pct <= 0) return null;
   const exerciseMax = referenceE1rm * (exercise.ratio / reference.ratio);
   const pounds = roundTo5Lb(exerciseMax * pct);

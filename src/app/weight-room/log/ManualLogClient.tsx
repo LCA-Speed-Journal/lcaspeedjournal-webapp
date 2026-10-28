@@ -30,7 +30,12 @@ import type {
 } from "@/lib/weight-room/insert-template";
 import { getMetricsRegistry } from "@/lib/parser";
 import { FORTY_YD_COMPONENTS, FORTY_YD_DASH } from "@/lib/norms/editor-metrics";
-import { applyRpeNudge, resolveSetRpe } from "@/lib/strength/rpe";
+import {
+  applyRpeNudge,
+  loadSetRpe,
+  resolveSetRpe,
+  UNSPECIFIED_LOAD_RPE,
+} from "@/lib/strength/rpe";
 
 const EMPTY_DIRECTORY: DirectoryAthlete[] = [];
 
@@ -380,7 +385,7 @@ function formatRpe(value: number): string {
   return String(Math.round(value * 10) / 10);
 }
 
-/** Nudge only when the resolved cell is a load and the default text prescribes an RPE. */
+/** Nudge for a logged load. A card with no RPE starts at 6 and stays editable. */
 function rpeNudgeForCell(
   defaultText: string,
   resolvedText: string,
@@ -392,7 +397,7 @@ function rpeNudgeForCell(
   raise: number;
 } | null {
   if (parseLoadReps(resolvedText).kind !== "load_reps") return null;
-  const prescribed = resolveSetRpe({ target: defaultText, rpeOverride: null }).rpe;
+  const prescribed = loadSetRpe({ target: defaultText, rpeOverride: null });
   if (prescribed == null) return null;
   const storedRpe = finiteRpe(stored);
   const effective = storedRpe ?? prescribed;
@@ -801,10 +806,11 @@ export function ManualLogClient() {
   function setAthleteRpe(athleteId: string, row: ClientRow, nextRpe: number) {
     const key = cellKey(row.rowKey, row.setIndex);
     const defaultText = defaults[key] ?? row.defaultText;
-    const prescribed = resolveSetRpe({ target: defaultText, rpeOverride: null }).rpe;
+    const fromCard = resolveSetRpe({ target: defaultText, rpeOverride: null }).rpe;
+    const baseline = fromCard ?? UNSPECIFIED_LOAD_RPE;
     setRpeByAthlete((prev) => {
       const athlete = { ...(prev[athleteId] ?? {}) };
-      if (prescribed != null && nextRpe === prescribed) {
+      if (nextRpe === baseline) {
         athlete[key] = null;
       } else {
         athlete[key] = nextRpe;
@@ -822,11 +828,18 @@ export function ManualLogClient() {
       const value = finiteRpe(stored[key]);
       if (value == null) continue;
       const defaultText = defaults[key] ?? row.defaultText;
-      const prescribed = resolveSetRpe({
+      const cellOverride = overrides[athleteId]?.[key];
+      const resolvedText =
+        cellOverride != null && cellOverride.trim() !== ""
+          ? cellOverride
+          : defaultText;
+      const fromCard = resolveSetRpe({
         target: defaultText,
         rpeOverride: null,
       }).rpe;
-      if (prescribed == null || value === prescribed) continue;
+      const isLoad = parseLoadReps(resolvedText).kind === "load_reps";
+      const baseline = fromCard ?? (isLoad ? UNSPECIFIED_LOAD_RPE : null);
+      if (baseline == null || value === baseline) continue;
       out[key] = value;
     }
     return Object.keys(out).length > 0 ? out : undefined;

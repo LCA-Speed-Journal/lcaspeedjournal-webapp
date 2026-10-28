@@ -1,4 +1,7 @@
-const RPE_VALUE = /@\s*RPE\s*(\d+(?:\.\d+)?)/i;
+/** Logged load with no card RPE and no override. Still nudged like a prescription. */
+export const UNSPECIFIED_LOAD_RPE = 6;
+
+const RPE_VALUE = /(?:@|\()\s*RPE\s*(\d+(?:\.\d+)?)/i;
 const REP_RANGE = /(\d+)\s*[-\u2013]\s*(\d+)/;
 const REP_PLUS = /(\d+)\s*\+/;
 const REP_COUNT = /(\d+)/;
@@ -35,6 +38,23 @@ export function resolveSetRpe(input: {
   const fromCard = rpeMatch ? Number(rpeMatch[1]) : rmAttempt ? 10 : null;
   const rpe = input.rpeOverride ?? fromCard;
   return { rpe, prescribedReps, rmAttempt };
+}
+
+/**
+ * RPE for a set that already has a load. A non-finite override is rejected.
+ * Otherwise the override wins, then the card, then RPE 6.
+ */
+export function loadSetRpe(input: {
+  target: string | null;
+  rpeOverride: number | null;
+}): number | null {
+  if (input.rpeOverride != null && !Number.isFinite(input.rpeOverride)) return null;
+  const resolved = resolveSetRpe({
+    target: input.target,
+    rpeOverride: input.rpeOverride,
+  });
+  if (resolved.rpe != null && Number.isFinite(resolved.rpe)) return resolved.rpe;
+  return UNSPECIFIED_LOAD_RPE;
 }
 
 /** Effective RPE. Delta is snapped to 0.5 and limited to ±1.5, then clamped to 3–10. */
