@@ -10,6 +10,12 @@ describe("dropoffLine", () => {
   it("puts a score line below the best", () => {
     expect(dropoffLine(28.5, "score")).toBe(26.79);
   });
+
+  it("rounds a score line half-up at two decimals", () => {
+    expect(dropoffLine(21.25, "score")).toBe(19.98);
+    expect(dropoffLine(7.75, "score")).toBe(7.29);
+    expect(dropoffLine(29.25, "score")).toBe(27.5);
+  });
 });
 
 describe("summarizeDropoff", () => {
