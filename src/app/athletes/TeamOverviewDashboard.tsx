@@ -6,19 +6,19 @@
  */
 import { Fragment, useState } from "react";
 import useSWR from "swr";
-import { BuildInVelocityChart } from "@/components/speed/VelocitySegments";
+import { SpeedCurveCharts } from "@/components/speed/SpeedCurve";
 import type {
   HugoLeaderBlock,
   LeaderCell,
   LeaderMetricRow,
 } from "@/lib/athletes/team-leaders";
-import type { BuildInDistanceRow } from "@/lib/speed/profile";
+import { speedDots, type SpeedProfileRow } from "@/lib/speed/profile";
 import { speedJournalSchoolYearRange } from "@/lib/team-progress/date-presets";
 import { HUGO_GROUP_META, type HugoGroup } from "@/lib/weight-room/constants";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-async function fetchProfile(url: string): Promise<{ data: BuildInDistanceRow[] }> {
+async function fetchProfile(url: string): Promise<{ data: SpeedProfileRow[] }> {
   const res = await fetch(url);
   const json = await res.json();
   if (!res.ok) {
@@ -36,10 +36,11 @@ function GroupBuildInChart({
   from: string;
   to: string;
 }) {
-  const { data, error, isLoading } = useSWR<{ data: BuildInDistanceRow[] }>(
+  const { data, error, isLoading } = useSWR<{ data: SpeedProfileRow[] }>(
     `/api/speed/profile?hugo_group=${encodeURIComponent(hugoGroup)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     fetchProfile
   );
+  const dots = speedDots(data?.data ?? []);
 
   return (
     <div className="mt-4 border-t border-border pt-4">
@@ -49,7 +50,7 @@ function GroupBuildInChart({
       ) : error ? (
         <p className="text-sm text-foreground-muted">Couldn&apos;t load build-in profile.</p>
       ) : (
-        <BuildInVelocityChart rows={data?.data ?? []} aggregate />
+        <SpeedCurveCharts dots={dots} />
       )}
     </div>
   );

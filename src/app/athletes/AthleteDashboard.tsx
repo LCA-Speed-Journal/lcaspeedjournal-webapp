@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { BuildInVelocityChart } from "@/components/speed/VelocitySegments";
-import type { BuildInDistanceRow } from "@/lib/speed/profile";
+import { SpeedCurveCharts } from "@/components/speed/SpeedCurve";
+import { speedDots, type SpeedDot, type SpeedProfileRow } from "@/lib/speed/profile";
 import { PRsSection } from "./PRsSection";
 import { ProgressionFlagsSection } from "./ProgressionFlagsSection";
 import { F2fSection } from "./F2fSection";
@@ -27,7 +27,30 @@ type AthleteDashboardProps = {
   athleteId: string;
 };
 
-async function fetchProfile(url: string): Promise<{ data: BuildInDistanceRow[] }> {
+function fastestDot(dots: SpeedDot[]): SpeedDot | null {
+  let best: SpeedDot | null = null;
+  for (const dot of dots) {
+    if (!best || dot.mph > best.mph) best = dot;
+  }
+  return best;
+}
+
+function AthleteSpeedCurve({ rows }: { rows: SpeedProfileRow[] }) {
+  const dots = speedDots(rows);
+  const fastest = fastestDot(dots);
+  return (
+    <>
+      <SpeedCurveCharts dots={dots} />
+      {fastest ? (
+        <p className="mt-2 text-xs text-foreground-muted">
+          Fastest {fastest.mph} mph · {fastest.component}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+async function fetchProfile(url: string): Promise<{ data: SpeedProfileRow[] }> {
   const res = await fetch(url);
   const json = await res.json();
   if (!res.ok) {
@@ -53,7 +76,7 @@ export function AthleteDashboard({ athleteId }: AthleteDashboardProps) {
   const [athlete, setAthlete] = useState<Athlete | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const profile = useSWR<{ data: BuildInDistanceRow[] }>(
+  const profile = useSWR<{ data: SpeedProfileRow[] }>(
     `/api/speed/profile?athlete_id=${encodeURIComponent(athleteId)}`,
     fetchProfile
   );
@@ -117,7 +140,7 @@ export function AthleteDashboard({ athleteId }: AthleteDashboardProps) {
           ) : profile.error ? (
             <p className="text-sm text-foreground-muted">Couldn&apos;t load build-in profile.</p>
           ) : (
-            <BuildInVelocityChart rows={profile.data?.data ?? []} aggregate={false} />
+            <AthleteSpeedCurve rows={profile.data?.data ?? []} />
           )}
         </section>
 

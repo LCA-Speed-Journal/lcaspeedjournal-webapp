@@ -8,15 +8,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { parseReportingDateRange } from "@/lib/reporting-date-range";
-import { BUILD_IN_KEY, type DistanceUnit } from "@/lib/speed/windows";
-
-type ProfileRow = {
-  start_distance: number;
-  end_distance: number;
-  distance_unit: DistanceUnit;
-  display_value: number;
-  athlete_id: string;
-};
+import type { SpeedProfileRow } from "@/lib/speed/profile";
+import { BUILD_IN_KEY } from "@/lib/speed/windows";
 
 function isUndefinedColumn(err: unknown): boolean {
   let current: unknown = err;
@@ -28,12 +21,26 @@ function isUndefinedColumn(err: unknown): boolean {
   return false;
 }
 
-function toProfileRows(rows: Record<string, unknown>[]): ProfileRow[] {
-  const out: ProfileRow[] = [];
+function athleteName(row: Record<string, unknown>): string {
+  const first = row.first_name == null ? "" : String(row.first_name).trim();
+  const last = row.last_name == null ? "" : String(row.last_name).trim();
+  return `${first} ${last}`.trim();
+}
+
+function toProfileRows(rows: Record<string, unknown>[]): SpeedProfileRow[] {
+  const out: SpeedProfileRow[] = [];
   for (const row of rows) {
     const unit = row.distance_unit;
     if (unit !== "m" && unit !== "yd") continue;
-    if (row.start_distance == null || row.end_distance == null || row.display_value == null) {
+    if (
+      row.start_distance == null ||
+      row.end_distance == null ||
+      row.display_value == null ||
+      row.session_id == null ||
+      row.metric_key == null ||
+      row.component == null ||
+      row.athlete_id == null
+    ) {
       continue;
     }
     const start = Number(row.start_distance);
@@ -41,11 +48,15 @@ function toProfileRows(rows: Record<string, unknown>[]): ProfileRow[] {
     const mph = Number(row.display_value);
     if (!Number.isFinite(start) || !Number.isFinite(end) || !Number.isFinite(mph)) continue;
     out.push({
+      session_id: String(row.session_id),
+      metric_key: String(row.metric_key),
+      component: String(row.component),
       start_distance: start,
       end_distance: end,
       distance_unit: unit,
       display_value: mph,
       athlete_id: String(row.athlete_id),
+      athlete_name: athleteName(row),
     });
   }
   return out;
@@ -86,13 +97,16 @@ export async function GET(request: NextRequest) {
   try {
     const result = athleteId
       ? await sql`
-          SELECT start_distance, end_distance, distance_unit, display_value, athlete_id
-          FROM entries
-          WHERE metric_key = ${BUILD_IN_KEY}
-            AND athlete_id = ${athleteId}
+          SELECT e.session_id, e.metric_key, e.component, e.start_distance, e.end_distance,
+                 e.distance_unit, e.display_value, e.athlete_id, a.first_name, a.last_name
+          FROM entries e
+          INNER JOIN athletes a ON a.id = e.athlete_id
+          WHERE e.metric_key = ${BUILD_IN_KEY}
+            AND e.athlete_id = ${athleteId}
         `
       : await sql`
-          SELECT e.start_distance, e.end_distance, e.distance_unit, e.display_value, e.athlete_id
+          SELECT e.session_id, e.metric_key, e.component, e.start_distance, e.end_distance,
+                 e.distance_unit, e.display_value, e.athlete_id, a.first_name, a.last_name
           FROM entries e
           INNER JOIN athlete_hugo_memberships m ON m.athlete_id = e.athlete_id
           INNER JOIN athletes a ON a.id = e.athlete_id

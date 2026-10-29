@@ -1,3 +1,5 @@
+import { spanningBuildInKeys, windowIdentity } from "./adjacent";
+
 export type DistanceUnit = "m" | "yd";
 
 type Numeric = number | string;
@@ -12,6 +14,29 @@ export type BuildInDistanceRow = {
 export type VelocitySegment = {
   x1: number;
   x2: number;
+  mph: number;
+};
+
+/** One stored fly, with the identity spanning detection needs. */
+export type SpeedProfileRow = BuildInDistanceRow & {
+  athlete_id: string;
+  athlete_name: string;
+  session_id: string;
+  metric_key: string;
+  component: string;
+};
+
+export type SpeedDot = {
+  athlete_id: string;
+  athlete_name: string;
+  component: string;
+  x: number;
+  mph: number;
+  distance_unit: DistanceUnit;
+};
+
+export type CurvePoint = {
+  x: number;
   mph: number;
 };
 
@@ -68,4 +93,80 @@ export function medianSegmentsForFlyLength(
       x2: group.x2,
       mph: median(group.mphs),
     }));
+}
+
+function finiteWindow(row: SpeedProfileRow): {
+  start: number;
+  end: number;
+  mph: number;
+} | null {
+  const start = Number(row.start_distance);
+  const end = Number(row.end_distance);
+  const mph = Number(row.display_value);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || !Number.isFinite(mph)) return null;
+  if (row.distance_unit !== "m" && row.distance_unit !== "yd") return null;
+  return { start, end, mph };
+}
+
+/** Best non-spanning fly per athlete, component, and unit, plotted at the window midpoint. */
+export function speedDots(rows: SpeedProfileRow[]): SpeedDot[] {
+  const spanning = spanningBuildInKeys(
+    rows.flatMap((row) => {
+      const window = finiteWindow(row);
+      if (!window) return [];
+      return [
+        {
+          session_id: row.session_id,
+          metric_key: row.metric_key,
+          component: row.component,
+          distance_unit: row.distance_unit,
+          start_distance: window.start,
+          end_distance: window.end,
+        },
+      ];
+    })
+  );
+
+  const best = new Map<string, SpeedDot>();
+  for (const row of rows) {
+    const window = finiteWindow(row);
+    if (!window) continue;
+    const identity = windowIdentity({
+      session_id: row.session_id,
+      metric_key: row.metric_key,
+      component: row.component,
+      distance_unit: row.distance_unit,
+      start_distance: window.start,
+      end_distance: window.end,
+    });
+    if (spanning.has(identity)) continue;
+    const dot: SpeedDot = {
+      athlete_id: row.athlete_id,
+      athlete_name: row.athlete_name,
+      component: row.component,
+      x: (window.start + window.end) / 2,
+      mph: window.mph,
+      distance_unit: row.distance_unit,
+    };
+    const key = `${row.athlete_id}|${row.component}|${row.distance_unit}`;
+    const existing = best.get(key);
+    if (!existing || dot.mph > existing.mph) best.set(key, dot);
+  }
+  return [...best.values()];
+}
+
+/** Median mph at each midpoint for one unit, anchored at 0 mph at distance 0. */
+export function medianCurve(dots: SpeedDot[]): CurvePoint[] {
+  const unit = dots[0]?.distance_unit;
+  const sameUnit = unit == null ? dots : dots.filter((dot) => dot.distance_unit === unit);
+  const byX = new Map<number, number[]>();
+  for (const dot of sameUnit) {
+    const mphs = byX.get(dot.x);
+    if (mphs) mphs.push(dot.mph);
+    else byX.set(dot.x, [dot.mph]);
+  }
+  const points = [...byX.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([x, mphs]) => ({ x, mph: median(mphs) }));
+  return [{ x: 0, mph: 0 }, ...points];
 }
