@@ -24,6 +24,7 @@ import type { SessionMetric, SessionMetricComponent } from "@/app/api/leaderboar
 import { formatLeaderboardName } from "@/lib/display-names";
 import { ZoneLegend, ZoneMark } from "./ZoneMark";
 import { isLiveLeaderboardZone } from "@/lib/norms/palette";
+import { formatDropoffCaption } from "@/lib/dropoff/format";
 import { fortyYardLiveReadout, isFortyYardMphPrimary } from "@/lib/norms/forty-yd";
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { computeLeaderboardTriggers } from "./leaderboardDiff";
@@ -692,6 +693,20 @@ function LeaderboardCard({
   const fortyReadout = fortyYardLiveReadout(metricKey, component, row.display_value);
   const primaryValue = fortyReadout?.primaryValue ?? row.display_value;
   const primaryUnits = fortyReadout?.primaryUnits ?? units;
+  const dropoffCaption =
+    row.session_initial != null &&
+    row.dropoff_line != null &&
+    row.dropoff_percent != null &&
+    row.attempts_above_line != null &&
+    row.crossed_dropoff != null
+      ? formatDropoffCaption({
+          initial: row.session_initial,
+          dropoffLine: row.dropoff_line,
+          dropoffPercent: row.dropoff_percent,
+          attemptsAboveLine: row.attempts_above_line,
+          crossedDropoff: row.crossed_dropoff,
+        })
+      : null;
 
   return (
     <motion.div
@@ -741,6 +756,15 @@ function LeaderboardCard({
           />
         )}
       </span>
+      {dropoffCaption ? (
+        <p
+          className={`mt-1 font-mono text-xs tabular-nums ${
+            row.crossed_dropoff ? "text-danger" : "text-foreground-muted"
+          }`}
+        >
+          {dropoffCaption}
+        </p>
+      ) : null}
       <div className="mt-2 flex items-center justify-between">
         <span className="min-w-0">
           {row.best_type === "pb" && (
