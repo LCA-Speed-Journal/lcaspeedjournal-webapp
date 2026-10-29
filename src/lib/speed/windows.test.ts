@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  aliasForWindow,
   classifyLegacySpeedRow,
   expandSpeedRun,
   isShortPracticeWindow,
   mphForWindow,
+  sameSpeedMark,
   timeFromMph,
 } from "./windows";
 
@@ -107,5 +109,49 @@ describe("isShortPracticeWindow", () => {
     expect(isShortPracticeWindow({ distance_unit: "yd", start_distance: 0, end_distance: 40 })).toBe(false);
     expect(isShortPracticeWindow({ distance_unit: "yd", start_distance: 5, end_distance: 15 })).toBe(false);
     expect(isShortPracticeWindow({ distance_unit: "m", start_distance: 20, end_distance: 40 })).toBe(false);
+  });
+});
+
+describe("aliasForWindow", () => {
+  it("names the full 40 and a 10m accel", () => {
+    expect(
+      aliasForWindow({ distance_unit: "yd", start_distance: 0, end_distance: 40 })
+    ).toEqual({ legacy_metric_key: "40yd_Dash", legacy_component: "0-40yd" });
+    expect(
+      aliasForWindow({ distance_unit: "m", start_distance: 0, end_distance: 10 })
+    ).toEqual({ legacy_metric_key: "10m_Accel", legacy_component: "0-10m" });
+    expect(
+      aliasForWindow({ distance_unit: "m", start_distance: 10, end_distance: 20 })
+    ).toEqual({ legacy_metric_key: "10-20m_Split", legacy_component: "10-20m" });
+    expect(
+      aliasForWindow({ distance_unit: "yd", start_distance: 17, end_distance: 33 })
+    ).toBeNull();
+  });
+});
+
+describe("sameSpeedMark", () => {
+  it("matches a rewritten row by its legacy fields", () => {
+    expect(
+      sameSpeedMark(
+        {
+          metric_key: "Acceleration",
+          component: "0-40yd",
+          legacy_metric_key: "40yd_Dash",
+          legacy_component: "0-40yd",
+        },
+        "40yd_Dash",
+        "0-40yd"
+      )
+    ).toBe(true);
+  });
+
+  it("still matches a row that has not been migrated", () => {
+    expect(
+      sameSpeedMark(
+        { metric_key: "40yd_Dash", component: "0-40yd", legacy_metric_key: null, legacy_component: null },
+        "40yd_Dash",
+        "0-40yd"
+      )
+    ).toBe(true);
   });
 });
