@@ -42,6 +42,13 @@ export type LeaderboardRow = {
   zone_color?: string;
   population_name?: string;
   population_id?: string;
+  /** Today's best valid mark. Present only for drop-off metrics. */
+  session_initial?: number;
+  /** 6% quality line from session_initial. */
+  dropoff_line?: number;
+  dropoff_percent?: number;
+  attempts_above_line?: number;
+  crossed_dropoff?: boolean;
 };
 
 export type NormPopulationOption = {

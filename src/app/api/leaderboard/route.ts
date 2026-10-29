@@ -5,6 +5,9 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { attachDropoff, type DropoffAttempt } from "@/lib/dropoff/attach";
+import { isDropoffMetric } from "@/lib/dropoff/metrics";
+import { directionFromUnits } from "@/lib/dropoff/summarize";
 import { guestFields } from "@/lib/guest-athletes";
 import { getMetricsRegistry } from "@/lib/parser";
 import {
@@ -618,7 +621,54 @@ export async function GET(request: NextRequest) {
       console.error("GET /api/leaderboard memberships:", err);
     }
 
-    let zonedRows: LeaderboardRow[] = leaderboardRows;
+    let rowsForZones = leaderboardRows;
+    if (isDropoffMetric(metric) && leaderboardRows.length > 0) {
+      const attemptResult = await sql`
+        SELECT e.athlete_id, e.id, e.display_value, e.created_at
+        FROM entries e
+        WHERE e.session_id = ${session_id} AND e.metric_key = ${metric}
+          AND (
+            (
+              ${overallOnly}::boolean = true
+              AND e.interval_index IS NULL
+              AND (
+                e.component IS NULL
+                OR (
+                  ${metric}::text = '5-10-5_Agility'
+                  AND e.component IN ('Average', 'Athlete-Comfort')
+                )
+              )
+            )
+            OR (
+              ${overallOnly}::boolean = false
+              AND (${interval_index}::int IS NULL OR e.interval_index = ${interval_index})
+              AND (${component}::text IS NULL OR e.component = ${component})
+            )
+          )
+        ORDER BY e.created_at ASC, e.id ASC
+      `;
+      const attempts: DropoffAttempt[] = (attemptResult.rows as {
+        athlete_id: string;
+        id: string;
+        display_value: number | string;
+        created_at: string | Date;
+      }[]).map((row) => ({
+        athleteId: row.athlete_id,
+        id: row.id,
+        displayValue: Number(row.display_value),
+        createdAt:
+          row.created_at instanceof Date
+            ? row.created_at.toISOString()
+            : String(row.created_at),
+      }));
+      rowsForZones = attachDropoff(
+        leaderboardRows,
+        attempts,
+        directionFromUnits(effectiveUnits)
+      );
+    }
+
+    let zonedRows: LeaderboardRow[] = rowsForZones;
     if (populationsLoaded && memberships) {
       try {
         const [defResult, thrResult] = await Promise.all([
@@ -634,7 +684,7 @@ export async function GET(request: NextRequest) {
           `,
         ]);
         const applied = applyLeaderboardZones({
-          rows: leaderboardRows,
+          rows: rowsForZones,
           memberships,
           defaults: defResult.rows as AttachZonesDefault[],
           thresholds: mapThresholdRows(thrResult.rows as RawThresholdRow[]),
