@@ -13,6 +13,7 @@ import {
 } from "./stats";
 
 export type SpeedTrendRow = SpeedWindowRow & {
+  id?: string;
   athlete_id: string;
   session_date: string;
   value: number;
@@ -120,12 +121,28 @@ function seriesFromBestMph(
 type SplitSession = {
   session_id: string;
   session_date: string;
-  t5to10: number | null;
-  t10to20: number | null;
+  fives: SpeedTrendRow[];
+  tens: SpeedTrendRow[];
 };
 
-function positiveSeconds(value: number): boolean {
-  return Number.isFinite(value) && value > 0;
+function compareEntryId(a: SpeedTrendRow, b: SpeedTrendRow): number {
+  const ai = a.id ?? "";
+  const bi = b.id ?? "";
+  if (ai < bi) return -1;
+  if (ai > bi) return 1;
+  return 0;
+}
+
+/** Same-index reps only. The first pair reconstructFiveFifteen accepts wins. */
+function pairedBaselineMph(session: SplitSession): number | null {
+  const fives = [...session.fives].sort(compareEntryId);
+  const tens = [...session.tens].sort(compareEntryId);
+  const n = Math.min(fives.length, tens.length);
+  for (let i = 0; i < n; i++) {
+    const hit = reconstructFiveFifteen(fives[i]!.value, tens[i]!.value);
+    if (hit) return hit.mph;
+  }
+  return null;
 }
 
 function splitSessions(rows: SpeedTrendRow[]): Map<string, SplitSession[]> {
@@ -133,20 +150,15 @@ function splitSessions(rows: SpeedTrendRow[]): Map<string, SplitSession[]> {
   for (const row of rows) {
     if (row.metric_key !== BUILD_IN_KEY) continue;
     if (row.component !== FIVE_TEN && row.component !== TEN_TWENTY) continue;
-    if (!positiveSeconds(row.value)) continue;
     const sessions = byAthlete.get(row.athlete_id) ?? new Map<string, SplitSession>();
     const existing = sessions.get(row.session_id) ?? {
       session_id: row.session_id,
       session_date: row.session_date,
-      t5to10: null,
-      t10to20: null,
+      fives: [],
+      tens: [],
     };
-    if (row.component === FIVE_TEN && existing.t5to10 == null) {
-      existing.t5to10 = row.value;
-    }
-    if (row.component === TEN_TWENTY && existing.t10to20 == null) {
-      existing.t10to20 = row.value;
-    }
+    if (row.component === FIVE_TEN) existing.fives.push(row);
+    else existing.tens.push(row);
     sessions.set(row.session_id, existing);
     byAthlete.set(row.athlete_id, sessions);
   }
@@ -171,11 +183,11 @@ function fiveFifteenBaseline(
   timed: Map<string, number> | undefined
 ): { date: string; mph: number } | null {
   const pair = sessions?.find(
-    (session) => session.t5to10 != null && session.t10to20 != null
+    (session) => session.fives.length > 0 && session.tens.length > 0
   );
-  if (pair && pair.t5to10 != null && pair.t10to20 != null) {
-    const hit = reconstructFiveFifteen(pair.t5to10, pair.t10to20);
-    if (hit) return { date: pair.session_date, mph: hit.mph };
+  if (pair) {
+    const mph = pairedBaselineMph(pair);
+    if (mph != null) return { date: pair.session_date, mph };
   }
 
   const dates = timed ? [...timed.keys()].sort() : [];

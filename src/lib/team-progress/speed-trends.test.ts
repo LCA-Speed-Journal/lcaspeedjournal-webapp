@@ -125,4 +125,68 @@ describe("aggregateSpeedTrends", () => {
     expect(five?.points.map((point) => point.output?.median)).toEqual([18, 19]);
     expect(trends.map((trend) => trend.component)).toEqual(["5-15yd"]);
   });
+
+  it("pairs 5-10 and 10-20 from the same rep, not across reps", () => {
+    const sameRep = reconstructFiveFifteen(0.7, 1.3);
+    const crossed = reconstructFiveFifteen(0.7, 1.6);
+    expect(sameRep).not.toBeNull();
+    expect(crossed).not.toBeNull();
+    expect(sameRep!.mph).not.toBe(crossed!.mph);
+
+    const trends = aggregateSpeedTrends([
+      mark({
+        id: "a",
+        session_id: "s1",
+        session_date: "2026-08-01",
+        component: "5-10yd",
+        start_distance: 5,
+        end_distance: 10,
+        value: 0.7,
+        display_value: 0.7,
+        units: "s",
+      }),
+      mark({
+        id: "d",
+        session_id: "s1",
+        session_date: "2026-08-01",
+        component: "10-20yd",
+        start_distance: 10,
+        end_distance: 20,
+        value: 1.6,
+        display_value: 1.6,
+        units: "s",
+      }),
+      mark({
+        id: "c",
+        session_id: "s1",
+        session_date: "2026-08-01",
+        component: "5-10yd",
+        start_distance: 5,
+        end_distance: 10,
+        value: 0.9,
+        display_value: 0.9,
+        units: "s",
+      }),
+      mark({
+        id: "b",
+        session_id: "s1",
+        session_date: "2026-08-01",
+        component: "10-20yd",
+        start_distance: 10,
+        end_distance: 20,
+        value: 1.3,
+        display_value: 1.3,
+        units: "s",
+      }),
+      mark({
+        session_date: "2026-09-01",
+        component: "5-15yd",
+        start_distance: 5,
+        end_distance: 15,
+        display_value: 18.6,
+      }),
+    ]);
+    const five = trends.find((trend) => trend.component === "5-15yd")!;
+    expect(five.points[0]!.median).toBe(sameRep!.mph);
+  });
 });
