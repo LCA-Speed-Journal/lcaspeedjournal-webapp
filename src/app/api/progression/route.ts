@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
 import { getMaxVelocityKey } from "@/lib/velocity-metrics";
+import { parseWindowMetric } from "@/lib/speed/window-metric";
+import { ACCELERATION_KEY } from "@/lib/speed/windows";
 import {
   AGILITY_5105,
   AGILITY_5105_PRIMARY_COMPONENTS,
@@ -57,13 +59,48 @@ export async function GET(request: NextRequest) {
     }
 
     const registry = getMetricsRegistry();
-    const isMaxVelocity = metric === getMaxVelocityKey();
+    const windowMetric = parseWindowMetric(metric);
+    const isMaxVelocity = windowMetric == null && metric === getMaxVelocityKey();
 
     let rows: ProgressionRow[] = [];
     let units = "";
     let metricDisplayName = metric;
 
-    if (isMaxVelocity) {
+    if (windowMetric) {
+      const lowerIsBetter = windowMetric.metric_key === ACCELERATION_KEY;
+      units = lowerIsBetter ? "s" : "mph";
+      metricDisplayName = windowMetric.component;
+      const agg = lowerIsBetter ? "MIN" : "MAX";
+      const stringParts: string[] = [
+        `SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, e.units, ${agg}(e.display_value) AS display_value
+FROM entries e
+INNER JOIN sessions s ON s.id = e.session_id
+INNER JOIN athletes a ON a.id = e.athlete_id
+WHERE s.session_date >= `,
+        `::date AND s.session_date <= `,
+        `::date AND e.metric_key = `,
+        ` AND e.component = `,
+        ` AND (e.athlete_id = `,
+      ];
+      for (let i = 1; i < cappedIds.length; i++) {
+        stringParts.push(" OR e.athlete_id = ");
+      }
+      stringParts.push(
+        `)
+GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
+ORDER BY s.session_date, e.athlete_id`
+      );
+      const template = Object.assign([...stringParts], { raw: stringParts }) as TemplateStringsArray;
+      const result = await sql(
+        template,
+        from,
+        to,
+        windowMetric.metric_key,
+        windowMetric.component,
+        ...cappedIds
+      );
+      rows = (result.rows as ProgressionRow[]) ?? [];
+    } else if (isMaxVelocity) {
       units = "mph";
       metricDisplayName = "Max Velocity";
 
@@ -219,7 +256,33 @@ ORDER BY s.session_date, e.athlete_id`
     if (teamAvg) {
       // Team averages: from all athletes who have data in each session (not just selected).
       let allRows: ProgressionRow[] = [];
-      if (isMaxVelocity) {
+      if (windowMetric) {
+        const lowerIsBetter = windowMetric.metric_key === ACCELERATION_KEY;
+        const result = lowerIsBetter
+          ? await sql`
+                SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, e.units, MIN(e.display_value) AS display_value
+                FROM entries e
+                INNER JOIN sessions s ON s.id = e.session_id
+                INNER JOIN athletes a ON a.id = e.athlete_id
+                WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
+                  AND e.metric_key = ${windowMetric.metric_key}
+                  AND e.component = ${windowMetric.component}
+                GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
+                ORDER BY s.session_date, e.athlete_id
+              `
+          : await sql`
+                SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, e.units, MAX(e.display_value) AS display_value
+                FROM entries e
+                INNER JOIN sessions s ON s.id = e.session_id
+                INNER JOIN athletes a ON a.id = e.athlete_id
+                WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
+                  AND e.metric_key = ${windowMetric.metric_key}
+                  AND e.component = ${windowMetric.component}
+                GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender, e.units
+                ORDER BY s.session_date, e.athlete_id
+              `;
+        allRows = (result.rows as ProgressionRow[]) ?? [];
+      } else if (isMaxVelocity) {
         const result = await sql`
           SELECT DISTINCT ON (s.session_date, e.athlete_id)
             s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender,

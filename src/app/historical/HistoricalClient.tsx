@@ -12,6 +12,8 @@ import type { LeaderboardRow, NormPopulationOption } from "@/types";
 import type { ProgressionPoint } from "@/types";
 import { ZoneLegend, ZoneMark } from "@/app/leaderboard/ZoneMark";
 import { buildHistoricalLeaderboardUrl } from "./historical-url";
+import { formatWindowMetric } from "@/lib/speed/window-metric";
+import { ACCELERATION_KEY, BUILD_IN_KEY } from "@/lib/speed/windows";
 
 const ProgressionChart = dynamic(
   () => import("./ProgressionChart").then((m) => m.default),
@@ -95,7 +97,10 @@ function HistoricalCard({
           style={hasZone ? { color: row.zone_color } : undefined}
         >
           {formatValue(row.display_value)}{" "}
-          <span className="text-sm font-normal text-foreground-muted">{units}</span>
+          <span className="text-sm font-normal text-foreground-muted">
+            {units}
+            {row.source_component ? ` · ${row.source_component}` : ""}
+          </span>
         </span>
         {hasZone && (
           <ZoneMark
@@ -112,6 +117,25 @@ function HistoricalCard({
 const MAX_PROGRESSION_ATHLETES = 5;
 
 type MetricOption = { key: string; display_name: string; display_units: string };
+type SpeedWindowMenu = { accelerations: string[]; build_ins: string[] };
+type MetricMenuOption = { value: string; label: string };
+
+function windowMenuOptions(windows: SpeedWindowMenu | undefined): MetricMenuOption[] {
+  const options: MetricMenuOption[] = [];
+  for (const component of windows?.accelerations ?? []) {
+    options.push({
+      value: formatWindowMetric(ACCELERATION_KEY, component),
+      label: component,
+    });
+  }
+  for (const component of windows?.build_ins ?? []) {
+    options.push({
+      value: formatWindowMetric(BUILD_IN_KEY, component),
+      label: component,
+    });
+  }
+  return options;
+}
 type SessionItem = { id: string; session_date: string; phase?: string };
 type AthleteOption = { id: string; first_name: string; last_name: string; gender?: string };
 type ProgressionSeriesItem = {
@@ -152,6 +176,18 @@ export default function HistoricalClient() {
     fetcher
   );
   const metrics = metricsData?.data?.metrics ?? [];
+  const windowsUrl =
+    from && to
+      ? `/api/speed/windows?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+      : null;
+  const { data: speedWindows } = useSWR<SpeedWindowMenu>(windowsUrl, fetcher);
+  const metricMenu = useMemo(() => {
+    const registryOptions = metrics.map((m) => ({
+      value: m.key,
+      label: `${m.display_name} (${m.display_units})`,
+    }));
+    return [...registryOptions, ...windowMenuOptions(speedWindows)];
+  }, [metrics, speedWindows]);
 
   const { data: sessionsData } = useSWR<{ data: SessionItem[] }>("/api/sessions", fetcher);
   const phases = useMemo(() => {
@@ -317,9 +353,9 @@ export default function HistoricalClient() {
               className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground focus:border-accent"
             >
               <option value="">Select metric</option>
-              {metrics.map((m) => (
-                <option key={m.key} value={m.key}>
-                  {m.display_name} ({m.display_units})
+              {metricMenu.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
                 </option>
               ))}
             </select>
@@ -550,9 +586,9 @@ export default function HistoricalClient() {
               className="rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground focus:border-accent"
             >
               <option value="">Select metric</option>
-              {metrics.map((m) => (
-                <option key={m.key} value={m.key}>
-                  {m.display_name} ({m.display_units})
+              {metricMenu.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
                 </option>
               ))}
             </select>

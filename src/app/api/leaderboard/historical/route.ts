@@ -9,6 +9,8 @@ import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
 import { getMaxVelocityKey } from "@/lib/velocity-metrics";
 import { getHistoricalComponentFilter } from "@/lib/historical-metric-filter";
+import { parseWindowMetric } from "@/lib/speed/window-metric";
+import { ACCELERATION_KEY } from "@/lib/speed/windows";
 import {
   applyLeaderboardZones,
   mapThresholdRows,
@@ -170,7 +172,89 @@ export async function GET(request: NextRequest) {
     });
 
     const registry = getMetricsRegistry();
-    const isMaxVelocity = metric === getMaxVelocityKey();
+    const windowMetric = parseWindowMetric(metric);
+    const isMaxVelocity = windowMetric == null && metric === getMaxVelocityKey();
+
+    if (windowMetric) {
+      const lowerIsBetter = windowMetric.metric_key === ACCELERATION_KEY;
+      const windowUnits = lowerIsBetter ? "s" : "mph";
+      const result = lowerIsBetter
+        ? await sql`
+      WITH filtered AS (
+        SELECT e.athlete_id, e.display_value, e.units, a.first_name, a.last_name, a.gender, a.athlete_type
+        FROM entries e
+        INNER JOIN sessions s ON s.id = e.session_id
+        INNER JOIN athletes a ON a.id = e.athlete_id
+        WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
+          AND (${phase === ""} OR s.phase = ${phase})
+          AND e.metric_key = ${windowMetric.metric_key}
+          AND e.component = ${windowMetric.component}
+      ),
+      best AS (
+        SELECT DISTINCT ON (athlete_id) athlete_id, display_value, units, first_name, last_name, gender, athlete_type
+        FROM filtered
+        ORDER BY athlete_id, display_value ASC
+      )
+      SELECT (ROW_NUMBER() OVER (ORDER BY display_value ASC))::int AS rank, athlete_id, first_name, last_name, gender, athlete_type, display_value, units
+      FROM best ORDER BY rank
+    `
+        : await sql`
+      WITH filtered AS (
+        SELECT e.athlete_id, e.display_value, e.units, a.first_name, a.last_name, a.gender, a.athlete_type
+        FROM entries e
+        INNER JOIN sessions s ON s.id = e.session_id
+        INNER JOIN athletes a ON a.id = e.athlete_id
+        WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
+          AND (${phase === ""} OR s.phase = ${phase})
+          AND e.metric_key = ${windowMetric.metric_key}
+          AND e.component = ${windowMetric.component}
+      ),
+      best AS (
+        SELECT DISTINCT ON (athlete_id) athlete_id, display_value, units, first_name, last_name, gender, athlete_type
+        FROM filtered
+        ORDER BY athlete_id, display_value DESC
+      )
+      SELECT (ROW_NUMBER() OVER (ORDER BY display_value DESC))::int AS rank, athlete_id, first_name, last_name, gender, athlete_type, display_value, units
+      FROM best ORDER BY rank
+    `;
+
+      const rows = (result.rows as Row[]) ?? [];
+      const leaderboardRows: LeaderboardRow[] = rows.map((r) => ({
+        rank: r.rank,
+        athlete_id: r.athlete_id,
+        first_name: r.first_name,
+        last_name: r.last_name,
+        gender: r.gender,
+        athlete_type: (r.athlete_type as "athlete" | "staff" | "alumni") ?? "athlete",
+        display_value: Number(r.display_value),
+        units: r.units,
+      }));
+
+      const zoned = await attachCurrentStickZones({
+        rows: leaderboardRows,
+        populationsPromise,
+        metricKey: windowMetric.metric_key,
+        component: windowMetric.component,
+        lowerIsBetter,
+        parsedPopulationId: parsedPopulation.populationId,
+      });
+      if (!zoned.ok) {
+        return NextResponse.json({ error: zoned.error }, { status: 400 });
+      }
+      const { male, female } = splitByGender(zoned.rows);
+
+      return NextResponse.json({
+        data: {
+          rows: zoned.rows,
+          male,
+          female,
+          units: windowUnits,
+          metric_display_name: windowMetric.component,
+          populations: zoned.populations,
+          selected_population_id: zoned.selected_population_id,
+        },
+      });
+    }
 
     if (isMaxVelocity) {
       const stringParts: string[] = [

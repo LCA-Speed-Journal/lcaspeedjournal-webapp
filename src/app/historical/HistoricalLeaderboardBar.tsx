@@ -99,7 +99,7 @@ export default function HistoricalLeaderboardBar({
             fullName: `${r.first_name} ${r.last_name}`.trim(),
             value: Number(r.display_value),
             rank: i + 1,
-            source_metric_key: r.source_metric_key,
+            source_component: r.source_component,
           }));
           const barColor = sectionBarColor(section.title);
           const refAvg =
@@ -144,10 +144,10 @@ export default function HistoricalLeaderboardBar({
                         borderRadius: 8,
                       }}
                       labelStyle={{ color: "var(--foreground)" }}
-                      formatter={(value: number, _name: string, props: { payload?: { fullName: string; rank: number; source_metric_key?: string } }) => {
+                      formatter={(value: number, _name: string, props: { payload?: { fullName: string; rank: number; source_component?: string } }) => {
                         const p = props.payload;
-                        const from = p?.source_metric_key ? ` (from ${p.source_metric_key})` : "";
-                        return [`${formatValue(value)} ${units}${from}`, metricDisplayName];
+                        const windowSuffix = p?.source_component ? ` · ${p.source_component}` : "";
+                        return [`${formatValue(value)} ${units}${windowSuffix}`, metricDisplayName];
                       }}
                       labelFormatter={(_, payload) => {
                         const p = payload?.[0]?.payload;
@@ -170,7 +170,7 @@ export default function HistoricalLeaderboardBar({
     fullName: `${r.first_name} ${r.last_name}`.trim(),
     value: Number(r.display_value),
     rank: r.rank,
-    source_metric_key: r.source_metric_key,
+    source_component: r.source_component,
     gender: (r.gender ?? "").toLowerCase().startsWith("m") ? "M" : "F",
   }));
 
@@ -215,10 +215,10 @@ export default function HistoricalLeaderboardBar({
               borderRadius: 8,
             }}
             labelStyle={{ color: "var(--foreground)" }}
-            formatter={(value: number, _name: string, props: { payload?: { fullName: string; rank: number; source_metric_key?: string } }) => {
+            formatter={(value: number, _name: string, props: { payload?: { fullName: string; rank: number; source_component?: string } }) => {
               const p = props.payload;
-              const from = p?.source_metric_key ? ` (from ${p.source_metric_key})` : "";
-              return [`${formatValue(value)} ${units}${from}`, metricDisplayName];
+              const windowSuffix = p?.source_component ? ` · ${p.source_component}` : "";
+              return [`${formatValue(value)} ${units}${windowSuffix}`, metricDisplayName];
             }}
             labelFormatter={(_, payload) => {
               const p = payload?.[0]?.payload;

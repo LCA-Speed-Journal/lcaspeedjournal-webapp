@@ -88,13 +88,10 @@ export default function ProgressionChart({
   teamAvgFemalePoints.forEach((p) => allDates.add(p.session_date));
   const sortedDates = Array.from(allDates).sort();
 
-  const valueByKey = (
+  const pointOnDate = (
     pointsList: ProgressionPoint[],
     date: string
-  ): number | undefined => {
-    const p = pointsList.find((x) => x.session_date === date);
-    return p != null ? Number(p.display_value) : undefined;
-  };
+  ): ProgressionPoint | undefined => pointsList.find((x) => x.session_date === date);
 
   const data = sortedDates.map((session_date) => {
     const row: Record<string, string | number | undefined> = {
@@ -102,10 +99,14 @@ export default function ProgressionChart({
       date: session_date,
     };
     series.forEach((s, i) => {
-      row[`val_${i}`] = valueByKey(s.points, session_date);
+      const point = pointOnDate(s.points, session_date);
+      row[`val_${i}`] = point != null ? Number(point.display_value) : undefined;
+      if (point?.window_label) row[`win_${i}`] = point.window_label;
     });
-    row.men_avg = valueByKey(teamAvgMalePoints, session_date);
-    row.women_avg = valueByKey(teamAvgFemalePoints, session_date);
+    const menPoint = pointOnDate(teamAvgMalePoints, session_date);
+    const womenPoint = pointOnDate(teamAvgFemalePoints, session_date);
+    row.men_avg = menPoint != null ? Number(menPoint.display_value) : undefined;
+    row.women_avg = womenPoint != null ? Number(womenPoint.display_value) : undefined;
     return row;
   });
 
@@ -165,11 +166,19 @@ export default function ProgressionChart({
             }}
             labelStyle={{ color: "var(--foreground)" }}
             labelFormatter={(label) => (typeof label === "string" ? label.slice(0, 10) : String(label))}
-            formatter={(value: unknown, name: string) => {
+            formatter={(
+              value: unknown,
+              name: string,
+              item: { dataKey?: unknown; payload?: Record<string, unknown> }
+            ) => {
               const v = Number(value);
               if (value == null || Number.isNaN(v)) return [null, name];
               const str = v % 1 === 0 ? String(Math.round(v)) : v.toFixed(2);
-              return [`${str} ${units}`, name];
+              const dataKey = typeof item?.dataKey === "string" ? item.dataKey : "";
+              const winKey = dataKey.startsWith("val_") ? `win_${dataKey.slice(4)}` : "";
+              const win = winKey ? item?.payload?.[winKey] : undefined;
+              const windowSuffix = typeof win === "string" && win ? ` · ${win}` : "";
+              return [`${str} ${units}${windowSuffix}`, name];
             }}
           />
           {showLegend ? <Legend /> : null}
