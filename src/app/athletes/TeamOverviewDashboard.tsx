@@ -27,9 +27,17 @@ async function fetchProfile(url: string): Promise<{ data: BuildInDistanceRow[] }
   return json;
 }
 
-function GroupBuildInChart({ hugoGroup }: { hugoGroup: string }) {
+function GroupBuildInChart({
+  hugoGroup,
+  from,
+  to,
+}: {
+  hugoGroup: string;
+  from: string;
+  to: string;
+}) {
   const { data, error, isLoading } = useSWR<{ data: BuildInDistanceRow[] }>(
-    `/api/speed/profile?hugo_group=${encodeURIComponent(hugoGroup)}`,
+    `/api/speed/profile?hugo_group=${encodeURIComponent(hugoGroup)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     fetchProfile
   );
 
@@ -250,7 +258,7 @@ export function TeamOverviewDashboard() {
             </summary>
             <div className="mt-3">
               <LeaderTable rows={block.leaders} />
-              <GroupBuildInChart hugoGroup={block.hugo_group} />
+              <GroupBuildInChart hugoGroup={block.hugo_group} from={from} to={to} />
             </div>
           </details>
         );

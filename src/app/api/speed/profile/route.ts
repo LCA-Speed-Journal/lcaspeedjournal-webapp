@@ -1,11 +1,13 @@
 /**
  * Build-in velocity profile.
  * GET ?athlete_id= returns that athlete's BuildIn rows.
- * GET ?hugo_group= returns BuildIn rows for athletes in that group.
+ * GET ?hugo_group=&from=&to= returns BuildIn rows for active athletes in that group
+ * whose session_date falls in the inclusive reporting range.
  * Missing speed-window columns (Postgres 42703) return an empty list until the migration runs.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { parseReportingDateRange } from "@/lib/reporting-date-range";
 import { BUILD_IN_KEY, type DistanceUnit } from "@/lib/speed/windows";
 
 type ProfileRow = {
@@ -67,6 +69,20 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  let groupFrom = "";
+  let groupTo = "";
+  if (hugoGroup) {
+    const parsed = parseReportingDateRange({
+      from: searchParams.get("from"),
+      to: searchParams.get("to"),
+    });
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: parsed.status });
+    }
+    groupFrom = parsed.from;
+    groupTo = parsed.to;
+  }
+
   try {
     const result = athleteId
       ? await sql`
@@ -79,8 +95,14 @@ export async function GET(request: NextRequest) {
           SELECT e.start_distance, e.end_distance, e.distance_unit, e.display_value, e.athlete_id
           FROM entries e
           INNER JOIN athlete_hugo_memberships m ON m.athlete_id = e.athlete_id
+          INNER JOIN athletes a ON a.id = e.athlete_id
+          INNER JOIN sessions s ON s.id = e.session_id
           WHERE e.metric_key = ${BUILD_IN_KEY}
             AND m.hugo_group = ${hugoGroup}
+            AND a.active = true
+            AND a.athlete_type = ${"athlete"}
+            AND s.session_date >= ${groupFrom}::date
+            AND s.session_date <= ${groupTo}::date
         `;
     return NextResponse.json({
       data: toProfileRows(result.rows as Record<string, unknown>[]),

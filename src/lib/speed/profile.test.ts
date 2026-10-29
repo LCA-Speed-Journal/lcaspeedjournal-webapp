@@ -6,6 +6,7 @@ describe("segmentsForFlyLength", () => {
     const segments = segmentsForFlyLength(
       [
         { start_distance: 10, end_distance: 20, distance_unit: "yd", display_value: 20 },
+        { start_distance: 10, end_distance: 20, distance_unit: "m", display_value: 18 },
         { start_distance: 10, end_distance: 40, distance_unit: "yd", display_value: 22 },
       ],
       "yd",
@@ -33,10 +34,12 @@ describe("medianSegmentsForFlyLength", () => {
     const rows = [
       { start_distance: 10, end_distance: 20, distance_unit: "yd" as const, display_value: 20 },
       { start_distance: 10, end_distance: 20, distance_unit: "yd" as const, display_value: 22 },
+      { start_distance: 20, end_distance: 30, distance_unit: "yd" as const, display_value: 18 },
       { start_distance: 10, end_distance: 40, distance_unit: "yd" as const, display_value: 30 },
     ];
     expect(medianSegmentsForFlyLength(rows, "yd", 10)).toEqual([
       { x1: 10, x2: 20, mph: 21 },
+      { x1: 20, x2: 30, mph: 18 },
     ]);
 
     expect(
