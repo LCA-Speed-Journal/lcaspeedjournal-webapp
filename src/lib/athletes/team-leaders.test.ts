@@ -31,7 +31,7 @@ describe("buildTeamLeaders", () => {
     expect(ten?.women).toBeNull();
   });
 
-  it("adds Max Velocity from mph metrics and 20-40yd fly splits", () => {
+  it("adds Max Velocity from a build-in and keeps the 20-40yd split nested in seconds", () => {
     const { overall } = buildTeamLeaders({
       athletes: athletes.filter((a) => a.id !== "m2"),
       entries: [
@@ -50,21 +50,123 @@ describe("buildTeamLeaders", () => {
           display_value: 18.5,
           units: "mph",
         },
+        {
+          athlete_id: "m1",
+          session_id: "s1",
+          metric_key: "BuildIn",
+          component: "10-20yd",
+          distance_unit: "yd",
+          start_distance: 10,
+          end_distance: 20,
+          display_value: 21.2,
+          units: "mph",
+        },
       ],
     });
     const maxV = overall.find((r) => r.metric_key === "MaxVelocity")!;
     expect(maxV.display_name).toBe("Max Velocity");
     expect(maxV.units).toBe("mph");
     expect(maxV.lower_is_better).toBe(false);
-    // 20 yards in 2.00s → 20.45 mph
-    expect(maxV.men?.best_value).toBeCloseTo(20.45);
-    expect(maxV.women?.best_value).toBe(18.5);
+    expect(maxV.men?.best_value).toBe(21.2);
+    expect(maxV.men?.window_label).toBe("10-20yd");
+    expect(maxV.women).toBeNull();
     expect(overall.some((r) => r.metric_key === "10-20m_Split")).toBe(false);
     const fly = overall
       .find((r) => r.metric_key === "40yd_Dash")
       ?.splits?.find((s) => s.component === "20-40yd");
     expect(fly?.men?.best_value).toBe(2.0);
     expect(fly?.units).toBe("s");
+  });
+
+  it("lists each acceleration and each non-spanning build-in, and names the max-velocity window", () => {
+    const { overall } = buildTeamLeaders({
+      athletes: athletes.filter((a) => a.id !== "m2"),
+      entries: [
+        {
+          athlete_id: "m1",
+          session_id: "s1",
+          metric_key: "Acceleration",
+          component: "0-10yd",
+          distance_unit: "yd",
+          start_distance: 0,
+          end_distance: 10,
+          display_value: 1.7,
+          units: "s",
+        },
+        {
+          athlete_id: "m1",
+          session_id: "s1",
+          metric_key: "Acceleration",
+          component: "0-40yd",
+          distance_unit: "yd",
+          start_distance: 0,
+          end_distance: 40,
+          display_value: 4.8,
+          units: "s",
+        },
+        {
+          athlete_id: "m1",
+          session_id: "s1",
+          metric_key: "BuildIn",
+          component: "10-20yd",
+          distance_unit: "yd",
+          start_distance: 10,
+          end_distance: 20,
+          display_value: 18,
+          units: "mph",
+        },
+        {
+          athlete_id: "f1",
+          session_id: "s1",
+          metric_key: "BuildIn",
+          component: "10-20yd",
+          distance_unit: "yd",
+          start_distance: 10,
+          end_distance: 20,
+          display_value: 19.5,
+          units: "mph",
+        },
+        {
+          athlete_id: "m1",
+          session_id: "s1",
+          metric_key: "BuildIn",
+          component: "10-40yd",
+          distance_unit: "yd",
+          start_distance: 10,
+          end_distance: 40,
+          display_value: 22,
+          units: "mph",
+        },
+        {
+          athlete_id: "m1",
+          session_id: "s2",
+          metric_key: "BuildIn",
+          component: "20-40yd",
+          distance_unit: "yd",
+          start_distance: 20,
+          end_distance: 40,
+          display_value: 21,
+          units: "mph",
+        },
+      ],
+    });
+    const names = overall.map((row) => row.display_name);
+    expect(names).toContain("0-10yd");
+    expect(names).toContain("0-40yd");
+    expect(names).toContain("10-20yd");
+    expect(names).toContain("20-40yd");
+    expect(names).not.toContain("10-40yd");
+    const ten = overall.find((row) => row.display_name === "0-10yd")!;
+    expect(ten.units).toBe("s");
+    expect(ten.lower_is_better).toBe(true);
+    expect(ten.men?.best_value).toBe(1.7);
+    const fly = overall.find((row) => row.display_name === "10-20yd")!;
+    expect(fly.units).toBe("mph");
+    expect(fly.women?.athlete_id).toBe("f1");
+    expect(fly.women?.best_value).toBe(19.5);
+    const maxV = overall.find((row) => row.metric_key === "MaxVelocity")!;
+    expect(maxV.men?.best_value).toBe(22);
+    expect(maxV.men?.window_label).toBe("10-40yd");
   });
 
   it("scopes Hugo sections to membership and can list the same athlete on two teams", () => {

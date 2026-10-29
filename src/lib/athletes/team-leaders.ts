@@ -1,10 +1,7 @@
 import { isPrimaryResultComponent } from "@/lib/metric-utils";
-import {
-  isFortyYardMphPrimary,
-  mphFromYardSplit,
-  yardsInFortyComponent,
-} from "@/lib/norms/forty-yd";
 import { getMetricsRegistry } from "@/lib/parser";
+import { spanningBuildInKeys, windowIdentity, type SpeedWindowRow } from "@/lib/speed/adjacent";
+import { ACCELERATION_KEY, BUILD_IN_KEY } from "@/lib/speed/windows";
 import {
   getMaxVelocityKey,
   getVelocityMetricKeys,
@@ -18,6 +15,10 @@ export type LeaderEntryRow = {
   component: string | null;
   display_value: number;
   units: string;
+  session_id?: string;
+  start_distance?: number | null;
+  end_distance?: number | null;
+  distance_unit?: string | null;
 };
 
 export type LeaderAthlete = {
@@ -33,6 +34,7 @@ export type LeaderCell = {
   first_name: string;
   last_name: string;
   best_value: number;
+  window_label?: string | null;
 };
 
 export type LeaderMetricRow = {
@@ -56,7 +58,10 @@ type GenderSlot = "men" | "women";
 type BestMark = {
   athlete_id: string;
   value: number;
+  window_label?: string | null;
 };
+
+const WINDOW_COMPONENT = /^(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)(m|yd)$/;
 
 type MetricAgg = {
   display_name: string;
@@ -84,12 +89,31 @@ function genderSlot(g: string | null): GenderSlot | null {
   return null;
 }
 
-function toCell(athlete: LeaderAthlete, best_value: number): LeaderCell {
+function toCell(athlete: LeaderAthlete, mark: BestMark): LeaderCell {
   return {
     athlete_id: athlete.id,
     first_name: athlete.first_name,
     last_name: athlete.last_name,
-    best_value,
+    best_value: mark.value,
+    window_label: mark.window_label ?? null,
+  };
+}
+
+function toSpeedWindow(row: LeaderEntryRow): SpeedWindowRow | null {
+  if (row.metric_key !== ACCELERATION_KEY && row.metric_key !== BUILD_IN_KEY) return null;
+  if (!row.session_id || !row.component) return null;
+  if (row.distance_unit !== "m" && row.distance_unit !== "yd") return null;
+  if (row.start_distance == null || row.end_distance == null) return null;
+  const start_distance = Number(row.start_distance);
+  const end_distance = Number(row.end_distance);
+  if (!Number.isFinite(start_distance) || !Number.isFinite(end_distance)) return null;
+  return {
+    session_id: row.session_id,
+    metric_key: row.metric_key,
+    component: row.component,
+    distance_unit: row.distance_unit,
+    start_distance,
+    end_distance,
   };
 }
 
@@ -155,32 +179,29 @@ function rowFromAgg(
     display_name: v.display_name,
     units: v.units,
     lower_is_better: v.lower_is_better,
-    men: v.men ? toCell(athletesById.get(v.men.athlete_id)!, v.men.value) : null,
-    women: v.women
-      ? toCell(athletesById.get(v.women.athlete_id)!, v.women.value)
-      : null,
+    men: v.men ? toCell(athletesById.get(v.men.athlete_id)!, v.men) : null,
+    women: v.women ? toCell(athletesById.get(v.women.athlete_id)!, v.women) : null,
   };
 }
 
-function flyMph(
-  metricKey: string,
-  component: string,
-  minVal: number,
-  maxVal: number,
-  units: string
-): number | null {
-  if ((units ?? "").toLowerCase() === "mph") return maxVal;
-  if (!isFortyYardMphPrimary(metricKey, component)) return null;
-  const yards = yardsInFortyComponent(component);
-  if (yards == null) return null;
-  return mphFromYardSplit(minVal, yards);
-}
-
-function rootSortKey(row: LeaderMetricRow): [number, string] {
-  if (row.metric_key === "40yd_Dash") return [0, row.display_name];
-  if (row.metric_key === "20yd_Dash") return [1, row.display_name];
-  if (row.metric_key === getMaxVelocityKey()) return [2, row.display_name];
-  return [10, row.display_name];
+function rootSortKey(row: LeaderMetricRow): [number, number, number, string] {
+  if (row.metric_key === "40yd_Dash") return [0, 0, 0, row.display_name];
+  if (row.metric_key === "20yd_Dash") return [1, 0, 0, row.display_name];
+  if (row.metric_key === getMaxVelocityKey()) return [2, 0, 0, row.display_name];
+  const tab = row.metric_key.indexOf("\t");
+  const kind =
+    row.metric_key.startsWith(`${ACCELERATION_KEY}\t`)
+      ? 3
+      : row.metric_key.startsWith(`${BUILD_IN_KEY}\t`)
+        ? 4
+        : null;
+  if (kind != null && tab >= 0) {
+    const component = row.metric_key.slice(tab + 1);
+    const match = component.match(WINDOW_COMPONENT);
+    if (match) return [kind, Number(match[1]), Number(match[2]), component];
+    return [kind, 999, 999, component];
+  }
+  return [10, 0, 0, row.display_name];
 }
 
 function buildMetricRows(
@@ -242,33 +263,8 @@ function buildMetricRows(
       component || null,
       registry
     );
-    const isVelocity = velocityKeys.has(metric_key);
 
-    if (isVelocity) {
-      const v = agg.max_val;
-      if (slot === "men") {
-        maxVelMen = considerBest(maxVelMen, { athlete_id, value: v }, false);
-      } else {
-        maxVelWomen = considerBest(maxVelWomen, { athlete_id, value: v }, false);
-      }
-    }
-
-    const mph = flyMph(
-      metric_key,
-      component,
-      agg.min_val,
-      agg.max_val,
-      agg.units
-    );
-    if (mph != null) {
-      if (slot === "men") {
-        maxVelMen = considerBest(maxVelMen, { athlete_id, value: mph }, false);
-      } else {
-        maxVelWomen = considerBest(maxVelWomen, { athlete_id, value: mph }, false);
-      }
-    }
-
-    if (isVelocity) continue;
+    if (velocityKeys.has(metric_key)) continue;
 
     if (DASH_METRICS.has(metric_key) && !isPrimary && component) {
       const splitName = component;
@@ -290,6 +286,7 @@ function buildMetricRows(
     }
 
     if (!isPrimary) continue;
+    if (metric_key === ACCELERATION_KEY || metric_key === BUILD_IN_KEY) continue;
 
     applyMark(
       byMetric,
@@ -300,6 +297,63 @@ function buildMetricRows(
       slot,
       candidate
     );
+  }
+
+  const speedWindows: SpeedWindowRow[] = [];
+  for (const entry of entries) {
+    const window = toSpeedWindow(entry);
+    if (window) speedWindows.push(window);
+  }
+  const spanning = spanningBuildInKeys(speedWindows);
+
+  for (const entry of entries) {
+    if (!athletesById.has(entry.athlete_id)) continue;
+    const value = Number(entry.display_value);
+    if (!Number.isFinite(value)) continue;
+    const athlete = athletesById.get(entry.athlete_id);
+    if (!athlete) continue;
+    const slot = genderSlot(athlete.gender);
+    if (!slot) continue;
+
+    if (entry.metric_key === BUILD_IN_KEY) {
+      const candidate: BestMark = {
+        athlete_id: entry.athlete_id,
+        value,
+        window_label: entry.component,
+      };
+      if (slot === "men") {
+        maxVelMen = considerBest(maxVelMen, candidate, false);
+      } else {
+        maxVelWomen = considerBest(maxVelWomen, candidate, false);
+      }
+    }
+
+    const window = toSpeedWindow(entry);
+    if (!window) continue;
+    const mark: BestMark = { athlete_id: entry.athlete_id, value };
+    if (entry.metric_key === ACCELERATION_KEY) {
+      applyMark(
+        byMetric,
+        `${entry.metric_key}\t${window.component}`,
+        window.component,
+        "s",
+        true,
+        slot,
+        mark
+      );
+      continue;
+    }
+    if (entry.metric_key === BUILD_IN_KEY && !spanning.has(windowIdentity(window))) {
+      applyMark(
+        byMetric,
+        `${entry.metric_key}\t${window.component}`,
+        window.component,
+        "mph",
+        false,
+        slot,
+        mark
+      );
+    }
   }
 
   if (maxVelMen != null || maxVelWomen != null) {
@@ -347,7 +401,7 @@ function buildMetricRows(
   rows.sort((a, b) => {
     const ka = rootSortKey(a);
     const kb = rootSortKey(b);
-    return ka[0] - kb[0] || ka[1].localeCompare(kb[1]);
+    return ka[0] - kb[0] || ka[1] - kb[1] || ka[2] - kb[2] || ka[3].localeCompare(kb[3]);
   });
   return rows;
 }

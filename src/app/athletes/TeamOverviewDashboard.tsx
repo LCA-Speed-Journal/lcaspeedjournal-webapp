@@ -77,7 +77,9 @@ function formatValue(value: number, units: string): string {
 
 function formatCell(cell: LeaderCell | null, units: string): string {
   if (!cell) return "—";
-  return `${cell.first_name} ${cell.last_name} — ${formatValue(cell.best_value, units)}`;
+  const value = formatValue(cell.best_value, units);
+  const named = `${cell.first_name} ${cell.last_name} — ${value}`;
+  return cell.window_label ? `${named} · ${cell.window_label}` : named;
 }
 
 function LeaderTable({ rows }: { rows: LeaderMetricRow[] }) {

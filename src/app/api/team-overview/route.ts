@@ -5,7 +5,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { buildTeamLeaders } from "@/lib/athletes/team-leaders";
+import { buildTeamLeaders, type LeaderEntryRow } from "@/lib/athletes/team-leaders";
 import { parseReportingDateRange } from "@/lib/reporting-date-range";
 import { speedJournalSchoolYearRange } from "@/lib/team-progress/date-presets";
 import { groupMembershipsByAthleteId } from "@/lib/weight-room/hugo-memberships";
@@ -16,6 +16,34 @@ type AthleteRow = {
   last_name: string;
   gender: string | null;
 };
+
+function isUndefinedColumn(err: unknown): boolean {
+  let current: unknown = err;
+  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth++) {
+    const rec = current as { code?: string; cause?: unknown };
+    if (rec.code === "42703") return true;
+    current = rec.cause;
+  }
+  return false;
+}
+
+function mapLeaderEntry(row: Record<string, unknown>, withWindow: boolean): LeaderEntryRow {
+  const entry: LeaderEntryRow = {
+    athlete_id: String(row.athlete_id),
+    metric_key: String(row.metric_key),
+    component: row.component == null ? null : String(row.component),
+    display_value: Number(row.display_value),
+    units: row.units == null ? "" : String(row.units),
+  };
+  if (!withWindow) return entry;
+  return {
+    ...entry,
+    session_id: row.session_id == null ? undefined : String(row.session_id),
+    start_distance: row.start_distance == null ? undefined : Number(row.start_distance),
+    end_distance: row.end_distance == null ? undefined : Number(row.end_distance),
+    distance_unit: row.distance_unit == null ? undefined : String(row.distance_unit),
+  };
+}
 
 function emptyPayload(from: string, to: string) {
   return {
@@ -108,35 +136,50 @@ export async function GET(request: NextRequest) {
       hugo_groups: membershipsById.get(a.id) ?? [],
     }));
 
-    let entries: {
-      athlete_id: string;
-      metric_key: string;
-      component: string | null;
-      display_value: number;
-      units: string;
-    }[] = [];
+    let entries: LeaderEntryRow[] = [];
     try {
-      const entriesRows = await sql`
-        SELECT
-          e.athlete_id::text AS athlete_id,
-          e.metric_key,
-          e.component,
-          e.display_value,
-          e.units
-        FROM entries e
-        INNER JOIN sessions s ON s.id = e.session_id
-        WHERE e.athlete_id = ANY(${ids as unknown as string}::uuid[])
-          AND s.session_date >= ${from}::date
-          AND s.session_date <= ${to}::date
-          AND e.display_value IS NOT NULL
-      `;
-      entries = (entriesRows.rows as Record<string, unknown>[]).map((r) => ({
-        athlete_id: String(r.athlete_id),
-        metric_key: String(r.metric_key),
-        component: r.component == null ? null : String(r.component),
-        display_value: Number(r.display_value),
-        units: r.units == null ? "" : String(r.units),
-      }));
+      try {
+        const entriesRows = await sql`
+          SELECT
+            e.athlete_id::text AS athlete_id,
+            e.session_id::text AS session_id,
+            e.metric_key,
+            e.component,
+            e.display_value,
+            e.units,
+            e.start_distance,
+            e.end_distance,
+            e.distance_unit
+          FROM entries e
+          INNER JOIN sessions s ON s.id = e.session_id
+          WHERE e.athlete_id = ANY(${ids as unknown as string}::uuid[])
+            AND s.session_date >= ${from}::date
+            AND s.session_date <= ${to}::date
+            AND e.display_value IS NOT NULL
+        `;
+        entries = (entriesRows.rows as Record<string, unknown>[]).map((row) =>
+          mapLeaderEntry(row, true)
+        );
+      } catch (err) {
+        if (!isUndefinedColumn(err)) throw err;
+        const entriesRows = await sql`
+          SELECT
+            e.athlete_id::text AS athlete_id,
+            e.metric_key,
+            e.component,
+            e.display_value,
+            e.units
+          FROM entries e
+          INNER JOIN sessions s ON s.id = e.session_id
+          WHERE e.athlete_id = ANY(${ids as unknown as string}::uuid[])
+            AND s.session_date >= ${from}::date
+            AND s.session_date <= ${to}::date
+            AND e.display_value IS NOT NULL
+        `;
+        entries = (entriesRows.rows as Record<string, unknown>[]).map((row) =>
+          mapLeaderEntry(row, false)
+        );
+      }
     } catch {
       // entries/sessions may fail
     }
