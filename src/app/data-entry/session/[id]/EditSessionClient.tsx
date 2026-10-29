@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { isOverallAttemptRow, overallAttemptsFor } from "@/lib/dropoff/attempts";
 import { attemptPastLine, formatDropoffCaption } from "@/lib/dropoff/format";
-import { isDropoffMetric } from "@/lib/dropoff/metrics";
+import { isDropoffMetric, isDropoffWindow } from "@/lib/dropoff/metrics";
 import { directionFromUnits, summarizeDropoff } from "@/lib/dropoff/summarize";
 import { formatEntryMetricLabel, sessionSetupMetricOptions } from "@/lib/metric-utils";
 import {
@@ -64,7 +64,25 @@ type EntryRow = {
   created_at: string;
   first_name: string;
   last_name: string;
+  distance_unit?: "m" | "yd" | null;
+  start_distance?: number | null;
+  end_distance?: number | null;
 };
+
+function entrySpeedWindow(row: EntryRow): {
+  distance_unit: "m" | "yd";
+  start_distance: number;
+  end_distance: number;
+} | null {
+  if (row.distance_unit == null || row.start_distance == null || row.end_distance == null) {
+    return null;
+  }
+  if (row.distance_unit !== "m" && row.distance_unit !== "yd") return null;
+  const start = Number(row.start_distance);
+  const end = Number(row.end_distance);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+  return { distance_unit: row.distance_unit, start_distance: start, end_distance: end };
+}
 
 export function EditSessionClient({ sessionId }: { sessionId: string }) {
   const { mutate } = useSWRConfig();
@@ -519,8 +537,17 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
               </thead>
               <tbody>
                 {entriesRes.data.map((row) => {
-                  const picked =
-                    isDropoffMetric(row.metric_key) && isOverallAttemptRow(row)
+                  const speedWindow = entrySpeedWindow(row);
+                  const picked = speedWindow
+                    ? isDropoffWindow(speedWindow)
+                      ? overallAttemptsFor(
+                          entriesRes.data ?? [],
+                          row.athlete_id,
+                          row.metric_key,
+                          speedWindow
+                        )
+                      : null
+                    : isDropoffMetric(row.metric_key) && isOverallAttemptRow(row)
                       ? overallAttemptsFor(entriesRes.data ?? [], row.athlete_id, row.metric_key)
                       : null;
                   const summary = picked

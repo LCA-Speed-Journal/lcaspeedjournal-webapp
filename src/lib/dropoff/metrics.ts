@@ -1,3 +1,5 @@
+import { isShortPracticeWindow, type DistanceUnit } from "@/lib/speed/windows";
+
 const DROPOFF_METRIC_KEYS = new Set<string>([
   "5m_Accel",
   "10m_Accel",
@@ -14,4 +16,12 @@ const DROPOFF_METRIC_KEYS = new Set<string>([
 
 export function isDropoffMetric(metricKey: string): boolean {
   return DROPOFF_METRIC_KEYS.has(metricKey);
+}
+
+export function isDropoffWindow(window: {
+  distance_unit: DistanceUnit;
+  start_distance: number;
+  end_distance: number;
+}): boolean {
+  return isShortPracticeWindow(window);
 }

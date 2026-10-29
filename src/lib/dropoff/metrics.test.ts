@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isDropoffMetric } from "./metrics";
+import { isDropoffMetric, isDropoffWindow } from "./metrics";
 
 describe("isDropoffMetric", () => {
   it("includes short accel, sleds, the 10m fly, standing vertical, and broad", () => {
@@ -33,4 +33,11 @@ describe("isDropoffMetric", () => {
       expect(isDropoffMetric(key)).toBe(false);
     }
   });
+});
+
+it("treats a 10yd acceleration and a 10-20yd fly as practice marks", () => {
+  expect(isDropoffWindow({ distance_unit: "yd", start_distance: 0, end_distance: 10 })).toBe(true);
+  expect(isDropoffWindow({ distance_unit: "yd", start_distance: 10, end_distance: 20 })).toBe(true);
+  expect(isDropoffWindow({ distance_unit: "yd", start_distance: 0, end_distance: 40 })).toBe(false);
+  expect(isDropoffWindow({ distance_unit: "m", start_distance: 5, end_distance: 15 })).toBe(false);
 });

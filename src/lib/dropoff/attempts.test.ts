@@ -88,6 +88,53 @@ describe("overallAttemptsFor", () => {
       values: [1.2],
     });
   });
+
+  it("returns the two 0-10yd acceleration marks and ignores the 0-20yd row", () => {
+    const entries: DropoffEntry[] = [
+      {
+        ...base,
+        id: "late",
+        metric_key: "Acceleration",
+        component: "0-10yd",
+        display_value: "1.90",
+        created_at: "2026-10-28T15:02:00.000Z",
+        distance_unit: "yd",
+        start_distance: "0" as unknown as number,
+        end_distance: "10" as unknown as number,
+      },
+      {
+        ...base,
+        id: "early",
+        metric_key: "Acceleration",
+        component: "0-10yd",
+        display_value: 1.7,
+        created_at: "2026-10-28T15:01:00.000Z",
+        distance_unit: "yd",
+        start_distance: 0,
+        end_distance: 10,
+      },
+      {
+        ...base,
+        id: "longer",
+        metric_key: "Acceleration",
+        component: "0-20yd",
+        display_value: 2.8,
+        distance_unit: "yd",
+        start_distance: 0,
+        end_distance: 20,
+      },
+    ];
+    expect(
+      overallAttemptsFor(entries, "a1", "Acceleration", {
+        distance_unit: "yd",
+        start_distance: 0,
+        end_distance: 10,
+      })
+    ).toEqual({
+      units: "s",
+      values: [1.7, 1.9],
+    });
+  });
 });
 
 describe("isOverallDropoffView", () => {

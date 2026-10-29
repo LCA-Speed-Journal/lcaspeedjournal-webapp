@@ -13,6 +13,28 @@ import type { SpeedRunInput } from "@/lib/speed/windows";
 
 const INSERT_TIMEOUT_MS = 15000;
 
+function isMissingSpeedWindowColumn(err: unknown): boolean {
+  const messages: string[] = [];
+  const codes: string[] = [];
+  let current: unknown = err;
+  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth++) {
+    const rec = current as { code?: string; message?: string; cause?: unknown };
+    if (typeof rec.code === "string") codes.push(rec.code);
+    if (typeof rec.message === "string") messages.push(rec.message);
+    current = rec.cause;
+  }
+  if (codes.includes("42703")) return true;
+  const msg = messages.join(" ").toLowerCase();
+  if (!msg.includes("does not exist")) return false;
+  return (
+    msg.includes("distance_unit") ||
+    msg.includes("start_distance") ||
+    msg.includes("end_distance") ||
+    msg.includes("legacy_metric_key") ||
+    msg.includes("legacy_component")
+  );
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -24,17 +46,32 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { rows } = await sql`
-      SELECT e.id, e.session_id, e.athlete_id, e.metric_key, e.interval_index, e.component,
-             e.value, e.display_value, e.units, e.raw_input, e.created_at,
-             a.first_name, a.last_name
-      FROM entries e
-      JOIN athletes a ON a.id = e.athlete_id
-      WHERE e.session_id = ${sessionId}
-      ORDER BY a.last_name, a.first_name, e.metric_key, e.interval_index NULLS LAST, e.component NULLS LAST
-    `;
-
-    return NextResponse.json({ data: rows });
+    try {
+      const { rows } = await sql`
+        SELECT e.id, e.session_id, e.athlete_id, e.metric_key, e.interval_index, e.component,
+               e.value, e.display_value, e.units, e.raw_input, e.created_at,
+               e.distance_unit, e.start_distance, e.end_distance,
+               e.legacy_metric_key, e.legacy_component,
+               a.first_name, a.last_name
+        FROM entries e
+        JOIN athletes a ON a.id = e.athlete_id
+        WHERE e.session_id = ${sessionId}
+        ORDER BY a.last_name, a.first_name, e.metric_key, e.interval_index NULLS LAST, e.component NULLS LAST
+      `;
+      return NextResponse.json({ data: rows });
+    } catch (err) {
+      if (!isMissingSpeedWindowColumn(err)) throw err;
+      const { rows } = await sql`
+        SELECT e.id, e.session_id, e.athlete_id, e.metric_key, e.interval_index, e.component,
+               e.value, e.display_value, e.units, e.raw_input, e.created_at,
+               a.first_name, a.last_name
+        FROM entries e
+        JOIN athletes a ON a.id = e.athlete_id
+        WHERE e.session_id = ${sessionId}
+        ORDER BY a.last_name, a.first_name, e.metric_key, e.interval_index NULLS LAST, e.component NULLS LAST
+      `;
+      return NextResponse.json({ data: rows });
+    }
   } catch (err) {
     console.error("GET /api/entries:", err);
     return NextResponse.json(
