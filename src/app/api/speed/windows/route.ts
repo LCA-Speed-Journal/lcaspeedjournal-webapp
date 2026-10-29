@@ -1,12 +1,12 @@
 /**
- * Distinct acceleration and build-in windows in a reporting date range.
+ * Distinct acceleration and build-in windows in a historical date range.
  * GET ?from=&to= returns { accelerations, build_ins }.
  * Spanning build-ins are omitted. Missing speed-window columns (Postgres 42703) return empty lists.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { parseReportingDateRange } from "@/lib/reporting-date-range";
 import { spanningBuildInKeys, windowIdentity, type SpeedWindowRow } from "@/lib/speed/adjacent";
+import { parseWindowDateRange } from "@/lib/speed/window-range";
 import { ACCELERATION_KEY, BUILD_IN_KEY, type DistanceUnit } from "@/lib/speed/windows";
 
 const COMPONENT_SORT = /^(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)(m|yd)$/;
@@ -60,7 +60,7 @@ function toWindowRows(rows: Record<string, unknown>[]): SpeedWindowRow[] {
 }
 
 export async function GET(request: NextRequest) {
-  const parsed = parseReportingDateRange({
+  const parsed = parseWindowDateRange({
     from: request.nextUrl.searchParams.get("from"),
     to: request.nextUrl.searchParams.get("to"),
   });
