@@ -111,6 +111,7 @@ type SpeedRunFieldsProps = {
 
 export function SpeedRunFields({ draft, onChange, entries, athleteId }: SpeedRunFieldsProps) {
   const preview = previewSpeedRun(draft);
+  const coachEnteredMark = draft.gatesText.trim() !== "" || draft.timesText.trim() !== "";
   const gateCount = splitList(draft.gatesText, ",").length;
   const timesPlaceholder =
     gateCount > 0
@@ -213,21 +214,20 @@ export function SpeedRunFields({ draft, onChange, entries, athleteId }: SpeedRun
         />
       </div>
 
-      {preview.ok ? (
-        captions.length > 0 ? (
-          <ul className="space-y-1" role="status">
-            {captions.map((item) => (
-              <li key={item.id} className="font-mono text-xs tabular-nums text-foreground-muted">
-                {item.caption}
-              </li>
-            ))}
-          </ul>
-        ) : null
-      ) : (
+      {preview.ok && captions.length > 0 ? (
+        <ul className="space-y-1" role="status">
+          {captions.map((item) => (
+            <li key={item.id} className="font-mono text-xs tabular-nums text-foreground-muted">
+              {item.caption}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {!preview.ok && coachEnteredMark ? (
         <p className="text-sm text-danger" role="alert">
           {preview.error}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }
