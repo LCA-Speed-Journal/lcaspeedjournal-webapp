@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { timeFromMph } from "../../speed/windows";
 import { mphFromYardSplit } from "../forty-yd";
 import { buildF2fProfile } from "./profile";
 import { reconstructFiveFifteen } from "./reconstruct-515";
@@ -60,6 +61,25 @@ describe("buildF2fProfile speed-window pace", () => {
     );
     expect(profile.form?.input?.value).toBe(22);
     expect(profile.form?.input?.units).toBe("mph");
+  });
+
+  it("converts a 20 mph 10-20 fly to seconds before the 40 reference", () => {
+    const profile = buildF2fProfile(
+      [
+        {
+          metric_key: "BuildIn",
+          component: "10-20yd",
+          legacy_metric_key: "40yd_Dash",
+          legacy_component: "10-20yd",
+          units: "mph",
+          display_value: 20,
+        },
+      ],
+      male
+    );
+    const seconds = timeFromMph(10, "yd", 20);
+    expect(profile.reference_40).toBeCloseTo(predict40FromTenTwenty(seconds)!);
+    expect(profile.reference_40).not.toBeCloseTo(predict40FromTenTwenty(20)!);
   });
 });
 

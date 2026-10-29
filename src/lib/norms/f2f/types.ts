@@ -3,6 +3,9 @@ export type F2fEntry = {
   component: string | null;
   display_value: number;
   session_date?: string;
+  units?: string | null;
+  legacy_metric_key?: string | null;
+  legacy_component?: string | null;
 };
 
 export type F2fAthlete = {

@@ -404,6 +404,9 @@ export async function buildTestingDayBoard(
         metric_key: row.metric_key,
         component: row.component,
         display_value: Number(row.display_value),
+        units: row.units,
+        legacy_metric_key: row.legacy_metric_key ?? null,
+        legacy_component: row.legacy_component ?? null,
       });
       entriesByAthlete.set(row.athlete_id, list);
     }

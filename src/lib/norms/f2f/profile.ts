@@ -1,3 +1,4 @@
+import { timeFromMph } from "@/lib/speed/windows";
 import { FORTY_YD_DASH } from "../editor-metrics";
 import { mphFromYardSplit, yardsInFortyComponent } from "../forty-yd";
 import { DEFICIENCY_BAND, STANDING_BROAD } from "./constants";
@@ -383,6 +384,13 @@ function classify(
   return { flags: flagged.map((item) => item.quality), primary: worst.quality };
 }
 
+/** Segment predictors take seconds. A BuildIn fly stores mph. */
+function secondsForReference(entry: ProfileEntry, yards: number): number | null {
+  if (entry.units !== "mph") return entry.display_value;
+  if (!(entry.display_value > 0)) return null;
+  return timeFromMph(yards, "yd", entry.display_value);
+}
+
 function projectedForm(reference40: number): F2fVertex {
   return {
     predicted_40: reference40,
@@ -403,10 +411,12 @@ export function buildF2fProfile(
   const actual40 = pickActual40(entries);
   const twenty = pickSprintSplit(sprintEntries, "0-20yd");
   const tenTwenty = pickSprintSplit(sprintEntries, "10-20yd");
-  const fromTwenty = twenty ? predict40FromTwenty(twenty.display_value) : null;
-  const fromTenTwenty = tenTwenty
-    ? predict40FromTenTwenty(tenTwenty.display_value)
-    : null;
+  const twentySeconds = twenty ? secondsForReference(twenty, 20) : null;
+  const tenTwentySeconds = tenTwenty ? secondsForReference(tenTwenty, 10) : null;
+  const fromTwenty =
+    twentySeconds != null ? predict40FromTwenty(twentySeconds) : null;
+  const fromTenTwenty =
+    tenTwentySeconds != null ? predict40FromTenTwenty(tenTwentySeconds) : null;
   const sprintPredicted = [force, form]
     .filter((vertex): vertex is F2fVertex => vertex != null)
     .map((vertex) => vertex.predicted_40);
