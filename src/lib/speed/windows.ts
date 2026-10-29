@@ -28,7 +28,7 @@ export type SpeedRunInput = {
   cumulativeTimes: number[];
 };
 
-const LEGACY_SPEED_KEYS = new Set([
+export const LEGACY_SPEED_KEYS = new Set([
   "5m_Accel",
   "10m_Accel",
   "15m_Accel",
