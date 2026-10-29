@@ -26,8 +26,13 @@ export type SpeedTrendSeries = {
 };
 
 const FIVE_FIFTEEN = "5-15yd";
+const FIVE_FIFTEEN_METERS = "5-15m";
 const FIVE_TEN = "5-10yd";
 const TEN_TWENTY = "10-20yd";
+
+function isFiveFifteenComponent(component: string): boolean {
+  return component === FIVE_FIFTEEN || component === FIVE_FIFTEEN_METERS;
+}
 
 function pointsFromBuckets(
   byDate: Map<string, { raw: number[]; change: number[] }>
@@ -183,7 +188,8 @@ function fiveFifteenBaseline(
 
 function seriesForFiveFifteen(
   splitRows: SpeedTrendRow[],
-  timedRows: SpeedTrendRow[]
+  timedRows: SpeedTrendRow[],
+  component: string
 ): SpeedTrendSeries | null {
   const sessions = splitSessions(splitRows);
   const timed = bestByAthleteDate(timedRows);
@@ -209,7 +215,7 @@ function seriesForFiveFifteen(
 
   const points = pointsFromBuckets(byDate);
   if (points.length < 2) return null;
-  return { component: FIVE_FIFTEEN, points };
+  return { component, points };
 }
 
 export function aggregateSpeedTrends(rows: SpeedTrendRow[]): SpeedTrendSeries[] {
@@ -223,12 +229,13 @@ export function aggregateSpeedTrends(rows: SpeedTrendRow[]): SpeedTrendSeries[] 
   const spanning = spanningBuildInKeys(windowRows);
   const chartRows = windowRows.filter(
     (row) =>
-      row.metric_key === BUILD_IN_KEY && !spanning.has(windowIdentity(row))
+      row.metric_key === BUILD_IN_KEY &&
+      !isFiveFifteenComponent(row.component) &&
+      !spanning.has(windowIdentity(row))
   );
 
   const byComponent = new Map<string, SpeedTrendRow[]>();
   for (const row of chartRows) {
-    if (row.component === FIVE_FIFTEEN) continue;
     const list = byComponent.get(row.component) ?? [];
     list.push(row);
     byComponent.set(row.component, list);
@@ -241,11 +248,21 @@ export function aggregateSpeedTrends(rows: SpeedTrendRow[]): SpeedTrendSeries[] 
   }
 
   const splitRows = windowRows.filter((row) => row.metric_key === BUILD_IN_KEY);
-  const five = seriesForFiveFifteen(
-    splitRows,
-    chartRows.filter((row) => row.component === FIVE_FIFTEEN)
-  );
-  if (five) series.push(five);
+  const timedFive = new Map<string, SpeedTrendRow[]>();
+  for (const row of splitRows) {
+    if (!isFiveFifteenComponent(row.component)) continue;
+    const list = timedFive.get(row.component) ?? [];
+    list.push(row);
+    timedFive.set(row.component, list);
+  }
+  for (const [component, timedRows] of timedFive) {
+    const five = seriesForFiveFifteen(
+      component === FIVE_FIFTEEN ? splitRows : [],
+      timedRows,
+      component
+    );
+    if (five) series.push(five);
+  }
 
   series.sort((a, b) => a.component.localeCompare(b.component));
   return series;

@@ -93,4 +93,36 @@ describe("aggregateSpeedTrends", () => {
     ]);
     expect(trends.map((trend) => trend.component)).toEqual(["10-20yd"]);
   });
+
+  it("keeps a timed 5-15 when a shorter split sits inside it", () => {
+    const trends = aggregateSpeedTrends([
+      mark({
+        component: "5-10yd",
+        session_date: "2026-09-01",
+        session_id: "s1",
+        start_distance: 5,
+        end_distance: 10,
+        display_value: 16,
+      }),
+      mark({
+        component: "5-15yd",
+        session_date: "2026-09-01",
+        session_id: "s1",
+        start_distance: 5,
+        end_distance: 15,
+        display_value: 18,
+      }),
+      mark({
+        component: "5-15yd",
+        session_date: "2026-09-08",
+        session_id: "s2",
+        start_distance: 5,
+        end_distance: 15,
+        display_value: 19,
+      }),
+    ]);
+    const five = trends.find((trend) => trend.component === "5-15yd");
+    expect(five?.points.map((point) => point.output?.median)).toEqual([18, 19]);
+    expect(trends.map((trend) => trend.component)).toEqual(["5-15yd"]);
+  });
 });
