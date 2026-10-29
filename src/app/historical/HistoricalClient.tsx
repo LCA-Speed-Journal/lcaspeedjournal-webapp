@@ -568,13 +568,15 @@ export default function HistoricalClient() {
           </label>
         </div>
         {athleteIds.length > 0 && progressionMetric && (
-          <ProgressionChart
-            series={progressionSeries}
-            metricDisplayName={progressionMetricName}
-            units={progressionUnits}
-            teamAvgMalePoints={teamAvgMalePoints}
-            teamAvgFemalePoints={teamAvgFemalePoints}
-          />
+          <div className="h-80 w-full min-h-[200px]">
+            <ProgressionChart
+              series={progressionSeries}
+              metricDisplayName={progressionMetricName}
+              units={progressionUnits}
+              teamAvgMalePoints={teamAvgMalePoints}
+              teamAvgFemalePoints={teamAvgFemalePoints}
+            />
+          </div>
         )}
         {(!athleteIds.length || !progressionMetric) && (
           <p className="text-sm text-foreground-muted">
