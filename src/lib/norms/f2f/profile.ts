@@ -325,8 +325,14 @@ function pickForm(entries: ProfileEntry[]): F2fVertex | null {
   if (bestExact) return bestExact;
 
   const proxy = pickSprintSplit(entries, "10-20yd");
-  if (!proxy || proxy.units === "mph") return null;
-  const t2030 = estimateTwentyThirty(proxy.display_value);
+  if (!proxy) return null;
+  let proxySeconds = proxy.display_value;
+  if (proxy.units === "mph") {
+    const converted = secondsForReference(proxy, 10);
+    if (converted == null || !Number.isFinite(converted) || converted <= 0) return null;
+    proxySeconds = converted;
+  }
+  const t2030 = estimateTwentyThirty(proxySeconds);
   if (t2030 == null) return null;
   const vertex = vertexFromHit(
     resolveForm({

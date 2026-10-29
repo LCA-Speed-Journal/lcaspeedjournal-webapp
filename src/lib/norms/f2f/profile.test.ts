@@ -145,6 +145,38 @@ describe("buildF2fProfile", () => {
     expect(profile.form?.predicted_40).toBeCloseTo(expectedForm!.predicted_40);
   });
 
+  it("estimates Form from an mph 10-20 fly instead of copying the 0-20 reference", () => {
+    const flySeconds = timeFromMph(10, "yd", 16);
+    const profile = buildF2fProfile(
+      [
+        { metric_key: "20yd_Dash", component: "0-20yd", display_value: 2.9 },
+        { metric_key: "20yd_Dash", component: "5-10yd", display_value: 0.85 },
+        {
+          metric_key: "BuildIn",
+          component: "10-20yd",
+          legacy_metric_key: "40yd_Dash",
+          legacy_component: "10-20yd",
+          units: "mph",
+          display_value: 16,
+        },
+      ],
+      male
+    );
+    const t2030 = estimateTwentyThirty(flySeconds)!;
+    const expectedForm = resolveForm({
+      component: "20-30yd",
+      timeS: t2030,
+      yards: 10,
+    });
+    const reference = predict40FromTwenty(2.9)!;
+    expect(profile.form?.input?.component).toBe("20-30yd");
+    expect(profile.form?.input?.units).toBe("s");
+    expect(profile.form?.input?.value).toBeCloseTo(t2030);
+    expect(profile.form?.predicted_40).toBeCloseTo(expectedForm!.predicted_40);
+    expect(profile.form?.predicted_40).not.toBeCloseTo(reference);
+    expect(profile.reference_40).toBeCloseTo(reference);
+  });
+
   it("projects reference from a 20yd Force stand-in without averaging explosion", () => {
     const profile = buildF2fProfile(
       [
