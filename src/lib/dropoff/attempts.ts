@@ -1,3 +1,5 @@
+import { getPrimaryComponent } from "@/lib/metric-utils";
+
 export type DropoffEntry = {
   id: string;
   athlete_id: string;
@@ -9,6 +11,17 @@ export type DropoffEntry = {
   created_at: string;
 };
 
+export function isOverallAttemptRow(entry: {
+  metric_key: string;
+  interval_index: number | null;
+  component: string | null;
+}): boolean {
+  if (entry.interval_index != null) return false;
+  if (entry.component == null || entry.component === "") return true;
+  const primary = getPrimaryComponent(entry.metric_key);
+  return primary != null && entry.component === primary;
+}
+
 export function overallAttemptsFor(
   entries: DropoffEntry[],
   athleteId: string,
@@ -19,8 +32,7 @@ export function overallAttemptsFor(
       (entry) =>
         entry.athlete_id === athleteId &&
         entry.metric_key === metricKey &&
-        entry.interval_index == null &&
-        (entry.component == null || entry.component === "")
+        isOverallAttemptRow(entry)
     )
     .slice()
     .sort((a, b) => {

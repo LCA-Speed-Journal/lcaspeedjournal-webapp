@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
-import { overallAttemptsFor } from "@/lib/dropoff/attempts";
+import { isOverallAttemptRow, overallAttemptsFor } from "@/lib/dropoff/attempts";
 import { attemptPastLine, formatDropoffCaption } from "@/lib/dropoff/format";
 import { isDropoffMetric } from "@/lib/dropoff/metrics";
 import { directionFromUnits, summarizeDropoff } from "@/lib/dropoff/summarize";
@@ -520,9 +520,7 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
               <tbody>
                 {entriesRes.data.map((row) => {
                   const picked =
-                    isDropoffMetric(row.metric_key) &&
-                    row.interval_index == null &&
-                    (row.component == null || row.component === "")
+                    isDropoffMetric(row.metric_key) && isOverallAttemptRow(row)
                       ? overallAttemptsFor(entriesRes.data ?? [], row.athlete_id, row.metric_key)
                       : null;
                   const summary = picked
