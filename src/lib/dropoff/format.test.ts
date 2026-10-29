@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDropoffCaption } from "./format";
+import { attemptPastLine, formatDropoffCaption } from "./format";
 
 describe("formatDropoffCaption", () => {
   it("prints the best and the line", () => {
@@ -24,5 +24,17 @@ describe("formatDropoffCaption", () => {
         crossedDropoff: true,
       })
     ).toBe("Best 28.50 · Line 26.79 · 2 above · Past the line");
+  });
+});
+
+describe("attemptPastLine", () => {
+  it("is false for a time still at or under the line", () => {
+    expect(attemptPastLine(1.8, 1.8, "time")).toBe(false);
+    expect(attemptPastLine(1.81, 1.8, "time")).toBe(true);
+  });
+
+  it("is false for a jump still at or above the line", () => {
+    expect(attemptPastLine(26.79, 26.79, "score")).toBe(false);
+    expect(attemptPastLine(26.7, 26.79, "score")).toBe(true);
   });
 });

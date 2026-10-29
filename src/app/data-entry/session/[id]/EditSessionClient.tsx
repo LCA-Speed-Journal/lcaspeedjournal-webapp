@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react";
 import useSWR, { useSWRConfig } from "swr";
+import { overallAttemptsFor } from "@/lib/dropoff/attempts";
+import { attemptPastLine, formatDropoffCaption } from "@/lib/dropoff/format";
+import { isDropoffMetric } from "@/lib/dropoff/metrics";
+import { directionFromUnits, summarizeDropoff } from "@/lib/dropoff/summarize";
 import { formatEntryMetricLabel, sessionSetupMetricOptions } from "@/lib/metric-utils";
 import {
   FORTY_YD_DASH,
@@ -514,13 +518,36 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                 </tr>
               </thead>
               <tbody>
-                {entriesRes.data.map((row) => (
+                {entriesRes.data.map((row) => {
+                  const picked =
+                    isDropoffMetric(row.metric_key) &&
+                    row.interval_index == null &&
+                    (row.component == null || row.component === "")
+                      ? overallAttemptsFor(entriesRes.data ?? [], row.athlete_id, row.metric_key)
+                      : null;
+                  const summary = picked
+                    ? summarizeDropoff(picked.values, directionFromUnits(picked.units))
+                    : null;
+                  const value = Number(row.display_value);
+                  const isBest = summary != null && value === summary.initial;
+                  const past =
+                    summary != null &&
+                    attemptPastLine(value, summary.dropoffLine, directionFromUnits(row.units));
+                  return (
                   <tr key={row.id} className="border-b border-border/50 text-foreground">
                     <td className="px-3 py-2">
                       {row.first_name} {row.last_name}
                     </td>
                     <td className="px-3 py-2">{formatEntryMetricLabel({ metric_key: row.metric_key, component: row.component }, metricsRegistry)}</td>
-                    <td className="px-3 py-2 font-mono">{row.display_value}</td>
+                    <td className="px-3 py-2 font-mono">
+                      {row.display_value}
+                      {summary && isBest ? (
+                        <div className="text-xs text-foreground-muted">{formatDropoffCaption(summary)}</div>
+                      ) : null}
+                      {summary && past && !isBest ? (
+                        <div className="text-xs text-danger">Past the line</div>
+                      ) : null}
+                    </td>
                     <td className="px-3 py-2 text-foreground-muted">{row.units}</td>
                     <td className="px-3 py-2 text-right">
                       {deleteConfirmId === row.id ? (
@@ -563,7 +590,8 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
