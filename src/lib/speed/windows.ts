@@ -23,9 +23,9 @@ export type SpeedRunRow = SpeedWindow & {
 
 export type SpeedRunInput = {
   distanceUnit: DistanceUnit;
-  untimedBuild: number;
-  gates: number[];
-  cumulativeTimes: number[];
+  untimedBuild: number | string;
+  gates: Array<number | string>;
+  cumulativeTimes: Array<number | string>;
 };
 
 export const LEGACY_SPEED_KEYS = new Set([
@@ -110,8 +110,33 @@ function rowFromTime(window: SpeedWindow, timeS: number): SpeedRunRow {
   };
 }
 
+const NUMERIC_TEXT = /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/;
+
+function requireDistanceUnit(value: unknown): DistanceUnit {
+  if (value === "m" || value === "yd") return value;
+  throw new Error('Distance unit must be "m" or "yd"');
+}
+
+function requireFiniteNumber(value: unknown, label: string): number {
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new Error(`${label} must be a finite number`);
+    return value;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed !== "" && NUMERIC_TEXT.test(trimmed)) return Number(trimmed);
+  }
+  throw new Error(`${label} must be a finite number`);
+}
+
 export function expandSpeedRun(input: SpeedRunInput): SpeedRunRow[] {
-  const { distanceUnit, untimedBuild, gates, cumulativeTimes } = input;
+  const distanceUnit = requireDistanceUnit(input.distanceUnit);
+  if (!Array.isArray(input.gates)) throw new Error("Gates must be a list of distances");
+  if (!Array.isArray(input.cumulativeTimes)) throw new Error("Times must be a list of times");
+  const untimedBuild = requireFiniteNumber(input.untimedBuild, "Untimed build");
+  const gates = input.gates.map((gate) => requireFiniteNumber(gate, "Gate"));
+  const cumulativeTimes = input.cumulativeTimes.map((time) => requireFiniteNumber(time, "Time"));
+
   if (untimedBuild < 0) throw new Error("Untimed build cannot be negative");
   if (gates.length === 0) throw new Error("A speed run needs at least one gate");
   if (gates.length !== cumulativeTimes.length) {

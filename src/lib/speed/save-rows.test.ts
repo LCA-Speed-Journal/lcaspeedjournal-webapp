@@ -30,4 +30,33 @@ describe("rowsForSpeedRun", () => {
     expect(custom?.legacy_metric_key).toBeNull();
     expect(custom?.legacy_component).toBeNull();
   });
+
+  it("treats numeric strings as an acceleration from rest", () => {
+    const rows = rowsForSpeedRun({
+      distanceUnit: "m",
+      untimedBuild: "0",
+      gates: ["10"],
+      cumulativeTimes: ["1.7"],
+    });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      metric_key: "Acceleration",
+      units: "s",
+      start_distance: 0,
+      end_distance: 10,
+      legacy_metric_key: "10m_Accel",
+      legacy_component: "0-10m",
+    });
+  });
+
+  it("rejects string gates that are out of order", () => {
+    expect(() =>
+      rowsForSpeedRun({
+        distanceUnit: "m",
+        untimedBuild: "0",
+        gates: ["10", "9"],
+        cumulativeTimes: ["1.7", "2.4"],
+      })
+    ).toThrow("Gate 9 must be past the build and in order");
+  });
 });
