@@ -96,6 +96,7 @@ export function buildGridRowsFromTemplate(
       rows.push({
         source: "warmup_expand",
         movementId: null,
+        parentMovementId: movement.id,
         setIndex: 0,
         defaultText: drill.dose,
         name: drill.name,
@@ -106,6 +107,95 @@ export function buildGridRowsFromTemplate(
   }
 
   return rows;
+}
+
+/**
+ * Card movements whose notes or complex name are expanded into provisional
+ * rows. Saving the sheet retires these so the next open does not expand them
+ * again over the coach's edits.
+ */
+export function expansionSourceIds(
+  movements: TemplateMovementForGrid[]
+): string[] {
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const row of buildGridRowsFromTemplate(movements)) {
+    if (row.source === "template") continue;
+    const parentId = row.parentMovementId;
+    if (!parentId || seen.has(parentId)) continue;
+    seen.add(parentId);
+    ids.push(parentId);
+  }
+  return ids;
+}
+
+export type MovementOmitInput = {
+  id: string;
+  name: string;
+  block: string;
+  set_count: number;
+  notes: string;
+  log_suppressed?: boolean;
+};
+
+/**
+ * Movements to leave off the manual-log sheet.
+ * A fresh card (nothing logged yet) still expands. Once sets exist, don't
+ * bring back exercises the coach removed, and don't re-expand a warmup blob
+ * or complex that was already saved as its own rows.
+ */
+export function movementIdsToOmitOnLoad(
+  movements: MovementOmitInput[],
+  loggedMovementIds: ReadonlySet<string>
+): string[] {
+  const omit = new Set<string>();
+  for (const movement of movements) {
+    if (movement.log_suppressed) omit.add(movement.id);
+  }
+  if (loggedMovementIds.size === 0) {
+    return movements.filter((m) => omit.has(m.id)).map((m) => m.id);
+  }
+
+  const logged = movements.filter((m) => loggedMovementIds.has(m.id));
+  const loggedBlocksWithSets = new Set(
+    logged
+      .filter((m) => m.set_count > 0)
+      .map((m) => m.block.trim().toLowerCase())
+      .filter((block) => block.length > 0)
+  );
+
+  for (const movement of movements) {
+    if (omit.has(movement.id)) continue;
+
+    if (movement.set_count > 0 && !loggedMovementIds.has(movement.id)) {
+      omit.add(movement.id);
+      continue;
+    }
+
+    const parts = splitComplexName(movement.name);
+    if (movement.set_count > 0 && parts.length > 1) {
+      const partNames = new Set(parts.map((part) => part.trim().toLowerCase()));
+      const materialized = logged.some(
+        (loggedMovement) =>
+          loggedMovement.id !== movement.id &&
+          partNames.has(loggedMovement.name.trim().toLowerCase())
+      );
+      if (materialized) {
+        omit.add(movement.id);
+        continue;
+      }
+    }
+
+    const notes = movement.notes?.trim() ?? "";
+    if (movement.set_count === 0 && notes) {
+      const block = movement.block.trim().toLowerCase();
+      if (block && loggedBlocksWithSets.has(block)) {
+        omit.add(movement.id);
+      }
+    }
+  }
+
+  return movements.filter((m) => omit.has(m.id)).map((m) => m.id);
 }
 
 /**

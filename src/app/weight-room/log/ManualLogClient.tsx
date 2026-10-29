@@ -19,6 +19,8 @@ import {
 import { cellKey } from "@/lib/weight-room/confirm-scan";
 import {
   buildGridRowsFromTemplate,
+  expansionSourceIds,
+  movementIdsToOmitOnLoad,
   type TemplateMovementForGrid,
 } from "@/lib/weight-room/manual-log";
 import { parseLoadReps } from "@/lib/weight-room/parse-load-reps";
@@ -437,8 +439,6 @@ export function ManualLogClient() {
     Record<string, { metric_key: string; component: string }>
   >({});
   const [omitMovementIds, setOmitMovementIds] = useState<string[]>([]);
-  const omitMovementIdsRef = useRef(omitMovementIds);
-  omitMovementIdsRef.current = omitMovementIds;
   /** athleteId → fingerprint of log used to hydrate overrides (avoid overwrite after edits) */
   const hydratedLogFpRef = useRef<Map<string, string>>(new Map());
   /** Template id we already auto-selected logged athletes for (once per card). */
@@ -531,13 +531,37 @@ export function ManualLogClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [template?.id, logs, logLoading]);
 
-  // Seed grid from loaded template
+  const loggedMovementKey = useMemo(() => {
+    const ids = new Set<string>();
+    for (const log of logs) {
+      for (const result of log.results) ids.add(result.movement_id);
+    }
+    return [...ids].sort().join(",");
+  }, [logs]);
+
+  const gridSeedKey =
+    template == null
+      ? ""
+      : `${template.id}::${template.movements
+          .map(
+            (m) =>
+              `${m.id}\t${m.name}\t${m.set_count}\t${m.block}\t${m.notes ?? ""}\t${m.targets.join("\u0001")}\t${m.log_suppressed ? 1 : 0}`
+          )
+          .join("\n")}::${loggedMovementKey}`;
+
+  // Open the sheet as it was last saved. A card with no logs still expands
+  // from the printed workout; a logged card does not put removed or renamed
+  // exercises back.
   useEffect(() => {
-    if (!template) return;
-    const nextRows = buildClientRows(
-      template.movements,
-      omitMovementIdsRef.current
+    if (!template || !gridSeedKey) return;
+    const loggedMovementIds = new Set(
+      loggedMovementKey ? loggedMovementKey.split(",") : []
     );
+    const omitIds = movementIdsToOmitOnLoad(
+      template.movements,
+      loggedMovementIds
+    );
+    const nextRows = buildClientRows(template.movements, omitIds);
     const nextDefaults: Record<string, string> = {};
     for (const row of nextRows) {
       nextDefaults[cellKey(row.rowKey, row.setIndex)] = row.defaultText;
@@ -555,9 +579,10 @@ export function ManualLogClient() {
     setRows(nextRows);
     setDefaults(nextDefaults);
     setJournalLinks(nextLinks);
-    // Overrides hydrated in dedicated effect once rows + logs + selection are ready
+    // Overrides hydrated in dedicated effect once rows + logs + selection are ready.
+    // gridSeedKey already captures the template fields and logged movement ids.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [template?.id, template?.movements?.map((m) => m.id).join(",")]);
+  }, [gridSeedKey]);
 
   const selectedAthletes = useMemo(() => {
     const rosterById = new Map(roster.map((athlete) => [athlete.id, athlete]));
@@ -1158,8 +1183,13 @@ export function ManualLogClient() {
         }
       }
 
+      const expansionIds = expansionSourceIds(
+        toGridMovements(
+          template.movements.filter((m) => m.log_suppressed !== true)
+        )
+      );
       const omitPayload = [
-        ...new Set([...omitMovementIds, ...complexParents]),
+        ...new Set([...omitMovementIds, ...complexParents, ...expansionIds]),
       ];
 
       const movementUpdates: Array<{
@@ -1226,9 +1256,7 @@ export function ManualLogClient() {
         throw new Error(errorText(json, "Save failed"));
       }
 
-      const nextOmit = omitPayload;
-      omitMovementIdsRef.current = nextOmit;
-      setOmitMovementIds(nextOmit);
+      setOmitMovementIds(omitPayload);
 
       const warnings = json.data?.journal_warnings ?? [];
       setJournalWarnings(warnings);

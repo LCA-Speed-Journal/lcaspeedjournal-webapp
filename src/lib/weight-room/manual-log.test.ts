@@ -5,6 +5,8 @@ import {
   buildGridRowsFromTemplate,
   buildWarmupExpandInserts,
   buildTempIdRemap,
+  expansionSourceIds,
+  movementIdsToOmitOnLoad,
   remapCellKeys,
 } from "./manual-log";
 import { splitWarmupDrills } from "./split-warmup-drills";
@@ -55,6 +57,11 @@ describe("buildGridRowsFromTemplate", () => {
     expect(rows.filter((r) => r.source === "warmup_expand")).toHaveLength(2);
     expect(rows.some((r) => r.movementId === MOVEMENT_ID && r.setIndex === 0)).toBe(true);
     expect(rows.find((r) => r.defaultText === "45s/leg")?.name).toContain("Spring ankle");
+    expect(
+      rows
+        .filter((r) => r.source === "warmup_expand")
+        .every((r) => r.parentMovementId === WARMUP_ID)
+    ).toBe(true);
   });
 
   it("splits spaced-slash complexes into provisional rows", () => {
@@ -212,5 +219,139 @@ describe("buildManualLogAthletePayload", () => {
       athletes: [{ athleteId: ATHLETE_A, cells: { [`${MOVEMENT_ID}:0`]: "" } }],
     });
     expect(batch[0]!.results[0]!.raw_text).toBeNull();
+  });
+});
+
+const COMPLEX_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const DRILL_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+
+describe("expansionSourceIds", () => {
+  it("returns warmup and complex parents, not plain lifts", () => {
+    expect(
+      expansionSourceIds([
+        {
+          id: WARMUP_ID,
+          name: "Warmup Circuit",
+          block: "Warmup",
+          set_count: 0,
+          targets: [],
+          notes: "Spring ankle 45s/leg · hip hike 15/side",
+          label: "W",
+        },
+        {
+          id: MOVEMENT_ID,
+          name: "Goblet Squat",
+          block: "Main",
+          set_count: 1,
+          targets: ["50x8"],
+          notes: "",
+          label: "1",
+        },
+        {
+          id: COMPLEX_ID,
+          name: "Sit-Up / Side-Plank",
+          block: "Accessory",
+          set_count: 1,
+          targets: ["10"],
+          notes: "",
+          label: "4",
+        },
+      ])
+    ).toEqual([WARMUP_ID, COMPLEX_ID]);
+  });
+});
+
+describe("movementIdsToOmitOnLoad", () => {
+  const warmup = {
+    id: WARMUP_ID,
+    name: "Warmup Circuit",
+    block: "Warmup",
+    set_count: 0,
+    notes: "Spring ankle 45s/leg · hip hike 15/side",
+  };
+  const squat = {
+    id: MOVEMENT_ID,
+    name: "Goblet Squat",
+    block: "Main",
+    set_count: 2,
+    notes: "",
+  };
+  const complex = {
+    id: COMPLEX_ID,
+    name: "Sit-Up / Side-Plank",
+    block: "Accessory",
+    set_count: 1,
+    notes: "",
+  };
+
+  it("expands a card that has no logged sets", () => {
+    expect(movementIdsToOmitOnLoad([warmup, squat], new Set())).toEqual([]);
+  });
+
+  it("still hides a movement flagged from an earlier save when nothing is logged", () => {
+    expect(
+      movementIdsToOmitOnLoad(
+        [{ ...squat, log_suppressed: true }, warmup],
+        new Set()
+      )
+    ).toEqual([MOVEMENT_ID]);
+  });
+
+  it("leaves out a lift the coach removed, and keeps one that was logged", () => {
+    expect(
+      movementIdsToOmitOnLoad([warmup, squat], new Set([MOVEMENT_ID]))
+    ).toEqual([]);
+    expect(
+      movementIdsToOmitOnLoad(
+        [warmup, squat, { ...complex, name: "Back Squat", block: "Main" }],
+        new Set([MOVEMENT_ID])
+      )
+    ).toEqual([COMPLEX_ID]);
+  });
+
+  it("does not re-expand a warmup blob after its drills were saved under new titles", () => {
+    expect(
+      movementIdsToOmitOnLoad(
+        [
+          warmup,
+          {
+            id: DRILL_ID,
+            name: "Ankle rock",
+            block: "Warmup",
+            set_count: 1,
+            notes: "",
+          },
+          squat,
+        ],
+        new Set([DRILL_ID, MOVEMENT_ID])
+      )
+    ).toEqual([WARMUP_ID]);
+  });
+
+  it("does not re-split a complex once a part was saved on its own", () => {
+    expect(
+      movementIdsToOmitOnLoad(
+        [
+          complex,
+          {
+            id: DRILL_ID,
+            name: "Sit-Up",
+            block: "Accessory",
+            set_count: 1,
+            notes: "",
+          },
+        ],
+        new Set([COMPLEX_ID, DRILL_ID])
+      )
+    ).toEqual([COMPLEX_ID]);
+  });
+
+  it("hides a flagged movement even when an older log still has its sets", () => {
+    expect(
+      movementIdsToOmitOnLoad(
+        [{ ...squat, log_suppressed: true }],
+        new Set([MOVEMENT_ID])
+      )
+    ).toEqual([MOVEMENT_ID]);
   });
 });

@@ -10,6 +10,7 @@ import {
   isUuid,
   parseMovements,
   serializeDate,
+  suppressMovementsForLog,
   updateTemplateMovementFields,
   type MovementInsertInput,
   type WorkoutMovementRow,
@@ -753,6 +754,10 @@ export async function POST(request: NextRequest) {
       } catch (journalErr) {
         journal_warnings.push(errorMessage(journalErr));
       }
+    }
+
+    if (omitMovementIds.size > 0) {
+      await suppressMovementsForLog(templateId, [...omitMovementIds]);
     }
 
     return NextResponse.json({

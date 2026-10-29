@@ -39,6 +39,7 @@ export type WorkoutMovement = {
   from_pair: boolean;
   speed_journal_metric_key: string | null;
   speed_journal_component: string | null;
+  log_suppressed?: boolean;
 };
 
 export type CardScan = {

@@ -444,6 +444,7 @@ describe("templateFromCsv / templateFromDraft", () => {
           from_pair: true,
           speed_journal_metric_key: null,
           speed_journal_component: null,
+          log_suppressed: false,
         },
       ],
     });

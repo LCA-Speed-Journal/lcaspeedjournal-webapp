@@ -49,6 +49,8 @@ export type WorkoutMovementRow = {
   from_pair: boolean;
   speed_journal_metric_key: string | null;
   speed_journal_component: string | null;
+  /** Manual log hides this movement instead of re-reading it from the card. */
+  log_suppressed: boolean;
 };
 
 export type WorkoutTemplateRow = {
@@ -162,6 +164,11 @@ export function serializeMovement(
     from_pair: Boolean(row.from_pair),
     speed_journal_metric_key: metricKey,
     speed_journal_component: serializeComponent(row.speed_journal_component),
+    log_suppressed:
+      row.log_suppressed === true ||
+      row.log_suppressed === "t" ||
+      row.log_suppressed === "true" ||
+      row.log_suppressed === 1,
   };
 }
 
@@ -548,7 +555,7 @@ async function insertMovements(
         ${m.speed_journal_metric_key},
         ${m.speed_journal_component}
       )
-      RETURNING id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component
+      RETURNING id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component, log_suppressed
     `;
     inserted.push(serializeMovement(rows[0] as Record<string, unknown>));
   }
@@ -626,7 +633,7 @@ export async function updateTemplateMovementFields(
 ): Promise<WorkoutMovementRow | null> {
   if (!isUuid(movementId)) return null;
   const { rows: existing } = await sql`
-    SELECT id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component
+    SELECT id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component, log_suppressed
     FROM workout_movements
     WHERE id = ${movementId.trim()}
     LIMIT 1
@@ -692,10 +699,24 @@ export async function updateTemplateMovementFields(
         speed_journal_metric_key = ${metricKey},
         speed_journal_component = ${component}
     WHERE id = ${movementId.trim()}
-    RETURNING id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component
+    RETURNING id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component, log_suppressed
   `;
   if (rows.length === 0) return null;
   return serializeMovement(rows[0] as Record<string, unknown>);
+}
+
+/** Hide movements from later manual-log opens. Does not delete the printed card row. */
+export async function suppressMovementsForLog(
+  templateId: string,
+  movementIds: string[]
+): Promise<void> {
+  if (movementIds.length === 0) return;
+  await sql`
+    UPDATE workout_movements
+    SET log_suppressed = true
+    WHERE template_id = ${templateId}
+      AND id = ANY(${movementIds as unknown as string}::uuid[])
+  `;
 }
 
 export async function getTemplateWithMovements(
@@ -708,7 +729,7 @@ export async function getTemplateWithMovements(
     LIMIT 1
   `;
   const movementsPromise = sql`
-    SELECT id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component
+    SELECT id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component, log_suppressed
     FROM workout_movements
     WHERE template_id = ${id}
     ORDER BY sort_index
