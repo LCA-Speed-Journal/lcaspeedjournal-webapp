@@ -456,6 +456,46 @@ export default function TeamProgressClient() {
                 </div>
               </section>
 
+              {payload.speed_trends.length > 0 ? (
+                <section className="mb-8">
+                  <h2 className="mb-3 text-lg font-semibold text-foreground">
+                    Speed trends
+                  </h2>
+                  <p className="mb-3 text-xs text-foreground-muted">
+                    Median change from each athlete&apos;s first build-in in
+                    this window. The 5-15yd baseline is estimated from that
+                    athlete&apos;s first 5-10 and 10-20. Tooltip shows raw mph
+                    and % change (min / mean / median / max).
+                  </p>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {payload.speed_trends.map((trend) => (
+                      <div
+                        key={`speed-${trend.component}`}
+                        className="rounded-xl border border-border bg-surface-elevated/40 p-3"
+                      >
+                        <p className="mb-2 text-sm font-medium text-foreground">
+                          {trend.component}
+                        </p>
+                        <TeamProgressLineChart
+                          label="Median change from baseline"
+                          units="%"
+                          showZeroLine
+                          timelineAnchor={payload.timeline_anchor}
+                          timelineDates={payload.timeline_dates}
+                          points={trend.points.map((p) => ({
+                            date: p.date,
+                            value: p.median_change_pct ?? 0,
+                            n: p.n,
+                            output: p.output,
+                            change: p.change,
+                          }))}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
               <section className="mb-8">
                 <h2 className="mb-3 text-lg font-semibold text-foreground">
                   Lifts (Squat / Press / Hinge)

@@ -7,6 +7,7 @@ import type { TestEntryRow } from "./test-aggregate";
 import type { LiftLogRow } from "./lift-aggregate";
 import type { IsoTemplateRow, IsoLogRow } from "./iso-rocks";
 import type { F2fAthleteRow, F2fEntryWithAthlete } from "./f2f-aggregate";
+import type { SpeedTrendRow } from "./speed-trends";
 
 function toNum(value: unknown): number | null {
   if (value == null || value === "") return null;
@@ -159,6 +160,66 @@ export async function loadTeamProgressF2fEntries(opts: {
     legacy_component:
       r.legacy_component == null ? null : String(r.legacy_component),
   }));
+}
+
+export async function loadSpeedWindowRows(opts: {
+  athleteIds: string[];
+  from: string;
+  to: string;
+}): Promise<SpeedTrendRow[]> {
+  if (opts.athleteIds.length === 0) return [];
+  try {
+    const { rows } = await sql`
+      SELECT
+        e.session_id::text AS session_id,
+        e.value,
+        e.display_value,
+        e.component,
+        e.start_distance,
+        e.end_distance,
+        e.distance_unit,
+        e.metric_key,
+        e.athlete_id::text AS athlete_id,
+        s.session_date::text AS session_date,
+        e.units
+      FROM entries e
+      INNER JOIN sessions s ON s.id = e.session_id
+      WHERE e.athlete_id = ANY(${opts.athleteIds as unknown as string}::uuid[])
+        AND s.session_date >= ${opts.from}::date
+        AND s.session_date <= ${opts.to}::date
+        AND e.metric_key IN (${"Acceleration"}, ${"BuildIn"})
+    `;
+    return (rows as Record<string, unknown>[]).flatMap((r) => {
+      const distanceUnit = r.distance_unit === "m" || r.distance_unit === "yd"
+        ? r.distance_unit
+        : null;
+      const start = toNum(r.start_distance);
+      const end = toNum(r.end_distance);
+      if (!distanceUnit || start == null || end == null || r.component == null) {
+        return [];
+      }
+      const value = toNum(r.value);
+      const display = toNum(r.display_value);
+      return [
+        {
+          athlete_id: String(r.athlete_id),
+          session_id: String(r.session_id),
+          session_date: String(r.session_date).slice(0, 10),
+          metric_key: String(r.metric_key),
+          component: String(r.component),
+          distance_unit: distanceUnit,
+          start_distance: start,
+          end_distance: end,
+          value: value ?? Number.NaN,
+          display_value: display ?? Number.NaN,
+          units: r.units == null ? null : String(r.units),
+        },
+      ];
+    });
+  } catch (err) {
+    if (isUndefinedColumn(err)) return [];
+    throw err;
+  }
 }
 
 export async function loadTeamProgressLiftRows(opts: {

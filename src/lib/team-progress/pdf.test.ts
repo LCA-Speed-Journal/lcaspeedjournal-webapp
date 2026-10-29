@@ -16,6 +16,7 @@ const emptyPayload: TeamProgressPayload = {
   lifts: [],
   iso_rocks: [],
   f2f: { athletes: [], end_mode: "latest" },
+  speed_trends: [],
   athletes: [],
 };
 

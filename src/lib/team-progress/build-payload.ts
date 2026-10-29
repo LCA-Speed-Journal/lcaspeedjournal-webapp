@@ -5,7 +5,9 @@ import { aggregateLiftSeries, athleteLiftDeltas } from "./lift-aggregate";
 import { aggregateIsoRockActuals, combineIsoRockSeries } from "./iso-rocks";
 import { aggregateAthleteF2f } from "./f2f-aggregate";
 import { earliestDate } from "./stats";
+import { aggregateSpeedTrends } from "./speed-trends";
 import {
+  loadSpeedWindowRows,
   loadTeamProgressF2fEntries,
   loadTeamProgressIsoLogRows,
   loadTeamProgressIsoTemplates,
@@ -30,6 +32,7 @@ export type TeamProgressPayload = {
   lifts: ReturnType<typeof aggregateLiftSeries>;
   iso_rocks: ReturnType<typeof combineIsoRockSeries>;
   f2f: ReturnType<typeof aggregateAthleteF2f>;
+  speed_trends: ReturnType<typeof aggregateSpeedTrends>;
   athletes: Array<{
     id: string;
     first_name: string;
@@ -58,35 +61,47 @@ export async function buildTeamProgressPayload(opts: {
   const roster = await loadTeamProgressRoster(opts.hugoGroup);
   const athleteIds = roster.map((a) => a.id);
 
-  const [testRows, liftRows, isoRows, isoLogRows, f2fEntries, memberIdList] =
-    await Promise.all([
-      loadTeamProgressTestEntries({
-        athleteIds,
-        from: opts.from,
-        to: opts.to,
-      }),
-      loadTeamProgressLiftRows({
-        hugoGroup: opts.hugoGroup,
-        from: opts.from,
-        to: opts.to,
-      }),
-      loadTeamProgressIsoTemplates({
-        hugoGroup: opts.hugoGroup,
-        from: opts.from,
-        to: opts.to,
-      }),
-      loadTeamProgressIsoLogRows({
-        hugoGroup: opts.hugoGroup,
-        from: opts.from,
-        to: opts.to,
-      }),
-      loadTeamProgressF2fEntries({
-        athleteIds,
-        from: opts.from,
-        to: opts.to,
-      }),
-      loadTeamProgressMemberIds(opts.hugoGroup),
-    ]);
+  const [
+    testRows,
+    liftRows,
+    isoRows,
+    isoLogRows,
+    f2fEntries,
+    memberIdList,
+    speedRows,
+  ] = await Promise.all([
+    loadTeamProgressTestEntries({
+      athleteIds,
+      from: opts.from,
+      to: opts.to,
+    }),
+    loadTeamProgressLiftRows({
+      hugoGroup: opts.hugoGroup,
+      from: opts.from,
+      to: opts.to,
+    }),
+    loadTeamProgressIsoTemplates({
+      hugoGroup: opts.hugoGroup,
+      from: opts.from,
+      to: opts.to,
+    }),
+    loadTeamProgressIsoLogRows({
+      hugoGroup: opts.hugoGroup,
+      from: opts.from,
+      to: opts.to,
+    }),
+    loadTeamProgressF2fEntries({
+      athleteIds,
+      from: opts.from,
+      to: opts.to,
+    }),
+    loadTeamProgressMemberIds(opts.hugoGroup),
+    loadSpeedWindowRows({
+      athleteIds,
+      from: opts.from,
+      to: opts.to,
+    }),
+  ]);
 
   const metricKeys = displayedTestKeys(opts.hugoGroup, addedMetrics);
   // If group never ran 40 but ran 20, surface 20yd as core fallback when no 40 data
@@ -136,6 +151,7 @@ export async function buildTeamProgressPayload(opts: {
     entries: f2fEntries,
     endMode: f2fMode,
   });
+  const speed_trends = aggregateSpeedTrends(speedRows);
 
   // W1D1 = first athlete-logged WR session in range (lifts or ISO holds).
   const loggedDates = [
@@ -201,6 +217,7 @@ export async function buildTeamProgressPayload(opts: {
     lifts,
     iso_rocks,
     f2f,
+    speed_trends,
     athletes,
   };
 }
