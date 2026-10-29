@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { overallAttemptsFor, type DropoffEntry } from "./attempts";
+import { isOverallDropoffView, overallAttemptsFor, type DropoffEntry } from "./attempts";
 
 const base: DropoffEntry = {
   id: "b",
@@ -87,5 +87,40 @@ describe("overallAttemptsFor", () => {
       units: "s",
       values: [1.2],
     });
+  });
+});
+
+describe("isOverallDropoffView", () => {
+  it("allows 10m_Accel with no component", () => {
+    expect(isOverallDropoffView("10m_Accel", null, null)).toBe(true);
+    expect(isOverallDropoffView("10m_Accel", "", null)).toBe(true);
+  });
+
+  it("allows 10m_Accel with the primary full-run component and no interval", () => {
+    expect(isOverallDropoffView("10m_Accel", "0-10m", null)).toBe(true);
+  });
+
+  it("rejects a 10m_Accel segment chip", () => {
+    expect(isOverallDropoffView("10m_Accel", "5-10m", null)).toBe(false);
+  });
+
+  it("rejects 10m_Accel when any interval is set", () => {
+    expect(isOverallDropoffView("10m_Accel", null, 0)).toBe(false);
+    expect(isOverallDropoffView("10m_Accel", "0-10m", 1)).toBe(false);
+  });
+
+  it("allows 10-20m_Split with no component and rejects the named split", () => {
+    expect(isOverallDropoffView("10-20m_Split", null, null)).toBe(true);
+    expect(isOverallDropoffView("10-20m_Split", "", null)).toBe(true);
+    expect(isOverallDropoffView("10-20m_Split", "10-20m", null)).toBe(false);
+  });
+
+  it("allows Vertical Jump with no component", () => {
+    expect(isOverallDropoffView("Vertical Jump", null, null)).toBe(true);
+  });
+
+  it("rejects a metric that is not on the drop-off list", () => {
+    expect(isOverallDropoffView("40yd_Dash", null, null)).toBe(false);
+    expect(isOverallDropoffView("40yd_Dash", "0-40yd", null)).toBe(false);
   });
 });

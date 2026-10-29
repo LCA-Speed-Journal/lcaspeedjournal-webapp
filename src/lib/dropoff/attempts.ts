@@ -1,3 +1,4 @@
+import { isDropoffMetric } from "@/lib/dropoff/metrics";
 import { getPrimaryComponent } from "@/lib/metric-utils";
 
 export type DropoffEntry = {
@@ -20,6 +21,20 @@ export function isOverallAttemptRow(entry: {
   if (entry.component == null || entry.component === "") return true;
   const primary = getPrimaryComponent(entry.metric_key);
   return primary != null && entry.component === primary;
+}
+
+/** Live leaderboard drop-off line: allowlisted metric, overall view only. */
+export function isOverallDropoffView(
+  metricKey: string,
+  component: string | null,
+  intervalIndex: number | null
+): boolean {
+  if (!isDropoffMetric(metricKey)) return false;
+  return isOverallAttemptRow({
+    metric_key: metricKey,
+    interval_index: intervalIndex,
+    component,
+  });
 }
 
 export function overallAttemptsFor(

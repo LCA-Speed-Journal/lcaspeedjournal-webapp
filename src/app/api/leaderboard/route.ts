@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { attachDropoff, type DropoffAttempt } from "@/lib/dropoff/attach";
-import { isDropoffMetric } from "@/lib/dropoff/metrics";
+import { isOverallDropoffView } from "@/lib/dropoff/attempts";
 import { directionFromUnits } from "@/lib/dropoff/summarize";
 import { guestFields } from "@/lib/guest-athletes";
 import { getMetricsRegistry } from "@/lib/parser";
@@ -622,7 +622,7 @@ export async function GET(request: NextRequest) {
     }
 
     let rowsForZones = leaderboardRows;
-    if (isDropoffMetric(metric) && leaderboardRows.length > 0) {
+    if (isOverallDropoffView(metric, component, interval_index) && leaderboardRows.length > 0) {
       const attemptResult = await sql`
         SELECT e.athlete_id, e.id, e.display_value, e.created_at
         FROM entries e
