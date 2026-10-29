@@ -26,6 +26,10 @@ import {
   otherSportMatches,
   shouldClearAthleteOnSportChange,
 } from "@/lib/guest-athletes";
+import { overallAttemptsFor, type DropoffEntry } from "@/lib/dropoff/attempts";
+import { formatDropoffCaption } from "@/lib/dropoff/format";
+import { isDropoffMetric } from "@/lib/dropoff/metrics";
+import { directionFromUnits, summarizeDropoff } from "@/lib/dropoff/summarize";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -215,6 +219,14 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   }>("/api/sessions", fetcher);
   const { data: athletesAllRes } = useSWR<{ data: AthleteItem[] }>("/api/athletes", fetcher);
   const { data: athletesActiveRes } = useSWR<{ data: AthleteItem[] }>("/api/athletes?active=true", fetcher);
+  const entriesSessionId = sessionIdProp ?? sessionId;
+  const entriesKey = entriesSessionId
+    ? `/api/entries?session_id=${entriesSessionId}`
+    : null;
+  const { data: sessionEntriesRes } = useSWR<{ data?: DropoffEntry[] }>(
+    entriesKey,
+    fetcher
+  );
 
   const sessions = sessionsRes?.data ?? [];
   const athletes = activeOnly ? (athletesActiveRes?.data ?? []) : (athletesAllRes?.data ?? []);
@@ -223,6 +235,17 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     ? (athletes.find((a) => a.id === selectedAthlete.id) ?? selectedAthlete)
     : null;
   const athleteId = selectedRecord?.id ?? "";
+  const dropoffCaption = (() => {
+    if (!isDropoffMetric(metricKey) || !athleteId) return null;
+    const picked = overallAttemptsFor(
+      sessionEntriesRes?.data ?? [],
+      athleteId,
+      metricKey
+    );
+    if (!picked) return null;
+    const summary = summarizeDropoff(picked.values, directionFromUnits(picked.units));
+    return summary ? formatDropoffCaption(summary) : null;
+  })();
   const athleteSearch = athleteQuery.trim().toLowerCase();
   const filteredAthletes = athleteSearch
     ? athletesInSport.filter(
@@ -453,6 +476,9 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         undefined,
         { revalidate: true }
       );
+      if (entriesKey) {
+        void globalMutate(entriesKey);
+      }
       onSuccess?.();
     } catch {
       setError("Network error");
@@ -982,6 +1008,11 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             {inputHint(selectedMetric, selectedSession?.day_splits, splitEntryMode)}
           </p>
         )}
+        {dropoffCaption ? (
+          <p className="mt-2 font-mono text-xs tabular-nums text-foreground-muted" role="status">
+            {dropoffCaption}
+          </p>
+        ) : null}
       </div>
 
       {error && (
