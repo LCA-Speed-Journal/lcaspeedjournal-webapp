@@ -127,6 +127,23 @@ describe("aliasForWindow", () => {
       aliasForWindow({ distance_unit: "yd", start_distance: 17, end_distance: 33 })
     ).toBeNull();
   });
+
+  it("aliases named yard flies and leaves other windows unnamed", () => {
+    expect(aliasForWindow({ distance_unit: "yd", start_distance: 5, end_distance: 15 })).toEqual({
+      legacy_metric_key: "40yd_Dash",
+      legacy_component: "5-15yd",
+    });
+    expect(aliasForWindow({ distance_unit: "yd", start_distance: 20, end_distance: 40 })).toEqual({
+      legacy_metric_key: "40yd_Dash",
+      legacy_component: "20-40yd",
+    });
+    expect(aliasForWindow({ distance_unit: "yd", start_distance: 0, end_distance: 10 })).toEqual({
+      legacy_metric_key: "20yd_Dash",
+      legacy_component: "0-10yd",
+    });
+    expect(aliasForWindow({ distance_unit: "yd", start_distance: 10, end_distance: 40 })).toBeNull();
+    expect(aliasForWindow({ distance_unit: "m", start_distance: 17, end_distance: 33 })).toBeNull();
+  });
 });
 
 describe("sameSpeedMark", () => {
@@ -153,5 +170,22 @@ describe("sameSpeedMark", () => {
         "0-40yd"
       )
     ).toBe(true);
+  });
+
+  it("rejects a different component or a different key", () => {
+    expect(
+      sameSpeedMark(
+        { metric_key: "40yd_Dash", component: "0-20yd", legacy_metric_key: null, legacy_component: null },
+        "40yd_Dash",
+        "0-40yd"
+      )
+    ).toBe(false);
+    expect(
+      sameSpeedMark(
+        { metric_key: "20yd_Dash", component: "0-20yd", legacy_metric_key: null, legacy_component: null },
+        "40yd_Dash",
+        "0-20yd"
+      )
+    ).toBe(false);
   });
 });
