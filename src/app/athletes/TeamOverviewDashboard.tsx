@@ -6,15 +6,46 @@
  */
 import { Fragment, useState } from "react";
 import useSWR from "swr";
+import { BuildInVelocityChart } from "@/components/speed/VelocitySegments";
 import type {
   HugoLeaderBlock,
   LeaderCell,
   LeaderMetricRow,
 } from "@/lib/athletes/team-leaders";
+import type { BuildInDistanceRow } from "@/lib/speed/profile";
 import { speedJournalSchoolYearRange } from "@/lib/team-progress/date-presets";
 import { HUGO_GROUP_META, type HugoGroup } from "@/lib/weight-room/constants";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
+
+async function fetchProfile(url: string): Promise<{ data: BuildInDistanceRow[] }> {
+  const res = await fetch(url);
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(typeof json?.error === "string" ? json.error : "Request failed");
+  }
+  return json;
+}
+
+function GroupBuildInChart({ hugoGroup }: { hugoGroup: string }) {
+  const { data, error, isLoading } = useSWR<{ data: BuildInDistanceRow[] }>(
+    `/api/speed/profile?hugo_group=${encodeURIComponent(hugoGroup)}`,
+    fetchProfile
+  );
+
+  return (
+    <div className="mt-4 border-t border-border pt-4">
+      <h4 className="mb-3 text-sm font-semibold text-foreground">Build-in velocity</h4>
+      {isLoading ? (
+        <p className="text-sm text-foreground-muted">Loading build-in profile...</p>
+      ) : error ? (
+        <p className="text-sm text-foreground-muted">Couldn&apos;t load build-in profile.</p>
+      ) : (
+        <BuildInVelocityChart rows={data?.data ?? []} aggregate />
+      )}
+    </div>
+  );
+}
 
 type TeamOverviewData = {
   from: string;
@@ -219,6 +250,7 @@ export function TeamOverviewDashboard() {
             </summary>
             <div className="mt-3">
               <LeaderTable rows={block.leaders} />
+              <GroupBuildInChart hugoGroup={block.hugo_group} />
             </div>
           </details>
         );

@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useSWR from "swr";
+import { BuildInVelocityChart } from "@/components/speed/VelocitySegments";
+import type { BuildInDistanceRow } from "@/lib/speed/profile";
 import { PRsSection } from "./PRsSection";
 import { ProgressionFlagsSection } from "./ProgressionFlagsSection";
 import { F2fSection } from "./F2fSection";
@@ -24,6 +27,15 @@ type AthleteDashboardProps = {
   athleteId: string;
 };
 
+async function fetchProfile(url: string): Promise<{ data: BuildInDistanceRow[] }> {
+  const res = await fetch(url);
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(typeof json?.error === "string" ? json.error : "Request failed");
+  }
+  return json;
+}
+
 /**
  * AthleteDashboard - Placeholder for Phase A
  * 
@@ -41,6 +53,10 @@ export function AthleteDashboard({ athleteId }: AthleteDashboardProps) {
   const [athlete, setAthlete] = useState<Athlete | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const profile = useSWR<{ data: BuildInDistanceRow[] }>(
+    `/api/speed/profile?athlete_id=${encodeURIComponent(athleteId)}`,
+    fetchProfile
+  );
 
   useEffect(() => {
     async function fetchAthlete() {
@@ -93,6 +109,17 @@ export function AthleteDashboard({ athleteId }: AthleteDashboardProps) {
             {athlete.gender} • {athlete.athlete_type === "athlete" ? `Class of ${athlete.graduating_class}` : athlete.athlete_type} • {athlete.active ? "Active" : "Inactive"}
           </p>
         </header>
+
+        <section className="rounded-xl border border-border bg-surface-elevated p-4">
+          <h3 className="mb-3 text-lg font-semibold text-foreground">Build-in velocity</h3>
+          {profile.isLoading ? (
+            <p className="text-sm text-foreground-muted">Loading build-in profile...</p>
+          ) : profile.error ? (
+            <p className="text-sm text-foreground-muted">Couldn&apos;t load build-in profile.</p>
+          ) : (
+            <BuildInVelocityChart rows={profile.data?.data ?? []} aggregate={false} />
+          )}
+        </section>
 
         <TeamsAndEventsSection athleteId={athleteId} />
 
