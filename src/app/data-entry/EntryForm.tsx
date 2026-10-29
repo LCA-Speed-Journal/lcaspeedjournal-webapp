@@ -26,10 +26,25 @@ import {
   otherSportMatches,
   shouldClearAthleteOnSportChange,
 } from "@/lib/guest-athletes";
+import {
+  EMPTY_SPEED_RUN_DRAFT,
+  previewSpeedRun,
+  SpeedRunFields,
+  type SpeedRunDraft,
+} from "@/components/speed/SpeedRunFields";
 import { overallAttemptsFor, type DropoffEntry } from "@/lib/dropoff/attempts";
 import { formatDropoffCaption } from "@/lib/dropoff/format";
 import { isDropoffMetric } from "@/lib/dropoff/metrics";
 import { directionFromUnits, summarizeDropoff } from "@/lib/dropoff/summarize";
+import { LEGACY_SPEED_KEYS } from "@/lib/speed/windows";
+
+const SPEED_RUN_KEY = "SpeedRun";
+
+function sessionAllowsMetric(dayMetrics: string[] | null | undefined, key: string): boolean {
+  if (!Array.isArray(dayMetrics) || dayMetrics.length === 0) return true;
+  if (dayMetrics.includes(key)) return true;
+  return key === SPEED_RUN_KEY && dayMetrics.some((metric) => LEGACY_SPEED_KEYS.has(metric));
+}
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -175,6 +190,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [metricKey, setMetricKey] = useState("");
   const [rawInput, setRawInput] = useState("");
+  const [speedDraft, setSpeedDraft] = useState<SpeedRunDraft>(EMPTY_SPEED_RUN_DRAFT);
   const [splitValues, setSplitValues] = useState<string[]>([]);
   const [splitEntryMode, setSplitEntryMode] = useState<"cumulative" | "segment">("cumulative");
   const [isMobile, setIsMobile] = useState(false);
@@ -365,7 +381,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const sessionMetrics = selectedSession?.day_metrics;
   const options =
     Array.isArray(sessionMetrics) && sessionMetrics.length > 0
-      ? allOptions.filter((o) => sessionMetrics.includes(o.key))
+      ? allOptions.filter((o) => sessionAllowsMetric(sessionMetrics, o.key))
       : allOptions;
   const selectedMetric = options.find((o) => o.key === metricKey) ?? null;
 
@@ -415,6 +431,48 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setError("");
     setSuccess("");
     setLoading(true);
+    if (metricKey === SPEED_RUN_KEY) {
+      const preview = previewSpeedRun(speedDraft);
+      if (!preview.ok) {
+        setError(preview.error);
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch("/api/entries", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: effectiveSessionId,
+            athlete_id: athleteId,
+            context_hugo_group: contextHugoGroupForSave(sportFilter),
+            speed_run: preview.payload,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          setError(json.error ?? "Failed to save entry");
+          return;
+        }
+        const count = json.data?.count ?? 1;
+        setSuccess(`Saved ${count} ${count === 1 ? "entry" : "entries"}`);
+        setSpeedDraft(EMPTY_SPEED_RUN_DRAFT);
+        void globalMutate(
+          (key) => typeof key === "string" && key.startsWith("/api/leaderboard"),
+          undefined,
+          { revalidate: true }
+        );
+        if (entriesKey) {
+          void globalMutate(entriesKey);
+        }
+        onSuccess?.();
+      } catch {
+        setError("Network error");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     let rawToSend: string;
     if (showNamedFlies) {
       rawToSend = splitValues.map((v) => v.trim()).join("|");
@@ -504,9 +562,13 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const expectedFieldCount = showNamedFlies
     ? namedFortyComponents.length
     : splitCount;
-  const hasValue = multiFieldEntry
-    ? allSplitsFilled && splitValues.length === expectedFieldCount
-    : rawInput.trim() !== "";
+  const speedPreview = metricKey === SPEED_RUN_KEY ? previewSpeedRun(speedDraft) : null;
+  const hasValue =
+    metricKey === SPEED_RUN_KEY
+      ? speedPreview?.ok === true
+      : multiFieldEntry
+        ? allSplitsFilled && splitValues.length === expectedFieldCount
+        : rawInput.trim() !== "";
   const canSubmit = effectiveSessionId && athleteId && metricKey && hasValue;
 
   return (
@@ -527,7 +589,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
               setSessionId(newId);
               const sess = sessions.find((s) => s.id === newId);
               const dm = Array.isArray(sess?.day_metrics) ? sess!.day_metrics : null;
-              if (metricKey && dm && dm.length > 0 && !dm.includes(metricKey)) {
+              if (metricKey && !sessionAllowsMetric(dm, metricKey)) {
                 setMetricKey("");
                 setRawInput("");
                 setSplitValues([]);
@@ -904,6 +966,14 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         </select>
       </div>
 
+      {metricKey === SPEED_RUN_KEY ? (
+        <SpeedRunFields
+          draft={speedDraft}
+          onChange={setSpeedDraft}
+          entries={sessionEntriesRes?.data ?? []}
+          athleteId={athleteId}
+        />
+      ) : (
       <div>
         <label htmlFor="entry_raw" className="mb-1 block text-sm font-medium text-foreground">
           Value
@@ -1014,6 +1084,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           </p>
         ) : null}
       </div>
+      )}
 
       {error && (
         <div className="flex flex-wrap items-center gap-2" role="alert">

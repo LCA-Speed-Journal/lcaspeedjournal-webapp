@@ -130,9 +130,19 @@ describe("sessionHasOverallChip", () => {
 });
 
 describe("sessionSetupMetricOptions", () => {
-  it("includes 20yd_Dash and 5-10-5_Agility for day-entry metric lists", () => {
+  it("includes 5-10-5_Agility for day-entry metric lists", () => {
     const keys = sessionSetupMetricOptions().map((o) => o.key);
-    expect(keys).toContain("20yd_Dash");
     expect(keys).toContain("5-10-5_Agility");
+  });
+
+  it("replaces unresisted speed keys with one Speed run option", () => {
+    const options = sessionSetupMetricOptions();
+    const keys = options.map((option) => option.key);
+    expect(keys).toContain("SpeedRun");
+    expect(keys).not.toContain("10m_Accel");
+    expect(keys).not.toContain("40yd_Dash");
+    expect(keys).not.toContain("10-20m_Split");
+    expect(keys).toContain("10m_Light-Sled");
+    expect(keys).toContain("Vertical Jump");
   });
 });

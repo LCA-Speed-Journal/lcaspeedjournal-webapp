@@ -1,4 +1,5 @@
 import { getMetricsRegistry } from "./parser";
+import { LEGACY_SPEED_KEYS } from "./speed/windows";
 
 export type MetricRegistry = ReturnType<typeof getMetricsRegistry>;
 
@@ -114,13 +115,24 @@ export type SessionSetupMetricOption = {
   input_units: string;
 };
 
-/** Full registry as day-entry metric-list options (session setup + entry form). */
+const SPEED_RUN_OPTION: SessionSetupMetricOption = {
+  key: "SpeedRun",
+  label: "Speed run",
+  input_structure: "speed_run",
+  default_splits: [],
+  input_units: "s",
+};
+
+/** Registry options for session setup and the entry form, with one Speed run in place of unresisted dashes. */
 export function sessionSetupMetricOptions(): SessionSetupMetricOption[] {
-  return Object.entries(getMetricsRegistry()).map(([key, m]) => ({
-    key,
-    label: m.display_name || key,
-    input_structure: m.input_structure,
-    default_splits: m.default_splits ?? [],
-    input_units: m.input_units,
-  }));
+  const options = Object.entries(getMetricsRegistry())
+    .filter(([key]) => !LEGACY_SPEED_KEYS.has(key))
+    .map(([key, m]) => ({
+      key,
+      label: m.display_name || key,
+      input_structure: m.input_structure,
+      default_splits: m.default_splits ?? [],
+      input_units: m.input_units,
+    }));
+  return [...options, SPEED_RUN_OPTION];
 }
