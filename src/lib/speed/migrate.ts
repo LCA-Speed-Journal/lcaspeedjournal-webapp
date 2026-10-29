@@ -122,7 +122,13 @@ export function planSpeedMigration(rows: LegacyEntry[]): SpeedMigrationPlan {
       continue;
     }
 
-    const prepared = prepareRow(row, window);
+    let prepared: PreparedRow;
+    try {
+      prepared = prepareRow(row, window);
+    } catch {
+      unparsed.push(row);
+      continue;
+    }
     const key = cohortKey(row, window.distance_unit, window.start_distance, window.end_distance);
     const list = groups.get(key);
     if (list) list.push(prepared);

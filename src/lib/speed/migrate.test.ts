@@ -75,4 +75,13 @@ describe("planSpeedMigration", () => {
     expect(plan.updates).toEqual([]);
     expect(plan.unparsed.map((item) => item.id)).toEqual(["mv"]);
   });
+
+  it("keeps planning when one mph row cannot convert", () => {
+    const plan = planSpeedMigration([
+      row({ id: "bad", metric_key: "10-20m_Split", component: "10-20m", units: "mph", display_value: 0 }),
+      row({ id: "accel", metric_key: "10m_Accel" }),
+    ]);
+    expect(plan.updates.map((item) => item.id)).toEqual(["accel"]);
+    expect(plan.unparsed.map((item) => item.id)).toEqual(["bad"]);
+  });
 });
