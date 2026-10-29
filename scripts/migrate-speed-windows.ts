@@ -126,7 +126,7 @@ async function applyMigration(
         );
       }
       if (plan.deleteIds.length > 0) {
-        await client.query("DELETE FROM entries WHERE id = ANY($1::text[])", [plan.deleteIds]);
+        await client.query("DELETE FROM entries WHERE id = ANY($1::uuid[])", [plan.deleteIds]);
       }
       await client.query("COMMIT");
     } catch (err) {
