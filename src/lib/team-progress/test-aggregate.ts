@@ -36,6 +36,8 @@ export type TestSeriesResult = {
   last: SeriesPoint | null;
   delta: number | null;
   improved_pct: number | null;
+  /** Winning BuildIn component on the latest session that has a best. Max Velocity only. */
+  last_window?: string | null;
 };
 
 function lowerIsBetterFor(metricKey: string, units: string | null): boolean {
@@ -57,27 +59,61 @@ function matchesMetric(
   return isPrimaryResultComponent(metricKey, row.component);
 }
 
+type SessionBest = {
+  value: number;
+  component: string | null;
+};
+
 function bestPerAthleteSession(
   rows: TestEntryRow[],
   metricKey: string,
   lowerIsBetter: boolean,
   velocityKeys: Set<string>
-): Map<string, number> {
-  const best = new Map<string, number>();
+): Map<string, SessionBest> {
+  const best = new Map<string, SessionBest>();
   for (const row of rows) {
     if (!matchesMetric(row, metricKey, velocityKeys)) continue;
     if (!Number.isFinite(row.display_value)) continue;
     const key = `${row.session_date}\0${row.athlete_id}`;
     const prev = best.get(key);
-    if (prev == null) {
-      best.set(key, row.display_value);
-      continue;
-    }
-    if (lowerIsBetter ? row.display_value < prev : row.display_value > prev) {
-      best.set(key, row.display_value);
+    if (
+      prev == null ||
+      (lowerIsBetter
+        ? row.display_value < prev.value
+        : row.display_value > prev.value)
+    ) {
+      best.set(key, {
+        value: row.display_value,
+        component: row.component,
+      });
     }
   }
   return best;
+}
+
+/** Component of the best mark on the latest session date that has one. */
+function latestWinningComponent(
+  best: Map<string, SessionBest>,
+  lowerIsBetter: boolean
+): string | null {
+  let latestDate = "";
+  let winningValue = 0;
+  let component: string | null = null;
+  let found = false;
+  for (const [key, mark] of best) {
+    const date = key.split("\0")[0] ?? "";
+    if (!date) continue;
+    const newer = !found || date > latestDate;
+    const betterSameDay =
+      date === latestDate &&
+      (lowerIsBetter ? mark.value < winningValue : mark.value > winningValue);
+    if (!newer && !betterSameDay) continue;
+    found = true;
+    latestDate = date;
+    winningValue = mark.value;
+    component = mark.component;
+  }
+  return found ? component : null;
 }
 
 export function aggregateTestSeries(opts: {
@@ -110,26 +146,26 @@ export function aggregateTestSeries(opts: {
     );
 
     const athleteBaseline = new Map<string, { date: string; value: number }>();
-    for (const [key, value] of best) {
+    for (const [key, mark] of best) {
       const [date, athleteId] = key.split("\0");
       if (!date || !athleteId) continue;
       const prev = athleteBaseline.get(athleteId);
       if (prev == null || date < prev.date) {
-        athleteBaseline.set(athleteId, { date, value });
+        athleteBaseline.set(athleteId, { date, value: mark.value });
       }
     }
 
     const byDate = new Map<string, { raw: number[]; change: number[] }>();
-    for (const [key, value] of best) {
+    for (const [key, mark] of best) {
       const [date, athleteId] = key.split("\0");
       if (!date || !athleteId) continue;
       const bucket = byDate.get(date) ?? { raw: [], change: [] };
-      bucket.raw.push(value);
+      bucket.raw.push(mark.value);
       const baseline = athleteBaseline.get(athleteId);
       if (baseline && date === baseline.date) {
         bucket.change.push(0);
       } else if (baseline) {
-        const pct = percentChange(value, baseline.value);
+        const pct = percentChange(mark.value, baseline.value);
         if (pct != null) bucket.change.push(pct);
       }
       byDate.set(date, bucket);
@@ -162,7 +198,7 @@ export function aggregateTestSeries(opts: {
       last: p.last,
     }));
 
-    out.push({
+    const series: TestSeriesResult = {
       metric_key: metricKey,
       source: testSourceFor(metricKey, opts.hugoGroup, opts.addedMetrics),
       lower_is_better: lowerIsBetter,
@@ -172,7 +208,11 @@ export function aggregateTestSeries(opts: {
       last: fl?.last ?? null,
       delta: metricDelta(fl?.first.median, fl?.last.median, lowerIsBetter),
       improved_pct: improvedPct(pairList, lowerIsBetter),
-    });
+    };
+    if (metricKey === getMaxVelocityKey()) {
+      series.last_window = latestWinningComponent(best, lowerIsBetter);
+    }
+    out.push(series);
   }
 
   return out;
@@ -239,6 +279,9 @@ export function listAvailableExtraMetrics(
   const velocityKeys = new Set(getVelocityMetricKeys());
   const seen = new Set<string>();
   for (const row of rows) {
+    if (row.metric_key === "Acceleration" || row.metric_key === "BuildIn") {
+      continue;
+    }
     let key = row.metric_key;
     if (velocityKeys.has(row.metric_key)) {
       // MaxVelocity is core — don't list raw mph keys as extras unless not already covered

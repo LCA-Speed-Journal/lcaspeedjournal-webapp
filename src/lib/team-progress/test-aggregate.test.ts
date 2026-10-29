@@ -163,6 +163,32 @@ describe("aggregateTestSeries", () => {
     );
   });
 
+  it("omits Acceleration and BuildIn from the add-test list", () => {
+    const withSpeed: TestEntryRow[] = [
+      ...rows,
+      {
+        athlete_id: "a1",
+        session_date: "2026-09-01",
+        metric_key: "Acceleration",
+        component: "0-10yd",
+        display_value: 1.7,
+        units: "s",
+      },
+      {
+        athlete_id: "a1",
+        session_date: "2026-09-01",
+        metric_key: "BuildIn",
+        component: "10-20yd",
+        display_value: 18,
+        units: "mph",
+      },
+    ];
+    const available = listAvailableExtraMetrics(withSpeed, "football", []);
+    expect(available).not.toContain("Acceleration");
+    expect(available).not.toContain("BuildIn");
+    expect(available).toContain("10-5_RSI");
+  });
+
   it("uses the best BuildIn mph for Max Velocity and ignores a sled", () => {
     const velocityRows: TestEntryRow[] = [
       {
@@ -200,6 +226,46 @@ describe("aggregateTestSeries", () => {
     expect(series[0]!.units).toBe("mph");
     expect(series[0]!.points).toHaveLength(1);
     expect(series[0]!.points[0]!.median).toBe(21);
+    expect(series[0]!.last_window).toBe("20-40yd");
+  });
+
+  it("labels Max Velocity with the later session's faster BuildIn", () => {
+    const velocityRows: TestEntryRow[] = [
+      {
+        athlete_id: "a1",
+        session_date: "2026-09-01",
+        metric_key: "BuildIn",
+        component: "10-20yd",
+        display_value: 24,
+        units: "mph",
+      },
+      {
+        athlete_id: "a1",
+        session_date: "2026-10-01",
+        metric_key: "BuildIn",
+        component: "10-20yd",
+        display_value: 19,
+        units: "mph",
+      },
+      {
+        athlete_id: "a1",
+        session_date: "2026-10-01",
+        metric_key: "BuildIn",
+        component: "20-40yd",
+        display_value: 22,
+        units: "mph",
+      },
+    ];
+    const series = aggregateTestSeries({
+      rows: velocityRows,
+      metricKeys: ["MaxVelocity", "40yd_Dash"],
+      hugoGroup: "football",
+      addedMetrics: [],
+    });
+    const maxV = series.find((s) => s.metric_key === "MaxVelocity");
+    const forty = series.find((s) => s.metric_key === "40yd_Dash");
+    expect(maxV?.last_window).toBe("20-40yd");
+    expect(forty?.last_window).toBeUndefined();
   });
 
   it("computes per-athlete first/last deltas", () => {

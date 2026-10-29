@@ -21,6 +21,7 @@ import {
 } from "@/lib/weight-room/constants";
 import type { TeamProgressPayload } from "@/lib/team-progress/build-payload";
 import { metricLabel } from "@/lib/norms/editor-metrics";
+import { getMaxVelocityKey } from "@/lib/velocity-metrics";
 import { f2fShowsPredicted40s } from "@/lib/norms/f2f/labels";
 import type { F2fProfile, F2fQuality } from "@/lib/norms/f2f/types";
 
@@ -408,6 +409,11 @@ export default function TeamProgressClient() {
                           {fmtDelta(t.delta, t.lower_is_better)}
                           {t.units ? ` ${t.units}` : ""}
                         </p>
+                        {t.metric_key === getMaxVelocityKey() && t.last_window ? (
+                          <p className="text-xs text-foreground-muted">
+                            {t.last_window}
+                          </p>
+                        ) : null}
                         <p className="text-xs text-foreground-muted">
                           Improved {fmtPct(t.improved_pct)} · n first{" "}
                           {t.first?.n ?? "—"} → last {t.last?.n ?? "—"}
