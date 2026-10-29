@@ -1,5 +1,6 @@
 import { schoolYearEnd } from "../../quick-athlete";
 import { FORTY_YD_DASH } from "../editor-metrics";
+import { mphFromYardSplit, yardsInFortyComponent } from "../forty-yd";
 import { STANDING_BROAD } from "./constants";
 import { isForceStandIn, matchesEitherDash, matchesSpeedMark } from "./force-stand-in";
 import { reconstructFiveFifteen } from "./reconstruct-515";
@@ -57,10 +58,33 @@ function isF2fRelevant(entry: DatedF2fEntry): boolean {
   return entry.metric_key === STANDING_BROAD || matchesEitherDash(entry, null);
 }
 
+/** Higher mph is faster. Seconds rows convert when the component has a yard length. */
+function paceMph(entry: DatedF2fEntry): number | null {
+  const yards = yardsInFortyComponent(entry.component);
+  if (yards == null) return null;
+  if (entry.units === "mph") {
+    return Number.isFinite(entry.display_value) ? entry.display_value : null;
+  }
+  if (entry.units == null || entry.units === "s") {
+    return mphFromYardSplit(entry.display_value, yards);
+  }
+  return null;
+}
+
 function pickBestTime(entries: DatedF2fEntry[]): DatedF2fEntry | null {
   let best: DatedF2fEntry | null = null;
   for (const entry of entries) {
-    if (!best || entry.display_value < best.display_value) best = entry;
+    if (!best) {
+      best = entry;
+      continue;
+    }
+    const pace = paceMph(entry);
+    const bestPace = paceMph(best);
+    if (pace != null && bestPace != null) {
+      if (pace > bestPace) best = entry;
+      continue;
+    }
+    if (entry.display_value < best.display_value) best = entry;
   }
   return best;
 }

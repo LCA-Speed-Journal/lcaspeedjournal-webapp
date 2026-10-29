@@ -43,7 +43,63 @@ type EntryRow = {
   metric_key: string;
   component: string | null;
   display_value: string | number;
+  units?: string | null;
+  legacy_metric_key?: string | null;
+  legacy_component?: string | null;
 };
+
+function isUndefinedColumn(err: unknown): boolean {
+  let current: unknown = err;
+  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth++) {
+    const rec = current as { code?: string; cause?: unknown };
+    if (rec.code === "42703") return true;
+    current = rec.cause;
+  }
+  return false;
+}
+
+async function loadAthleteF2fRows(athleteId: string, from: string, to: string) {
+  try {
+    return await sql`
+      SELECT
+        e.session_id::text AS session_id,
+        s.session_date::text AS session_date,
+        e.created_at,
+        e.metric_key,
+        e.component,
+        e.display_value,
+        e.units,
+        e.legacy_metric_key,
+        e.legacy_component
+      FROM entries e
+      INNER JOIN sessions s ON s.id = e.session_id
+      WHERE e.athlete_id = ${athleteId}
+        AND (
+          e.metric_key IN (${STANDING_BROAD}, ${FORTY_YD_DASH}, ${TWENTY_YD_DASH})
+          OR e.legacy_metric_key IN (${FORTY_YD_DASH}, ${TWENTY_YD_DASH})
+        )
+        AND s.session_date >= ${from}::date
+        AND s.session_date <= ${to}::date
+    `;
+  } catch (err) {
+    if (!isUndefinedColumn(err)) throw err;
+    return sql`
+      SELECT
+        e.session_id::text AS session_id,
+        s.session_date::text AS session_date,
+        e.created_at,
+        e.metric_key,
+        e.component,
+        e.display_value
+      FROM entries e
+      INNER JOIN sessions s ON s.id = e.session_id
+      WHERE e.athlete_id = ${athleteId}
+        AND e.metric_key IN (${STANDING_BROAD}, ${FORTY_YD_DASH}, ${TWENTY_YD_DASH})
+        AND s.session_date >= ${from}::date
+        AND s.session_date <= ${to}::date
+    `;
+  }
+}
 
 export async function GET(
   request: NextRequest,
@@ -65,21 +121,7 @@ export async function GET(
     }
     const gender = (athleteResult.rows[0] as { gender: string | null }).gender;
 
-    const { rows } = await sql`
-      SELECT
-        e.session_id::text AS session_id,
-        s.session_date::text AS session_date,
-        e.created_at,
-        e.metric_key,
-        e.component,
-        e.display_value
-      FROM entries e
-      INNER JOIN sessions s ON s.id = e.session_id
-      WHERE e.athlete_id = ${id}
-        AND e.metric_key IN (${STANDING_BROAD}, ${FORTY_YD_DASH}, ${TWENTY_YD_DASH})
-        AND s.session_date >= ${from}::date
-        AND s.session_date <= ${to}::date
-    `;
+    const { rows } = await loadAthleteF2fRows(id, from, to);
 
     const entries: DatedF2fEntry[] = (rows as EntryRow[]).map((row) => ({
       session_id: String(row.session_id),
@@ -88,6 +130,11 @@ export async function GET(
       metric_key: row.metric_key,
       component: row.component,
       display_value: Number(row.display_value),
+      units: row.units == null ? null : String(row.units),
+      legacy_metric_key:
+        row.legacy_metric_key == null ? null : String(row.legacy_metric_key),
+      legacy_component:
+        row.legacy_component == null ? null : String(row.legacy_component),
     }));
 
     const picked = pickF2fMarks(entries, { mode, from, to });

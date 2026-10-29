@@ -80,28 +80,72 @@ export async function loadTeamProgressTestEntries(opts: {
   }));
 }
 
+function isUndefinedColumn(err: unknown): boolean {
+  let current: unknown = err;
+  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth++) {
+    const rec = current as { code?: string; cause?: unknown };
+    if (rec.code === "42703") return true;
+    current = rec.cause;
+  }
+  return false;
+}
+
+async function queryTeamProgressF2fRows(opts: {
+  athleteIds: string[];
+  from: string;
+  to: string;
+}) {
+  try {
+    return await sql`
+      SELECT
+        e.athlete_id::text AS athlete_id,
+        e.session_id::text AS session_id,
+        s.session_date::text AS session_date,
+        e.metric_key,
+        e.component,
+        e.display_value,
+        e.units,
+        e.legacy_metric_key,
+        e.legacy_component
+      FROM entries e
+      INNER JOIN sessions s ON s.id = e.session_id
+      WHERE e.athlete_id = ANY(${opts.athleteIds as unknown as string}::uuid[])
+        AND s.session_date >= ${opts.from}::date
+        AND s.session_date <= ${opts.to}::date
+        AND (
+          e.metric_key IN (${STANDING_BROAD}, ${FORTY_YD_DASH}, ${TWENTY_YD_DASH})
+          OR e.legacy_metric_key IN (${FORTY_YD_DASH}, ${TWENTY_YD_DASH})
+        )
+        AND e.display_value IS NOT NULL
+    `;
+  } catch (err) {
+    if (!isUndefinedColumn(err)) throw err;
+    return sql`
+      SELECT
+        e.athlete_id::text AS athlete_id,
+        e.session_id::text AS session_id,
+        s.session_date::text AS session_date,
+        e.metric_key,
+        e.component,
+        e.display_value
+      FROM entries e
+      INNER JOIN sessions s ON s.id = e.session_id
+      WHERE e.athlete_id = ANY(${opts.athleteIds as unknown as string}::uuid[])
+        AND s.session_date >= ${opts.from}::date
+        AND s.session_date <= ${opts.to}::date
+        AND e.metric_key IN (${STANDING_BROAD}, ${FORTY_YD_DASH}, ${TWENTY_YD_DASH})
+        AND e.display_value IS NOT NULL
+    `;
+  }
+}
+
 export async function loadTeamProgressF2fEntries(opts: {
   athleteIds: string[];
   from: string;
   to: string;
 }): Promise<F2fEntryWithAthlete[]> {
   if (opts.athleteIds.length === 0) return [];
-  const { rows } = await sql`
-    SELECT
-      e.athlete_id::text AS athlete_id,
-      e.session_id::text AS session_id,
-      s.session_date::text AS session_date,
-      e.metric_key,
-      e.component,
-      e.display_value
-    FROM entries e
-    INNER JOIN sessions s ON s.id = e.session_id
-    WHERE e.athlete_id = ANY(${opts.athleteIds as unknown as string}::uuid[])
-      AND s.session_date >= ${opts.from}::date
-      AND s.session_date <= ${opts.to}::date
-      AND e.metric_key IN (${STANDING_BROAD}, ${FORTY_YD_DASH}, ${TWENTY_YD_DASH})
-      AND e.display_value IS NOT NULL
-  `;
+  const { rows } = await queryTeamProgressF2fRows(opts);
   return (rows as Record<string, unknown>[]).map((r) => ({
     athlete_id: String(r.athlete_id),
     session_id: String(r.session_id),
@@ -109,6 +153,11 @@ export async function loadTeamProgressF2fEntries(opts: {
     metric_key: String(r.metric_key),
     component: r.component == null ? null : String(r.component),
     display_value: Number(r.display_value),
+    units: r.units == null ? null : String(r.units),
+    legacy_metric_key:
+      r.legacy_metric_key == null ? null : String(r.legacy_metric_key),
+    legacy_component:
+      r.legacy_component == null ? null : String(r.legacy_component),
   }));
 }
 

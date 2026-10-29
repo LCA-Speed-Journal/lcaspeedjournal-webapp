@@ -11,6 +11,58 @@ import {
 
 const male = { gender: "M" as const };
 
+describe("buildF2fProfile speed-window pace", () => {
+  it("keeps the faster 20-40 BuildIn when both reps are mph", () => {
+    const profile = buildF2fProfile(
+      [
+        {
+          metric_key: "BuildIn",
+          component: "20-40yd",
+          legacy_metric_key: "40yd_Dash",
+          legacy_component: "20-40yd",
+          units: "mph",
+          display_value: 21,
+        },
+        {
+          metric_key: "BuildIn",
+          component: "20-40yd",
+          legacy_metric_key: "40yd_Dash",
+          legacy_component: "20-40yd",
+          units: "mph",
+          display_value: 23,
+        },
+      ],
+      male
+    );
+    expect(profile.form?.input?.value).toBe(23);
+    expect(profile.form?.input?.units).toBe("mph");
+  });
+
+  it("keeps 22 mph over a slower 2.5s 20-40", () => {
+    const profile = buildF2fProfile(
+      [
+        {
+          metric_key: "40yd_Dash",
+          component: "20-40yd",
+          units: "s",
+          display_value: 2.5,
+        },
+        {
+          metric_key: "BuildIn",
+          component: "20-40yd",
+          legacy_metric_key: "40yd_Dash",
+          legacy_component: "20-40yd",
+          units: "mph",
+          display_value: 22,
+        },
+      ],
+      male
+    );
+    expect(profile.form?.input?.value).toBe(22);
+    expect(profile.form?.input?.units).toBe("mph");
+  });
+});
+
 describe("buildF2fProfile", () => {
   it("uses actual 0-40yd as the reference when present", () => {
     const profile = buildF2fProfile(

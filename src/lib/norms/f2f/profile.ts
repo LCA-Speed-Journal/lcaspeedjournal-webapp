@@ -1,5 +1,5 @@
 import { FORTY_YD_DASH } from "../editor-metrics";
-import { mphFromYardSplit } from "../forty-yd";
+import { mphFromYardSplit, yardsInFortyComponent } from "../forty-yd";
 import { DEFICIENCY_BAND, STANDING_BROAD } from "./constants";
 import { isForceStandIn, matchesEitherDash, matchesSpeedMark } from "./force-stand-in";
 import { reconstructFiveFifteen } from "./reconstruct-515";
@@ -44,10 +44,33 @@ function finiteEntries(
   );
 }
 
+/** Higher mph is faster. Seconds rows convert when the component has a yard length. */
+function paceMph(entry: ProfileEntry): number | null {
+  const yards = yardsInFortyComponent(entry.component);
+  if (yards == null) return null;
+  if (entry.units === "mph") {
+    return Number.isFinite(entry.display_value) ? entry.display_value : null;
+  }
+  if (entry.units == null || entry.units === "s") {
+    return mphFromYardSplit(entry.display_value, yards);
+  }
+  return null;
+}
+
 function pickBestTime(entries: ProfileEntry[]): ProfileEntry | null {
   let best: ProfileEntry | null = null;
   for (const entry of entries) {
-    if (!best || entry.display_value < best.display_value) best = entry;
+    if (!best) {
+      best = entry;
+      continue;
+    }
+    const pace = paceMph(entry);
+    const bestPace = paceMph(best);
+    if (pace != null && bestPace != null) {
+      if (pace > bestPace) best = entry;
+      continue;
+    }
+    if (entry.display_value < best.display_value) best = entry;
   }
   return best;
 }

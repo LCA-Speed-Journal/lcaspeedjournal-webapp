@@ -46,6 +46,8 @@ type BoardEntryRow = {
   interval_index: number | null;
   display_value: string | number;
   units: string | null;
+  legacy_metric_key?: string | null;
+  legacy_component?: string | null;
 };
 
 type ThresholdWithMetric = RawThresholdRow & { metric_key: string };
@@ -60,6 +62,57 @@ function isMissingF2fThemeNotesColumn(err: unknown): boolean {
   const e = err as { code?: string; message?: string };
   const msg = String(e?.message ?? "").toLowerCase();
   return e?.code === "42703" || msg.includes("f2f_theme_notes");
+}
+
+function isUndefinedColumn(err: unknown): boolean {
+  let current: unknown = err;
+  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth++) {
+    const rec = current as { code?: string; cause?: unknown };
+    if (rec.code === "42703") return true;
+    current = rec.cause;
+  }
+  return false;
+}
+
+async function loadTestingDayEntries(sessionId: string) {
+  try {
+    return await sql`
+      SELECT
+        e.athlete_id,
+        a.first_name,
+        a.last_name,
+        a.gender,
+        a.graduating_class,
+        e.metric_key,
+        e.component,
+        e.interval_index,
+        e.display_value,
+        e.units,
+        e.legacy_metric_key,
+        e.legacy_component
+      FROM entries e
+      INNER JOIN athletes a ON a.id = e.athlete_id
+      WHERE e.session_id = ${sessionId}
+    `;
+  } catch (err) {
+    if (!isUndefinedColumn(err)) throw err;
+    return sql`
+      SELECT
+        e.athlete_id,
+        a.first_name,
+        a.last_name,
+        a.gender,
+        a.graduating_class,
+        e.metric_key,
+        e.component,
+        e.interval_index,
+        e.display_value,
+        e.units
+      FROM entries e
+      INNER JOIN athletes a ON a.id = e.athlete_id
+      WHERE e.session_id = ${sessionId}
+    `;
+  }
 }
 
 export type BuildTestingDayBoardResult =
@@ -101,22 +154,7 @@ export async function buildTestingDayBoard(
       WHERE archived_at IS NULL
       ORDER BY name ASC
     `,
-    sql`
-      SELECT
-        e.athlete_id,
-        a.first_name,
-        a.last_name,
-        a.gender,
-        a.graduating_class,
-        e.metric_key,
-        e.component,
-        e.interval_index,
-        e.display_value,
-        e.units
-      FROM entries e
-      INNER JOIN athletes a ON a.id = e.athlete_id
-      WHERE e.session_id = ${session_id}
-    `,
+    loadTestingDayEntries(session_id),
   ]);
 
   if (!sessionRows.rows.length) {
@@ -266,6 +304,9 @@ export async function buildTestingDayBoard(
     metric_key: row.metric_key,
     component: row.component,
     display_value: Number(row.display_value),
+    units: row.units,
+    legacy_metric_key: row.legacy_metric_key ?? null,
+    legacy_component: row.legacy_component ?? null,
   }));
   const merged = mergeDerivedSprintColumns({
     columns,

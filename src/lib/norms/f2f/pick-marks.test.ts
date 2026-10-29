@@ -276,6 +276,57 @@ describe("pickF2fMarks best", () => {
     expect(picked.entries.some((e) => e.component === "20-30yd")).toBe(true);
     expect(picked.entries.some((e) => e.component === "20-40yd")).toBe(false);
   });
+
+  it("ranks a 20-40 BuildIn fly by mph, not by the raw number", () => {
+    const slow = dated({
+      metric_key: "BuildIn",
+      component: "20-40yd",
+      legacy_metric_key: "40yd_Dash",
+      legacy_component: "20-40yd",
+      units: "mph",
+      display_value: 21,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const fast = dated({
+      metric_key: "BuildIn",
+      component: "20-40yd",
+      legacy_metric_key: "40yd_Dash",
+      legacy_component: "20-40yd",
+      units: "mph",
+      display_value: 23,
+      session_id: "may",
+      session_date: MAY,
+    });
+    const picked = pickF2fMarks([slow, fast], { mode: "best", ...WINDOW });
+    const form = picked.entries.find((e) => e.component === "20-40yd");
+    expect(form?.display_value).toBe(23);
+  });
+
+  it("prefers a 22 mph 20-40 over a slower 2.5s rep of the same window", () => {
+    const seconds = dated({
+      metric_key: "40yd_Dash",
+      component: "20-40yd",
+      units: "s",
+      display_value: 2.5,
+      session_id: "apr",
+      session_date: APR,
+    });
+    const mph = dated({
+      metric_key: "BuildIn",
+      component: "20-40yd",
+      legacy_metric_key: "40yd_Dash",
+      legacy_component: "20-40yd",
+      units: "mph",
+      display_value: 22,
+      session_id: "may",
+      session_date: MAY,
+    });
+    const picked = pickF2fMarks([seconds, mph], { mode: "best", ...WINDOW });
+    const form = picked.entries.find((e) => e.component === "20-40yd");
+    expect(form?.display_value).toBe(22);
+    expect(form?.units).toBe("mph");
+  });
 });
 
 describe("pickF2fMarks full-test", () => {
