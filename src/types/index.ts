@@ -25,6 +25,8 @@ export type LeaderboardRow = {
   display_value: number;
   units: string;
   source_metric_key?: string; // optional, for Max Velocity tooltip
+  /** Build-in window that produced the max-velocity row, e.g. "20-40yd". */
+  source_component?: string;
   // Session-to-session comparison (optional; absent when no prior session)
   previous_display_value?: number;
   previous_session_date?: string;
@@ -69,6 +71,8 @@ export type ProgressionPoint = {
   session_date: string;
   display_value: number;
   units?: string;
+  /** Build-in window for a max-velocity point, e.g. "20-40yd". */
+  window_label?: string;
 };
 
 // Phase A: Dashboard types

@@ -279,3 +279,55 @@ describe("GET /api/leaderboard/historical current-stick zones", () => {
     expect(textOf(entryCall![0] as TemplateStringsArray)).toContain("::text[]");
   });
 });
+
+const MV_ID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+
+describe("GET /api/leaderboard/historical max velocity", () => {
+  beforeEach(() => {
+    sql.mockReset();
+  });
+
+  it("reads the fastest BuildIn row and returns its window", async () => {
+    sql.mockImplementation(async (strings: TemplateStringsArray, ...values: unknown[]) => {
+      const text = textOf(strings);
+      if (text.includes("norm_populations")) return { rows: [] };
+      if (text.includes("athlete_hugo_memberships")) return { rows: [] };
+      if (text.includes("norm_sport_defaults")) return { rows: [] };
+      if (text.includes("norm_thresholds")) return { rows: [] };
+      if (text.includes("e.metric_key = 'BuildIn'")) {
+        expect(values).not.toContain("10-20m_Split");
+        return {
+          rows: [
+            {
+              rank: 1,
+              athlete_id: MV_ID,
+              first_name: "Max",
+              last_name: "Fly",
+              gender: "M",
+              athlete_type: "athlete",
+              display_value: 22.4,
+              units: "mph",
+              source_metric_key: "BuildIn",
+              source_component: "20-40yd",
+            },
+          ],
+        };
+      }
+      return { rows: [] };
+    });
+
+    const res = await GET(
+      req("from=2026-01-01&to=2026-12-31&metric=MaxVelocity")
+    );
+    expect(res.status).toBe(200);
+    const body = await jsonOf(res);
+    expect(body.data?.rows[0]?.source_component).toBe("20-40yd");
+    expect(body.data?.rows[0]?.display_value).toBe(22.4);
+
+    const entryCall = sql.mock.calls.find((call) =>
+      textOf(call[0] as TemplateStringsArray).includes("e.metric_key = 'BuildIn'")
+    );
+    expect(entryCall).toBeDefined();
+    expect(entryCall!.slice(1)).not.toContain("10-20m_Split");
+  });
+});

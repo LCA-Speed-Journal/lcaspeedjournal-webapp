@@ -51,7 +51,7 @@ function matchesMetric(
   velocityKeys: Set<string>
 ): boolean {
   if (metricKey === getMaxVelocityKey()) {
-    return velocityKeys.has(row.metric_key);
+    return row.metric_key === "BuildIn";
   }
   if (row.metric_key !== metricKey) return false;
   return isPrimaryResultComponent(metricKey, row.component);

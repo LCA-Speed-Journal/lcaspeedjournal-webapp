@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { getMetricsRegistry } from "@/lib/parser";
-import { getVelocityMetricKeys, getMaxVelocityKey } from "@/lib/velocity-metrics";
+import { getMaxVelocityKey } from "@/lib/velocity-metrics";
 import {
   AGILITY_5105,
   AGILITY_5105_PRIMARY_COMPONENTS,
@@ -24,6 +24,7 @@ type ProgressionRow = {
   gender: string;
   units: string;
   display_value: number;
+  component?: string | null;
 };
 
 function isMale(g: string): boolean {
@@ -63,45 +64,29 @@ export async function GET(request: NextRequest) {
     let metricDisplayName = metric;
 
     if (isMaxVelocity) {
-      const velocityKeys = getVelocityMetricKeys();
-      if (velocityKeys.length === 0) {
-        return NextResponse.json(
-          { error: "Max Velocity is not available (no mph metrics in registry)" },
-          { status: 400 }
-        );
-      }
       units = "mph";
       metricDisplayName = "Max Velocity";
 
       const stringParts: string[] = [
-        `SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, 'mph' AS units, MAX(e.display_value) AS display_value
+        `SELECT DISTINCT ON (s.session_date, e.athlete_id)
+  s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender,
+  'mph' AS units, e.display_value, e.component
 FROM entries e
 INNER JOIN sessions s ON s.id = e.session_id
 INNER JOIN athletes a ON a.id = e.athlete_id
 WHERE s.session_date >= `,
         `::date AND s.session_date <= `,
-        `::date AND (e.athlete_id = `,
+        `::date AND e.metric_key = 'BuildIn' AND (e.athlete_id = `,
       ];
       for (let i = 1; i < cappedIds.length; i++) {
         stringParts.push(" OR e.athlete_id = ");
       }
-      stringParts.push(") AND (e.metric_key = ");
-      for (let i = 1; i < velocityKeys.length; i++) {
-        stringParts.push(" OR e.metric_key = ");
-      }
       stringParts.push(
         `)
-GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender
-ORDER BY s.session_date, e.athlete_id`
+ORDER BY s.session_date, e.athlete_id, e.display_value DESC`
       );
       const template = Object.assign([...stringParts], { raw: stringParts }) as TemplateStringsArray;
-      const result = await sql(
-        template,
-        from,
-        to,
-        ...cappedIds,
-        ...velocityKeys
-      );
+      const result = await sql(template, from, to, ...cappedIds);
       rows = (result.rows as ProgressionRow[]) ?? [];
     } else {
       const metricDef = registry[metric];
@@ -218,7 +203,13 @@ ORDER BY s.session_date, e.athlete_id`
         athleteMeta.set(key, { first_name: r.first_name, last_name: r.last_name, gender: r.gender });
       }
       const pts = pointsByAthlete.get(key) ?? [];
-      pts.push({ session_date: r.session_date, display_value: Number(r.display_value), units: r.units });
+      const point: ProgressionPoint = {
+        session_date: r.session_date,
+        display_value: Number(r.display_value),
+        units: r.units,
+      };
+      if (r.component) point.window_label = r.component;
+      pts.push(point);
       pointsByAthlete.set(key, pts);
     }
 
@@ -229,26 +220,17 @@ ORDER BY s.session_date, e.athlete_id`
       // Team averages: from all athletes who have data in each session (not just selected).
       let allRows: ProgressionRow[] = [];
       if (isMaxVelocity) {
-        const velocityKeys = getVelocityMetricKeys();
-        const stringParts: string[] = [
-          `SELECT s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender, 'mph' AS units, MAX(e.display_value) AS display_value
-FROM entries e
-INNER JOIN sessions s ON s.id = e.session_id
-INNER JOIN athletes a ON a.id = e.athlete_id
-WHERE s.session_date >= `,
-          `::date AND s.session_date <= `,
-          `::date AND (e.metric_key = `,
-        ];
-        for (let i = 1; i < velocityKeys.length; i++) {
-          stringParts.push(" OR e.metric_key = ");
-        }
-        stringParts.push(
-          `)
-GROUP BY s.session_date, e.athlete_id, a.first_name, a.last_name, a.gender
-ORDER BY s.session_date, e.athlete_id`
-        );
-        const template = Object.assign([...stringParts], { raw: stringParts }) as TemplateStringsArray;
-        const result = await sql(template, from, to, ...velocityKeys);
+        const result = await sql`
+          SELECT DISTINCT ON (s.session_date, e.athlete_id)
+            s.session_date::text, e.athlete_id::text, a.first_name, a.last_name, a.gender,
+            'mph' AS units, e.display_value, e.component
+          FROM entries e
+          INNER JOIN sessions s ON s.id = e.session_id
+          INNER JOIN athletes a ON a.id = e.athlete_id
+          WHERE s.session_date >= ${from}::date AND s.session_date <= ${to}::date
+            AND e.metric_key = 'BuildIn'
+          ORDER BY s.session_date, e.athlete_id, e.display_value DESC
+        `;
         allRows = (result.rows as ProgressionRow[]) ?? [];
       } else {
         const metricDef = registry[metric];

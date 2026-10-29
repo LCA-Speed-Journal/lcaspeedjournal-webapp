@@ -163,6 +163,45 @@ describe("aggregateTestSeries", () => {
     );
   });
 
+  it("uses the best BuildIn mph for Max Velocity and ignores a sled", () => {
+    const velocityRows: TestEntryRow[] = [
+      {
+        athlete_id: "a1",
+        session_date: "2026-09-01",
+        metric_key: "BuildIn",
+        component: "10-20yd",
+        display_value: 18,
+        units: "mph",
+      },
+      {
+        athlete_id: "a1",
+        session_date: "2026-09-01",
+        metric_key: "BuildIn",
+        component: "20-40yd",
+        display_value: 21,
+        units: "mph",
+      },
+      {
+        athlete_id: "a1",
+        session_date: "2026-09-01",
+        metric_key: "10-20m_Light-Sled",
+        component: null,
+        display_value: 30,
+        units: "mph",
+      },
+    ];
+    const series = aggregateTestSeries({
+      rows: velocityRows,
+      metricKeys: ["MaxVelocity"],
+      hugoGroup: "football",
+      addedMetrics: [],
+    });
+    expect(series).toHaveLength(1);
+    expect(series[0]!.units).toBe("mph");
+    expect(series[0]!.points).toHaveLength(1);
+    expect(series[0]!.points[0]!.median).toBe(21);
+  });
+
   it("computes per-athlete first/last deltas", () => {
     const deltas = athleteTestDeltas(rows, "40yd_Dash", true);
     expect(deltas.get("a1")!.first).toBe(5.2);
