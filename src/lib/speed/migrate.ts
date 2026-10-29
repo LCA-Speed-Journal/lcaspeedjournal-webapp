@@ -19,6 +19,8 @@ export type LegacyEntry = {
   value: number;
   display_value: number;
   units: string;
+  /** Missing or any value other than `weight_room` is coach-entered. */
+  source?: string | null;
 };
 
 export type SpeedUpdate = SpeedRunRow & {
@@ -32,7 +34,7 @@ export type SpeedMigrationPlan = {
   deleteIds: string[];
   skipped: LegacyEntry[];
   unparsed: LegacyEntry[];
-  conflicts: { key: string; ids: string[] }[];
+  conflicts: { key: string; ids: string[]; heldIds: string[] }[];
 };
 
 /** Recovered times within this many seconds are the same rep. */
@@ -89,6 +91,10 @@ function prepareRow(row: LegacyEntry, window: SpeedWindow): PreparedRow {
       legacy_component: legacyComponent(row, window),
     },
   };
+}
+
+function isWeightRoom(row: LegacyEntry): boolean {
+  return row.source === "weight_room";
 }
 
 function preferMphSource(list: PreparedRow[]): PreparedRow {
@@ -148,8 +154,18 @@ export function planSpeedMigration(rows: LegacyEntry[]): SpeedMigrationPlan {
     }
 
     if (high - low > TIME_EPSILON) {
-      conflicts.push({ key, ids: list.map((item) => item.source.id) });
-      for (const item of list) updates.push(item.update);
+      const weightRoom = list.filter((item) => isWeightRoom(item.source));
+      const heldIds = weightRoom.length >= 2 ? weightRoom.map((item) => item.source.id) : [];
+      const held = new Set(heldIds);
+      conflicts.push({
+        key,
+        ids: list.map((item) => item.source.id),
+        heldIds,
+      });
+      for (const item of list) {
+        if (held.has(item.source.id)) continue;
+        updates.push(item.update);
+      }
       continue;
     }
 

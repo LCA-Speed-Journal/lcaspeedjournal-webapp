@@ -4,7 +4,7 @@
  * Dry-run (read-only; prints the plan and exits 0):
  *   npx tsx scripts/migrate-speed-windows.ts
  *
- * Apply (schema SQL, then updates and deletes in one transaction):
+ * Apply (lock entries, schema SQL, then the plan from that locked read):
  *   npx tsx scripts/migrate-speed-windows.ts --apply
  *
  * Requires POSTGRES_URL in .env.local or the environment.
@@ -15,6 +15,10 @@ import { join } from "path";
 import { planSpeedMigration, type LegacyEntry, type SpeedMigrationPlan } from "../src/lib/speed/migrate";
 import { LEGACY_SPEED_KEYS } from "../src/lib/speed/windows";
 
+const LEGACY_ENTRY_SQL = `SELECT id, session_id, athlete_id, metric_key, component, value, display_value, units, source
+  FROM entries
+  WHERE metric_key = ANY($1::text[])`;
+
 type RawEntry = {
   id: string;
   session_id: string;
@@ -24,6 +28,7 @@ type RawEntry = {
   value: string | number | null;
   display_value: string | number | null;
   units: string;
+  source: string | null;
 };
 
 // Load .env.local if present
@@ -66,7 +71,12 @@ function toLegacyEntry(row: RawEntry): LegacyEntry {
     value: Number(row.value),
     display_value: Number(row.display_value),
     units: row.units,
+    source: row.source,
   };
+}
+
+function legacyMetricKeys(): string[] {
+  return [...LEGACY_SPEED_KEYS, "MaxVelocity"];
 }
 
 function printPlan(plan: SpeedMigrationPlan): void {
@@ -77,26 +87,30 @@ function printPlan(plan: SpeedMigrationPlan): void {
   console.log(`Conflicts: ${plan.conflicts.length}`);
   for (const conflict of plan.conflicts) {
     console.log(`Conflict ${conflict.key}: ${conflict.ids.join(", ")}`);
+    for (const id of conflict.heldIds) {
+      console.log(`Held weight-room ${id}`);
+    }
   }
   for (const row of plan.unparsed) {
     console.log(`Unparsed ${row.id}`);
   }
 }
 
-async function applyMigration(
-  pool: VercelPool,
-  sqlText: string,
-  plan: SpeedMigrationPlan
-): Promise<void> {
+async function applyMigration(pool: VercelPool, sqlText: string): Promise<void> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
     try {
+      await client.query("LOCK TABLE entries IN ACCESS EXCLUSIVE MODE");
       for (const statement of sqlStatements(sqlText)) {
         await client.query(statement);
       }
+      const { rows } = await client.query<RawEntry>(LEGACY_ENTRY_SQL, [legacyMetricKeys()]);
+      const plan = planSpeedMigration(rows.map(toLegacyEntry));
+      console.log("Mode: apply");
+      printPlan(plan);
       for (const update of plan.updates) {
-        await client.query(
+        const updated = await client.query(
           `UPDATE entries
            SET metric_key = $1,
                component = $2,
@@ -124,9 +138,22 @@ async function applyMigration(
             update.id,
           ]
         );
+        if (updated.rowCount !== 1) {
+          throw new Error(
+            `Speed window update for ${update.id} changed ${updated.rowCount ?? 0} rows`
+          );
+        }
       }
       if (plan.deleteIds.length > 0) {
-        await client.query("DELETE FROM entries WHERE id = ANY($1::uuid[])", [plan.deleteIds]);
+        const deleted = await client.query(
+          "DELETE FROM entries WHERE id = ANY($1::uuid[])",
+          [plan.deleteIds]
+        );
+        if (deleted.rowCount !== plan.deleteIds.length) {
+          throw new Error(
+            `Speed window delete removed ${deleted.rowCount ?? 0} rows, expected ${plan.deleteIds.length}`
+          );
+        }
       }
       await client.query("COMMIT");
     } catch (err) {
@@ -155,22 +182,15 @@ async function main() {
 
   const pool = createPool({ connectionString: postgresUrl });
   try {
-    const keys = [...LEGACY_SPEED_KEYS, "MaxVelocity"];
-    const { rows } = await pool.query<RawEntry>(
-      `SELECT id, session_id, athlete_id, metric_key, component, value, display_value, units
-       FROM entries
-       WHERE metric_key = ANY($1::text[])`,
-      [keys]
-    );
+    if (!apply) {
+      const { rows } = await pool.query<RawEntry>(LEGACY_ENTRY_SQL, [legacyMetricKeys()]);
+      const plan = planSpeedMigration(rows.map(toLegacyEntry));
+      console.log("Mode: dry-run");
+      printPlan(plan);
+      return;
+    }
 
-    const plan = planSpeedMigration(rows.map(toLegacyEntry));
-    console.log(`Mode: ${apply ? "apply" : "dry-run"}`);
-    printPlan(plan);
-
-    // Dry-run ends here: no transaction, no schema SQL, no updates, no deletes.
-    if (!apply) return;
-
-    await applyMigration(pool, sqlText, plan);
+    await applyMigration(pool, sqlText);
     console.log("Speed window migration applied.");
   } finally {
     await pool.end();

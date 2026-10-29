@@ -84,4 +84,122 @@ describe("planSpeedMigration", () => {
     expect(plan.updates.map((item) => item.id)).toEqual(["accel"]);
     expect(plan.unparsed.map((item) => item.id)).toEqual(["bad"]);
   });
+
+  it("holds disagreeing weight-room rows on the old key", () => {
+    const plan = planSpeedMigration([
+      row({
+        id: "wr-a",
+        metric_key: "10-20m_Split",
+        component: "10-20m",
+        value: 1.0,
+        display_value: 1.0,
+        units: "s",
+        source: "weight_room",
+      }),
+      row({
+        id: "wr-b",
+        metric_key: "10-20m_Split",
+        component: "10-20m",
+        value: 1.2,
+        display_value: 1.2,
+        units: "s",
+        source: "weight_room",
+      }),
+    ]);
+    expect(plan.updates).toHaveLength(0);
+    expect(plan.deleteIds).toEqual([]);
+    expect(plan.conflicts).toHaveLength(1);
+    expect(plan.conflicts[0].ids).toEqual(["wr-a", "wr-b"]);
+    expect(plan.conflicts[0].heldIds).toEqual(["wr-a", "wr-b"]);
+  });
+
+  it("updates the coach row and holds the disagreeing weight-room rows", () => {
+    const plan = planSpeedMigration([
+      row({
+        id: "wr-a",
+        metric_key: "10-20m_Split",
+        component: "10-20m",
+        value: 1.0,
+        display_value: 1.0,
+        units: "s",
+        source: "weight_room",
+      }),
+      row({
+        id: "wr-b",
+        metric_key: "10-20m_Split",
+        component: "10-20m",
+        value: 1.2,
+        display_value: 1.2,
+        units: "s",
+        source: "weight_room",
+      }),
+      row({
+        id: "coach",
+        metric_key: "10-20m_Split",
+        component: "10-20m",
+        value: 1.4,
+        display_value: 1.4,
+        units: "s",
+        source: null,
+      }),
+    ]);
+    expect(plan.updates.map((item) => item.id)).toEqual(["coach"]);
+    expect(plan.deleteIds).toEqual([]);
+    expect(plan.conflicts).toHaveLength(1);
+    expect(plan.conflicts[0].ids).toEqual(["wr-a", "wr-b", "coach"]);
+    expect(plan.conflicts[0].heldIds).toEqual(["wr-a", "wr-b"]);
+  });
+
+  it("updates one weight-room row and a disagreeing coach row", () => {
+    const plan = planSpeedMigration([
+      row({
+        id: "wr",
+        metric_key: "10-20m_Split",
+        component: "10-20m",
+        value: 1.0,
+        display_value: 1.0,
+        units: "s",
+        source: "weight_room",
+      }),
+      row({
+        id: "coach",
+        metric_key: "10-20m_Split",
+        component: "10-20m",
+        value: 1.2,
+        display_value: 1.2,
+        units: "s",
+        source: null,
+      }),
+    ]);
+    expect(plan.updates.map((item) => item.id)).toEqual(["wr", "coach"]);
+    expect(plan.deleteIds).toEqual([]);
+    expect(plan.conflicts).toHaveLength(1);
+    expect(plan.conflicts[0].heldIds).toEqual([]);
+  });
+
+  it("collapses weight-room rows whose times agree", () => {
+    const plan = planSpeedMigration([
+      row({
+        id: "wr-a",
+        metric_key: "10-20m_Split",
+        component: "10-20m",
+        value: 1.0,
+        display_value: 1.0,
+        units: "s",
+        source: "weight_room",
+      }),
+      row({
+        id: "wr-b",
+        metric_key: "10-20m_Split",
+        component: "10-20m",
+        value: 1.0,
+        display_value: 1.0,
+        units: "s",
+        source: "weight_room",
+      }),
+    ]);
+    expect(plan.updates.map((item) => item.id)).toEqual(["wr-a"]);
+    expect(plan.deleteIds).toEqual(["wr-b"]);
+    expect(plan.conflicts).toEqual([]);
+  });
 });
