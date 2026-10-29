@@ -16,6 +16,7 @@ function mark(
     end_distance: 0,
     value: partial.display_value,
     units: "mph",
+    raw_input: null,
     ...partial,
   };
 }
@@ -126,16 +127,20 @@ describe("aggregateSpeedTrends", () => {
     expect(trends.map((trend) => trend.component)).toEqual(["5-15yd"]);
   });
 
-  it("pairs 5-10 and 10-20 from the same rep, not across reps", () => {
-    const sameRep = reconstructFiveFifteen(0.7, 1.3);
+  it("pairs 5-10 and 10-20 from the same saved run, not across runs", () => {
+    const repA = reconstructFiveFifteen(0.7, 1.3);
+    const repB = reconstructFiveFifteen(0.9, 1.6);
     const crossed = reconstructFiveFifteen(0.7, 1.6);
-    expect(sameRep).not.toBeNull();
+    expect(repA).not.toBeNull();
+    expect(repB).not.toBeNull();
     expect(crossed).not.toBeNull();
-    expect(sameRep!.mph).not.toBe(crossed!.mph);
+    const winner = Math.max(repA!.mph, repB!.mph);
+    expect(winner).toBe(repA!.mph);
+    expect(winner).not.toBe(crossed!.mph);
 
     const trends = aggregateSpeedTrends([
       mark({
-        id: "a",
+        raw_input: "rep-a",
         session_id: "s1",
         session_date: "2026-08-01",
         component: "5-10yd",
@@ -146,7 +151,7 @@ describe("aggregateSpeedTrends", () => {
         units: "s",
       }),
       mark({
-        id: "d",
+        raw_input: "rep-b",
         session_id: "s1",
         session_date: "2026-08-01",
         component: "10-20yd",
@@ -157,7 +162,7 @@ describe("aggregateSpeedTrends", () => {
         units: "s",
       }),
       mark({
-        id: "c",
+        raw_input: "rep-b",
         session_id: "s1",
         session_date: "2026-08-01",
         component: "5-10yd",
@@ -168,7 +173,7 @@ describe("aggregateSpeedTrends", () => {
         units: "s",
       }),
       mark({
-        id: "b",
+        raw_input: "rep-a",
         session_id: "s1",
         session_date: "2026-08-01",
         component: "10-20yd",
@@ -187,6 +192,7 @@ describe("aggregateSpeedTrends", () => {
       }),
     ]);
     const five = trends.find((trend) => trend.component === "5-15yd")!;
-    expect(five.points[0]!.median).toBe(sameRep!.mph);
+    expect(five.points[0]!.median).toBe(winner);
+    expect(five.points[0]!.median).not.toBe(crossed!.mph);
   });
 });

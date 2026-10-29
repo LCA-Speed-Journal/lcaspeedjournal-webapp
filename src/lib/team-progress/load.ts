@@ -175,6 +175,7 @@ function mapSpeedWindowRow(r: Record<string, unknown>): SpeedTrendRow | null {
   const display = toNum(r.display_value);
   return {
     id: r.id == null || r.id === "" ? undefined : String(r.id),
+    raw_input: r.raw_input == null || r.raw_input === "" ? null : String(r.raw_input),
     athlete_id: String(r.athlete_id),
     session_id: String(r.session_id),
     session_date: String(r.session_date).slice(0, 10),
@@ -198,6 +199,7 @@ async function querySpeedWindowRows(opts: {
     return await sql`
       SELECT
         e.id::text AS id,
+        e.raw_input,
         e.session_id::text AS session_id,
         e.value,
         e.display_value,

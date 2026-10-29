@@ -14,6 +14,8 @@ import {
 
 export type SpeedTrendRow = SpeedWindowRow & {
   id?: string;
+  /** JSON of the saved speed run. Rows from one rep share this string. */
+  raw_input?: string | null;
   athlete_id: string;
   session_date: string;
   value: number;
@@ -125,24 +127,65 @@ type SplitSession = {
   tens: SpeedTrendRow[];
 };
 
-function compareEntryId(a: SpeedTrendRow, b: SpeedTrendRow): number {
-  const ai = a.id ?? "";
-  const bi = b.id ?? "";
-  if (ai < bi) return -1;
-  if (ai > bi) return 1;
-  return 0;
+function fastestSeconds(rows: SpeedTrendRow[]): number | null {
+  let best: number | null = null;
+  for (const row of rows) {
+    if (!Number.isFinite(row.value) || row.value <= 0) continue;
+    if (best == null || row.value < best) best = row.value;
+  }
+  return best;
 }
 
-/** Same-index reps only. The first pair reconstructFiveFifteen accepts wins. */
+function considerPair(best: number | null, t5: number | null, t10: number | null): number | null {
+  if (t5 == null || t10 == null) return best;
+  const hit = reconstructFiveFifteen(t5, t10);
+  if (!hit) return best;
+  if (best == null || hit.mph > best) return hit.mph;
+  return best;
+}
+
+/**
+ * Pair splits that share a saved run. When a run has several of one window,
+ * use the fastest time. The best reconstructed mph in the session wins.
+ * Rows with no raw_input pair only when the session has a single 5-10 and 10-20.
+ */
 function pairedBaselineMph(session: SplitSession): number | null {
-  const fives = [...session.fives].sort(compareEntryId);
-  const tens = [...session.tens].sort(compareEntryId);
-  const n = Math.min(fives.length, tens.length);
-  for (let i = 0; i < n; i++) {
-    const hit = reconstructFiveFifteen(fives[i]!.value, tens[i]!.value);
-    if (hit) return hit.mph;
+  const groups = new Map<string, { fives: SpeedTrendRow[]; tens: SpeedTrendRow[] }>();
+  const unkeyedFives: SpeedTrendRow[] = [];
+  const unkeyedTens: SpeedTrendRow[] = [];
+
+  for (const row of session.fives) {
+    if (row.raw_input) {
+      const group = groups.get(row.raw_input) ?? { fives: [], tens: [] };
+      group.fives.push(row);
+      groups.set(row.raw_input, group);
+    } else {
+      unkeyedFives.push(row);
+    }
   }
-  return null;
+  for (const row of session.tens) {
+    if (row.raw_input) {
+      const group = groups.get(row.raw_input) ?? { fives: [], tens: [] };
+      group.tens.push(row);
+      groups.set(row.raw_input, group);
+    } else {
+      unkeyedTens.push(row);
+    }
+  }
+
+  let best: number | null = null;
+  for (const group of groups.values()) {
+    best = considerPair(best, fastestSeconds(group.fives), fastestSeconds(group.tens));
+  }
+
+  if (session.fives.length === 1 && session.tens.length === 1) {
+    best = considerPair(
+      best,
+      fastestSeconds(unkeyedFives),
+      fastestSeconds(unkeyedTens)
+    );
+  }
+  return best;
 }
 
 function splitSessions(rows: SpeedTrendRow[]): Map<string, SplitSession[]> {
