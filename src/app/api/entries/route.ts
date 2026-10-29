@@ -8,6 +8,8 @@ import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { parseEntry, getMetricsRegistry } from "@/lib/parser";
 import { parseContextHugoGroup } from "@/lib/guest-athletes";
+import { rowsForSpeedRun } from "@/lib/speed/save-rows";
+import type { SpeedRunInput } from "@/lib/speed/windows";
 
 const INSERT_TIMEOUT_MS = 15000;
 
@@ -50,6 +52,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
+    if (body.speed_run != null) {
+      return await insertSpeedRun(body);
+    }
+
     const { session_id, athlete_id, metric_key, raw_input } = body;
 
     if (!session_id || !athlete_id || !metric_key || raw_input == null || raw_input === "") {
@@ -169,4 +175,96 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function insertSpeedRun(body: {
+  session_id?: string;
+  athlete_id?: string;
+  context_hugo_group?: unknown;
+  speed_run: SpeedRunInput;
+}) {
+  const { session_id, athlete_id } = body;
+  if (!session_id || !athlete_id) {
+    return NextResponse.json(
+      { error: "Missing required fields: session_id, athlete_id" },
+      { status: 400 }
+    );
+  }
+
+  const parsedContext = parseContextHugoGroup(body.context_hugo_group);
+  if (!parsedContext.ok) {
+    return NextResponse.json({ error: parsedContext.error }, { status: 400 });
+  }
+  const contextHugoGroup = parsedContext.value;
+
+  const [sessionResult, athleteResult] = await Promise.all([
+    sql`
+      SELECT id
+      FROM sessions
+      WHERE id = ${session_id}
+      LIMIT 1
+    `,
+    sql`
+      SELECT id FROM athletes WHERE id = ${athlete_id} LIMIT 1
+    `,
+  ]);
+  if (!sessionResult.rows.length) {
+    return NextResponse.json({ error: "Session not found" }, { status: 404 });
+  }
+  if (!athleteResult.rows.length) {
+    return NextResponse.json({ error: "Athlete not found" }, { status: 404 });
+  }
+
+  let windowRows;
+  try {
+    windowRows = rowsForSpeedRun(body.speed_run);
+  } catch (err) {
+    const msg = (err as Error)?.message ?? "Invalid speed run";
+    return NextResponse.json({ error: msg }, { status: 400 });
+  }
+
+  const rawInput = JSON.stringify(body.speed_run);
+  const ids: string[] = [];
+  for (const row of windowRows) {
+    const insertPromise = sql`
+      INSERT INTO entries (
+        session_id, athlete_id, metric_key,
+        interval_index, component,
+        value, display_value, units, raw_input,
+        context_hugo_group,
+        distance_unit, start_distance, end_distance,
+        legacy_metric_key, legacy_component
+      )
+      VALUES (
+        ${session_id},
+        ${athlete_id},
+        ${row.metric_key},
+        ${row.interval_index},
+        ${row.component},
+        ${row.value},
+        ${row.display_value},
+        ${row.units},
+        ${rawInput},
+        ${contextHugoGroup},
+        ${row.distance_unit},
+        ${row.start_distance},
+        ${row.end_distance},
+        ${row.legacy_metric_key},
+        ${row.legacy_component}
+      )
+      RETURNING id
+    `;
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("insert_timeout")), INSERT_TIMEOUT_MS)
+    );
+    const result = await Promise.race([insertPromise, timeoutPromise]);
+    const { rows } = result;
+    const id = (rows[0] as { id: string })?.id;
+    if (id) ids.push(id);
+  }
+
+  return NextResponse.json(
+    { data: { count: windowRows.length, ids } },
+    { status: 201 }
+  );
 }
