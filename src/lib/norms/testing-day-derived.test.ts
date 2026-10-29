@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { mphFromYardSplit } from "./forty-yd";
 import {
   mergeDerivedSprintColumns,
   pickBestMaxVelocityHits,
@@ -77,6 +78,24 @@ describe("pickBestMaxVelocityHits", () => {
     ]);
     expect(hits).toHaveLength(1);
     expect(hits[0].display_value).toBeCloseTo(20.45, 5);
+  });
+
+  it("reads a migrated BuildIn fly as mph without converting again", () => {
+    const hits = pickBestMaxVelocityHits([
+      {
+        ...base,
+        athlete_id: "a",
+        metric_key: "BuildIn",
+        component: "20-40yd",
+        legacy_metric_key: "40yd_Dash",
+        legacy_component: "20-40yd",
+        units: "mph",
+        display_value: 22.5,
+      },
+    ]);
+    expect(hits).toHaveLength(1);
+    expect(hits[0].display_value).toBe(22.5);
+    expect(hits[0].display_value).not.toBeCloseTo(mphFromYardSplit(22.5, 20)!, 5);
   });
 });
 

@@ -1,7 +1,7 @@
 import { schoolYearEnd } from "../../quick-athlete";
-import { FORTY_YD_DASH, TWENTY_YD_DASH } from "../editor-metrics";
+import { FORTY_YD_DASH } from "../editor-metrics";
 import { STANDING_BROAD } from "./constants";
-import { isForceStandIn } from "./force-stand-in";
+import { isForceStandIn, matchesEitherDash, matchesSpeedMark } from "./force-stand-in";
 import { reconstructFiveFifteen } from "./reconstruct-515";
 import { resolveForce, resolveForm } from "./resolve-mark";
 import type { F2fEntry } from "./types";
@@ -10,6 +10,9 @@ export type DatedF2fEntry = F2fEntry & {
   session_id: string;
   session_date: string;
   created_at?: string;
+  legacy_metric_key?: string | null;
+  legacy_component?: string | null;
+  units?: string | null;
 };
 
 export type F2fPickMode = "full-test" | "best" | "latest" | "earliest";
@@ -45,17 +48,13 @@ function inWindow(
   return true;
 }
 
-function isSprintMetric(metricKey: string): boolean {
-  return metricKey === FORTY_YD_DASH || metricKey === TWENTY_YD_DASH;
-}
-
 function isFiniteEntry(entry: DatedF2fEntry): boolean {
   return Number.isFinite(entry.display_value);
 }
 
 function isF2fRelevant(entry: DatedF2fEntry): boolean {
   if (!isFiniteEntry(entry)) return false;
-  return entry.metric_key === STANDING_BROAD || isSprintMetric(entry.metric_key);
+  return entry.metric_key === STANDING_BROAD || matchesEitherDash(entry, null);
 }
 
 function pickBestTime(entries: DatedF2fEntry[]): DatedF2fEntry | null {
@@ -91,10 +90,7 @@ function sprintSplits(
   entries: DatedF2fEntry[],
   component: string
 ): DatedF2fEntry[] {
-  return finiteWhere(
-    entries,
-    (entry) => isSprintMetric(entry.metric_key) && entry.component === component
-  );
+  return finiteWhere(entries, (entry) => matchesEitherDash(entry, component));
 }
 
 function sessionHasForce(entries: DatedF2fEntry[]): boolean {
@@ -110,14 +106,17 @@ type ForceCandidate = {
 
 function forcePredicted40(
   kind: "515" | "reconstructed" | "510" | "standin",
-  timeS: number
+  timeS: number,
+  units?: string | null
 ): number | null {
   const hit =
-    kind === "515" || kind === "reconstructed"
-      ? resolveForce({ timeS, yards: 10, lookup: "time" })
-      : kind === "510"
-        ? resolveForce({ timeS, yards: 5 })
-        : resolveForce({ timeS, yards: 20 });
+    units === "mph"
+      ? resolveForce({ mph: timeS })
+      : kind === "515" || kind === "reconstructed"
+        ? resolveForce({ timeS, yards: 10, lookup: "time" })
+        : kind === "510"
+          ? resolveForce({ timeS, yards: 5 })
+          : resolveForce({ timeS, yards: 20 });
   if (!hit || !Number.isFinite(hit.predicted_40)) return null;
   return hit.predicted_40;
 }
@@ -132,7 +131,11 @@ function forceCandidatesFromPool(entries: DatedF2fEntry[]): ForceCandidate[] {
 
   const timed515 = pickBestTime(sprintSplits(entries, "5-15yd"));
   if (timed515) {
-    const predicted_40 = forcePredicted40("515", timed515.display_value);
+    const predicted_40 = forcePredicted40(
+      "515",
+      timed515.display_value,
+      timed515.units
+    );
     if (predicted_40 != null) {
       out.push({ entries: [timed515], predicted_40, rank: 0 });
     }
@@ -140,7 +143,7 @@ function forceCandidatesFromPool(entries: DatedF2fEntry[]): ForceCandidate[] {
 
   const fiveTen = pickBestTime(sprintSplits(entries, "5-10yd"));
   const tenTwenty = pickBestTime(sprintSplits(entries, "10-20yd"));
-  if (fiveTen && tenTwenty) {
+  if (fiveTen && tenTwenty && fiveTen.units !== "mph" && tenTwenty.units !== "mph") {
     const reconstructed = reconstructFiveFifteen(
       fiveTen.display_value,
       tenTwenty.display_value
@@ -164,7 +167,11 @@ function forceCandidatesFromPool(entries: DatedF2fEntry[]): ForceCandidate[] {
   if (out.length > 0) return out;
 
   if (fiveTen) {
-    const predicted_40 = forcePredicted40("510", fiveTen.display_value);
+    const predicted_40 = forcePredicted40(
+      "510",
+      fiveTen.display_value,
+      fiveTen.units
+    );
     if (predicted_40 != null) {
       out.push({ entries: [fiveTen], predicted_40, rank: 2 });
     }
@@ -173,7 +180,11 @@ function forceCandidatesFromPool(entries: DatedF2fEntry[]): ForceCandidate[] {
 
   const standIn = pickBestTime(finiteWhere(entries, isForceStandIn));
   if (standIn) {
-    const predicted_40 = forcePredicted40("standin", standIn.display_value);
+    const predicted_40 = forcePredicted40(
+      "standin",
+      standIn.display_value,
+      standIn.units
+    );
     if (predicted_40 != null) {
       out.push({ entries: [standIn], predicted_40, rank: 3 });
     }
@@ -282,18 +293,17 @@ function pickForm(entries: DatedF2fEntry[]): DatedF2fEntry | null {
   let bestPredicted = Infinity;
   for (const { component, yards } of FORM_EXACT) {
     const best = pickBestTime(
-      finiteWhere(
-        entries,
-        (entry) =>
-          isSprintMetric(entry.metric_key) && entry.component === component
-      )
+      finiteWhere(entries, (entry) => matchesEitherDash(entry, component))
     );
     if (!best) continue;
-    const hit = resolveForm({
-      component,
-      timeS: best.display_value,
-      yards,
-    });
+    const hit =
+      best.units === "mph"
+        ? resolveForm({ component, mph: best.display_value })
+        : resolveForm({
+            component,
+            timeS: best.display_value,
+            yards,
+          });
     if (hit && hit.predicted_40 < bestPredicted) {
       bestPredicted = hit.predicted_40;
       bestExact = best;
@@ -302,20 +312,14 @@ function pickForm(entries: DatedF2fEntry[]): DatedF2fEntry | null {
   if (bestExact) return bestExact;
 
   return pickBestTime(
-    finiteWhere(
-      entries,
-      (entry) =>
-        isSprintMetric(entry.metric_key) && entry.component === "10-20yd"
-    )
+    finiteWhere(entries, (entry) => matchesEitherDash(entry, "10-20yd"))
   );
 }
 
 function pickActual40(entries: DatedF2fEntry[]): DatedF2fEntry | null {
   return pickBestTime(
-    finiteWhere(
-      entries,
-      (entry) =>
-        entry.metric_key === FORTY_YD_DASH && entry.component === "0-40yd"
+    finiteWhere(entries, (entry) =>
+      matchesSpeedMark(entry, FORTY_YD_DASH, "0-40yd")
     )
   );
 }
@@ -325,23 +329,23 @@ function isExplosionMark(entry: DatedF2fEntry): boolean {
 }
 
 function isForceMark(entry: DatedF2fEntry): boolean {
-  if (!isSprintMetric(entry.metric_key)) return false;
-  if (entry.component === "5-15yd" || entry.component === "5-10yd") return true;
+  if (matchesEitherDash(entry, "5-15yd") || matchesEitherDash(entry, "5-10yd")) {
+    return true;
+  }
   return isForceStandIn(entry);
 }
 
 function isFormMark(entry: DatedF2fEntry): boolean {
-  if (!isSprintMetric(entry.metric_key)) return false;
   return (
-    entry.component === "20-40yd" ||
-    entry.component === "30-40yd" ||
-    entry.component === "20-30yd" ||
-    entry.component === "10-20yd"
+    matchesEitherDash(entry, "20-40yd") ||
+    matchesEitherDash(entry, "30-40yd") ||
+    matchesEitherDash(entry, "20-30yd") ||
+    matchesEitherDash(entry, "10-20yd")
   );
 }
 
 function isActual40Mark(entry: DatedF2fEntry): boolean {
-  return entry.metric_key === FORTY_YD_DASH && entry.component === "0-40yd";
+  return matchesSpeedMark(entry, FORTY_YD_DASH, "0-40yd");
 }
 
 function compareLatest(a: DatedF2fEntry, b: DatedF2fEntry): number {

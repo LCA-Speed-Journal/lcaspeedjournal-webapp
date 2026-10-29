@@ -1,3 +1,5 @@
+import { sameSpeedMark } from "@/lib/speed/windows";
+import { getMaxVelocityKey } from "@/lib/velocity-metrics";
 import {
   FORTY_YD_DASH,
   NORMS_DEFAULTS_METRIC_KEYS,
@@ -11,7 +13,6 @@ import {
   type TestingDayHit,
   type TestingDayMatrixColumn,
 } from "./testing-day";
-import { getMaxVelocityKey } from "@/lib/velocity-metrics";
 
 export type DerivedSplitRow = {
   athlete_id: string;
@@ -21,6 +22,9 @@ export type DerivedSplitRow = {
   metric_key: string;
   component: string | null;
   display_value: number;
+  legacy_metric_key?: string | null;
+  legacy_component?: string | null;
+  units?: string | null;
 };
 
 function asHit(row: DerivedSplitRow, display_value: number): TestingDayHit {
@@ -37,8 +41,8 @@ export function pickBestTwentyYdHits(rows: DerivedSplitRow[]): TestingDayHit[] {
   const candidates = rows
     .filter(
       (row) =>
-        row.component === "0-20yd" &&
-        (row.metric_key === TWENTY_YD_DASH || row.metric_key === FORTY_YD_DASH)
+        sameSpeedMark(row, TWENTY_YD_DASH, "0-20yd") ||
+        sameSpeedMark(row, FORTY_YD_DASH, "0-20yd")
     )
     .map((row) => asHit(row, row.display_value));
   return pickBestTestingDayHits(candidates, true);
@@ -50,11 +54,14 @@ export function pickBestMaxVelocityHits(
   const candidates: TestingDayHit[] = [];
   for (const row of rows) {
     const from40 =
-      row.metric_key === FORTY_YD_DASH &&
-      (row.component === "20-40yd" || row.component === "20-30yd");
-    const from20 =
-      row.metric_key === TWENTY_YD_DASH && row.component === "10-20yd";
+      sameSpeedMark(row, FORTY_YD_DASH, "20-40yd") ||
+      sameSpeedMark(row, FORTY_YD_DASH, "20-30yd");
+    const from20 = sameSpeedMark(row, TWENTY_YD_DASH, "10-20yd");
     if (!from40 && !from20) continue;
+    if (row.units === "mph") {
+      candidates.push(asHit(row, row.display_value));
+      continue;
+    }
     const yards = yardsInFortyComponent(row.component);
     const mph = yards != null ? mphFromYardSplit(row.display_value, yards) : null;
     if (mph == null) continue;
