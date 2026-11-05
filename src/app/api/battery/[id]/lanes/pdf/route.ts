@@ -6,9 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
-import { orderBoard } from "@/lib/battery/board-order";
-import { isBatterySchemaMissing, loadBatteryBoard, readPgError } from "@/lib/battery/load";
-import { cutoffAfterHeat, parseLaneHeats } from "@/lib/battery/lanes";
+import { isBatterySchemaMissing, readPgError } from "@/lib/battery/load";
+import { laneSheetFromFreeze, parseFrozenLaneSheet } from "@/lib/battery/lanes";
 import { laneSheetFilename, renderLaneSheet, type LaneSheetHeat } from "@/lib/battery/lane-sheet";
 
 export const runtime = "nodejs";
@@ -58,21 +57,12 @@ export async function GET(
         { status: 409 }
       );
     }
-    const stored = parseLaneHeats((sheetResult.rows[0] as { heats?: unknown }).heats);
+    const stored = parseFrozenLaneSheet((sheetResult.rows[0] as { heats?: unknown }).heats);
     if (!stored) {
       return NextResponse.json({ error: "Stored lane sheet could not be read" }, { status: 500 });
     }
 
-    const board = await loadBatteryBoard(id, {
-      view: "meet",
-      group: "overall",
-      dayKeys: ["A", "B"],
-    });
-    if (!board) {
-      return NextResponse.json({ error: "Battery not found" }, { status: 404 });
-    }
-
-    const athleteIds = [...new Set(stored.flatMap((heat) => heat.athlete_ids))];
+    const athleteIds = [...new Set(stored.heats.flatMap((heat) => heat.athlete_ids))];
     const names = new Map<string, { first_name: string; last_name: string; bib: string }>();
     if (athleteIds.length > 0) {
       const ids = athleteIds as unknown as string;
@@ -97,22 +87,11 @@ export async function GET(
       }
     }
 
-    const placeById = new Map(
-      orderBoard(board.athletes, board.untested_ids).map((row) => [
-        row.athlete.athlete_id,
-        row.place,
-      ])
-    );
-    const ordered = stored.toSorted((a, b) => a.heat - b.heat);
-    const lineAfter = cutoffAfterHeat(
-      ordered.map((heat) => ({
-        heat: heat.heat,
-        places: heat.athlete_ids.map((athleteId) => placeById.get(athleteId) ?? null),
-      }))
-    );
+    const frozen = laneSheetFromFreeze(stored, new Map());
+    const ordered = frozen.heats.toSorted((a, b) => a.heat - b.heat);
     const heats: LaneSheetHeat[] = ordered.map((heat) => ({
       heat: heat.heat,
-      cutoffAfter: lineAfter === heat.heat,
+      cutoffAfter: frozen.cutoff_after_heat === heat.heat,
       lanes: heat.athlete_ids.map((athleteId, index) => {
         const athlete = names.get(athleteId);
         const name = athlete
@@ -122,7 +101,7 @@ export async function GET(
           lane: index + 1,
           bib: athlete?.bib ?? "",
           name: name || "Athlete",
-          place: placeById.has(athleteId) ? (placeById.get(athleteId) ?? null) : null,
+          place: heat.places[index] ?? null,
         };
       }),
     }));

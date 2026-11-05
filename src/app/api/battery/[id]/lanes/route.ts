@@ -13,7 +13,7 @@ import {
   readPgError,
   type BoardPayload,
 } from "@/lib/battery/load";
-import { laneSeedIds, parseLaneHeats, seedLanes, type LaneHeat } from "@/lib/battery/lanes";
+import { freezeLaneSheet, parseFrozenLaneSheet, type FrozenLaneSheet } from "@/lib/battery/lanes";
 
 const MIGRATION_ERROR = "Run scripts/migrate-testing-battery.sql";
 
@@ -21,18 +21,23 @@ function schemaResponse() {
   return NextResponse.json({ error: MIGRATION_ERROR }, { status: 503 });
 }
 
-function heatsFromBoard(board: BoardPayload): LaneHeat[] {
+function sheetFromBoard(board: BoardPayload): FrozenLaneSheet {
   const ordered = orderBoard(board.athletes, board.untested_ids);
-  return seedLanes(
-    laneSeedIds(
-      ordered.map((row) => ({
-        athlete_id: row.athlete.athlete_id,
-        first_name: row.athlete.first_name,
-        last_name: row.athlete.last_name,
-        place: row.place,
-      }))
-    )
+  return freezeLaneSheet(
+    ordered.map((row) => ({
+      athlete_id: row.athlete.athlete_id,
+      first_name: row.athlete.first_name,
+      last_name: row.athlete.last_name,
+      place: row.place,
+    }))
   );
+}
+
+function sheetResponse(sheet: FrozenLaneSheet) {
+  return NextResponse.json({
+    heats: sheet.heats,
+    cutoff_after_heat: sheet.cutoff_after_heat,
+  });
 }
 
 export async function GET(
@@ -56,11 +61,11 @@ export async function GET(
     if (!sheetResult.rows.length) {
       return NextResponse.json({ heats: null });
     }
-    const heats = parseLaneHeats((sheetResult.rows[0] as { heats?: unknown }).heats);
-    if (!heats) {
+    const sheet = parseFrozenLaneSheet((sheetResult.rows[0] as { heats?: unknown }).heats);
+    if (!sheet) {
       return NextResponse.json({ error: "Stored lane sheet could not be read" }, { status: 500 });
     }
-    return NextResponse.json({ heats });
+    return sheetResponse(sheet);
   } catch (err) {
     if (isBatterySchemaMissing(err)) return schemaResponse();
     if (readPgError(err).codes.includes("22P02")) {
@@ -91,9 +96,9 @@ export async function POST(
         SELECT heats FROM testing_battery_lane_sheets WHERE battery_id = ${id} LIMIT 1
       `;
       if (existing.rows.length) {
-        const heats = parseLaneHeats((existing.rows[0] as { heats?: unknown }).heats);
-        if (!heats) return { status: "corrupt" as const };
-        return { status: "ok" as const, heats };
+        const sheet = parseFrozenLaneSheet((existing.rows[0] as { heats?: unknown }).heats);
+        if (!sheet) return { status: "corrupt" as const };
+        return { status: "ok" as const, sheet };
       }
 
       const board = await loadBatteryBoard(id, {
@@ -102,12 +107,12 @@ export async function POST(
         dayKeys: ["A", "B"],
       });
       if (!board) return { status: "missing" as const };
-      const heats = heatsFromBoard(board);
+      const sheet = sheetFromBoard(board);
       await tx`
         INSERT INTO testing_battery_lane_sheets (battery_id, heats)
-        VALUES (${id}::uuid, ${JSON.stringify(heats)}::jsonb)
+        VALUES (${id}::uuid, ${JSON.stringify(sheet)}::jsonb)
       `;
-      return { status: "ok" as const, heats };
+      return { status: "ok" as const, sheet };
     });
 
     if (outcome.status === "missing") {
@@ -116,7 +121,7 @@ export async function POST(
     if (outcome.status === "corrupt") {
       return NextResponse.json({ error: "Stored lane sheet could not be read" }, { status: 500 });
     }
-    return NextResponse.json({ heats: outcome.heats });
+    return sheetResponse(outcome.sheet);
   } catch (err) {
     if (isBatterySchemaMissing(err)) return schemaResponse();
     if (readPgError(err).codes.includes("22P02")) {

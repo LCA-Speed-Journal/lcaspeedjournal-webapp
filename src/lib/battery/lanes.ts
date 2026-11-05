@@ -1,7 +1,13 @@
 export type LaneHeat = {
   heat: number;
   athlete_ids: string[];
+  places: (number | null)[];
   is_final: boolean;
+};
+
+export type FrozenLaneSheet = {
+  cutoff_after_heat: number | null;
+  heats: LaneHeat[];
 };
 
 export type LaneSeedAthlete = {
@@ -51,29 +57,15 @@ export function cutoffAfterHeat(
   return boundary;
 }
 
-export function parseLaneHeats(raw: unknown): LaneHeat[] | null {
-  let value = raw;
-  if (typeof raw === "string") {
-    try {
-      value = JSON.parse(raw) as unknown;
-    } catch {
-      return null;
-    }
-  }
-  if (!Array.isArray(value)) return null;
-  const heats: LaneHeat[] = [];
-  for (const item of value) {
-    if (item == null || typeof item !== "object") return null;
-    const rec = item as { heat?: unknown; athlete_ids?: unknown; is_final?: unknown };
-    const heat = typeof rec.heat === "number" ? rec.heat : Number(rec.heat);
-    if (!Number.isFinite(heat) || !Array.isArray(rec.athlete_ids)) return null;
-    heats.push({
-      heat,
-      athlete_ids: rec.athlete_ids.map((id) => String(id)),
-      is_final: rec.is_final === true,
-    });
-  }
-  return heats;
+function finiteHeat(raw: unknown): number | null {
+  const value = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(value) ? value : null;
+}
+
+function placeValue(raw: unknown): number | null | undefined {
+  if (raw == null) return null;
+  const value = typeof raw === "number" ? raw : Number(raw);
+  return Number.isFinite(value) ? value : undefined;
 }
 
 export function seedLanes(placeOrder: string[]): LaneHeat[] {
@@ -85,6 +77,88 @@ export function seedLanes(placeOrder: string[]): LaneHeat[] {
   return heats.map((athlete_ids, index) => ({
     heat: index + 1,
     athlete_ids,
+    places: athlete_ids.map(() => null),
     is_final: index === heats.length - 1,
   }));
+}
+
+/** Places and the cutoff line from the board at freeze time. Untested athletes have no place. */
+export function freezeLaneSheet(athletes: LaneSeedAthlete[]): FrozenLaneSheet {
+  const placeById = new Map(athletes.map((athlete) => [athlete.athlete_id, athlete.place]));
+  const heats = seedLanes(laneSeedIds(athletes)).map((heat) => ({
+    ...heat,
+    places: heat.athlete_ids.map((id) => placeById.get(id) ?? null),
+  }));
+  return {
+    heats,
+    cutoff_after_heat: cutoffAfterHeat(
+      heats.map((heat) => ({ heat: heat.heat, places: heat.places }))
+    ),
+  };
+}
+
+/**
+ * The printed sheet uses the frozen places and the frozen cutoff.
+ * A later live place map does not move the line or the place column.
+ */
+export function laneSheetFromFreeze(
+  stored: FrozenLaneSheet,
+  _livePlaces: ReadonlyMap<string, number | null>
+): FrozenLaneSheet {
+  return {
+    cutoff_after_heat: stored.cutoff_after_heat,
+    heats: stored.heats.map((heat) => ({
+      heat: heat.heat,
+      athlete_ids: [...heat.athlete_ids],
+      places: [...heat.places],
+      is_final: heat.is_final,
+    })),
+  };
+}
+
+export function parseFrozenLaneSheet(raw: unknown): FrozenLaneSheet | null {
+  let value = raw;
+  if (typeof raw === "string") {
+    try {
+      value = JSON.parse(raw) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  if (value == null || typeof value !== "object" || Array.isArray(value)) return null;
+  const rec = value as { heats?: unknown; cutoff_after_heat?: unknown };
+  if (!Array.isArray(rec.heats)) return null;
+  const heats: LaneHeat[] = [];
+  for (const item of rec.heats) {
+    if (item == null || typeof item !== "object") return null;
+    const heatRec = item as {
+      heat?: unknown;
+      athlete_ids?: unknown;
+      places?: unknown;
+      is_final?: unknown;
+    };
+    const heat = finiteHeat(heatRec.heat);
+    if (heat == null || !Array.isArray(heatRec.athlete_ids) || !Array.isArray(heatRec.places)) {
+      return null;
+    }
+    if (heatRec.places.length !== heatRec.athlete_ids.length) return null;
+    const places: (number | null)[] = [];
+    for (const place of heatRec.places) {
+      const parsed = placeValue(place);
+      if (parsed === undefined) return null;
+      places.push(parsed);
+    }
+    heats.push({
+      heat,
+      athlete_ids: heatRec.athlete_ids.map((id) => String(id)),
+      places,
+      is_final: heatRec.is_final === true,
+    });
+  }
+  if (rec.cutoff_after_heat == null) {
+    return { heats, cutoff_after_heat: null };
+  }
+  const cutoff = finiteHeat(rec.cutoff_after_heat);
+  if (cutoff == null) return null;
+  return { heats, cutoff_after_heat: cutoff };
 }
