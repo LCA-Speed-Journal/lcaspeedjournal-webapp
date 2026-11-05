@@ -5,6 +5,9 @@ import type { HugoGroup } from "@/lib/weight-room/constants";
  * Those pages are already the varsity team (`/v/schedule`), so every row
  * belongs to that sport. Football is the St. Agnes co-op, not Liberty's
  * school page. Other sports still use the school overview cards.
+ * Boys basketball JV/C-squad stay off this list: Bound has no /jv/ page.
+ * The lower schedules are /l2/ and /l3/, and a varsity refresh must not
+ * save those dates.
  *
  * Contest cards are `div.comp-entry` blocks. The heading is the sport and
  * level (`FOOTBALL` / `Varsity`, or `VOLLEYBALL, GIRLS` / `Junior Varsity`).
@@ -21,6 +24,10 @@ export const VARSITY_SCHEDULE_URLS: Partial<Record<HugoGroup, string>> = {
   soccer: "https://www.gobound.com/mn/mshsl/boyssoccer/2026-27/lclassical/v/schedule",
   xc: "https://www.gobound.com/mn/mshsl/boyscrosscountry/2026-27/lclassical/v/schedule",
   football: "https://www.gobound.com/mn/mshsl/fb/2026-27/stagnes/v/schedule",
+  mens_basketball:
+    "https://www.gobound.com/mn/mshsl/boysbasketball/2026-27/lclassical/v/schedule",
+  womens_basketball:
+    "https://www.gobound.com/mn/mshsl/girlsbasketball/2026-27/lclassical/v/schedule",
 };
 
 export function boundScheduleUrl(hugoGroup: HugoGroup): string {
@@ -156,7 +163,8 @@ export function parseVarsityScheduleTable(
 }
 
 function slashSeasonDate(text: string): string | null {
-  const match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  // Live cells are "Sat" plus 12/5/26, not the date alone.
+  const match = text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})\b/);
   if (!match) return null;
   const month = Number(match[1]);
   const day = Number(match[2]);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cutoffAfterIndex, formatDelta, orderBoard, pageItems } from "./BatteryBoard";
+import { cutoffAfterIndex, formatDelta, formatDeltaLine, formatMark, orderBoard, pageItems, shortName } from "./BatteryBoard";
 import type { BoardAthlete } from "@/lib/battery/load";
 
 function athlete(index: number, points: number, slots = 1): BoardAthlete {
@@ -78,5 +78,28 @@ describe("gym board order", () => {
     expect(formatDelta(-0.06)).toBe("-0.06");
     expect(formatDelta(0.4)).toBe("+0.4");
     expect(formatDelta(12.4)).toBe("+12");
+  });
+
+  it("adds the percent of the previous mark beside the change", () => {
+    expect(formatDeltaLine(-0.3, 5.1)).toBe("-0.3 (-6%)");
+    expect(formatDeltaLine(1.5, 19.9)).toBe("+1.5 (+8%)");
+    expect(formatDeltaLine(-0.04, 5.2)).toBe("-0.04 (-1%)");
+    expect(formatDeltaLine(0.4, 0)).toBe("+0.4");
+  });
+
+  it("adds the unit the gym reads on a projected mark", () => {
+    expect(formatMark(2.96, "s")).toBe("2.96s");
+    expect(formatMark(19.2, "mph")).toBe("19.2mph");
+    expect(formatMark(2.74, "RSI")).toBe("2.74");
+    expect(formatMark(2.48, "DRI")).toBe("2.48");
+    expect(formatMark(7.5, "ft")).toBe("7'6\"");
+    expect(formatMark(33.7, "in")).toBe("33.7in.");
+    expect(formatMark(11.15, "%")).toBe("11.2%");
+  });
+
+  it("shortens a phone name to the first name and last initial", () => {
+    expect(shortName("Jax", "Triana")).toBe("Jax T.");
+    expect(shortName("Jimmy", "Youtsey")).toBe("Jimmy Y.");
+    expect(shortName("  ", "")).toBe("Athlete");
   });
 });

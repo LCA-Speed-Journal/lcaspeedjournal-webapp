@@ -676,6 +676,32 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     }
   }
 
+  async function resetBibs() {
+    if (!batteryId) return;
+    const confirmed = window.confirm(
+      "Reset bib numbers? The next hand sheet numbers everyone again by grade and last name. Issued numbers are cleared."
+    );
+    if (!confirmed) return;
+    setSheetBusy(true);
+    setSheetNote("");
+    try {
+      const res = await fetch(`/api/battery/${encodeURIComponent(batteryId)}/bibs`, {
+        method: "DELETE",
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        setSheetNote(await readSheetError(res, "Could not reset bibs"));
+        return;
+      }
+      setBibs([]);
+      setSheetNote("Bibs cleared. Print the hand sheet when the roster is final.");
+    } catch {
+      setSheetNote("Could not reset bibs");
+    } finally {
+      setSheetBusy(false);
+    }
+  }
+
   function onBibChange(raw: string) {
     const digits = raw.replace(/\D/g, "").slice(0, 3);
     setBibInput(digits);
@@ -972,6 +998,14 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
               className="min-h-[44px] rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-50"
             >
               Issue bibs
+            </button>
+            <button
+              type="button"
+              disabled={sheetBusy}
+              onClick={() => void resetBibs()}
+              className="min-h-[44px] rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-50"
+            >
+              Reset bibs
             </button>
           </div>
           {sheetNote ? (

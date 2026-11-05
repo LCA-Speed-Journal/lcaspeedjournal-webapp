@@ -12,7 +12,10 @@ import { sameSpeedMark } from "@/lib/speed/windows";
 import { compareMark, SHARED_SOCCER_KEYS } from "./compare";
 import { bestDriPerAthleteBox, pickTeamDriBox } from "./dri";
 import { latestRepeatSeriesTimes, scoreRepeatSprint } from "./repeat-sprint";
+import { applySampleOverrides } from "./sample-overrides";
+import { sampleMarksForRoster } from "./sample-marks";
 import { scoreBatteryRows, type BatteryMark, type ScoredCell } from "./score-row";
+import { boardFocusDay, type BoardView } from "./board-focus";
 import { BOYS_BASKETBALL_BASELINE } from "./template";
 
 export type BoardDirection = "higher" | "lower";
@@ -58,6 +61,15 @@ export type BoardGroup = {
   label: string;
 };
 
+export type BoardDay = {
+  day_key: string;
+  label: string;
+  /** True while this day has not been closed. Today follows the open day. */
+  open: boolean;
+};
+
+export type { BoardView } from "./board-focus";
+
 export type BoardPayload = {
   battery: {
     id: string;
@@ -67,12 +79,17 @@ export type BoardPayload = {
     team_dri_box: string | null;
     team_dri_locked: boolean;
   };
-  view: "today" | "meet";
+  view: BoardView;
+  /** Set when the board is one testing day, including Today. */
+  day_key: string | null;
   day_label: string;
+  days: BoardDay[];
   groups: BoardGroup[];
   columns: BoardColumn[];
   athletes: BoardAthlete[];
   untested_ids: string[];
+  /** True when the marks were invented for this request and not read from entries. */
+  sample: boolean;
 };
 
 const HIGHER_METRIC_KEYS = [
@@ -582,9 +599,33 @@ function lockedDriBox(days: DayRow[]): string | null {
   return trimmed === "" ? null : trimmed;
 }
 
+async function sampleComparisonSessionId(): Promise<string | null> {
+  const { rows } = await sql`
+    SELECT s.id
+    FROM sessions s
+    INNER JOIN entries e ON e.session_id = s.id
+    WHERE s.session_date = ${BOYS_BASKETBALL_BASELINE.comparison_date}::date
+      AND (
+        e.metric_key IN ('40yd_Dash', 'Standing-Broad', 'OH-MB_Throw')
+        OR e.legacy_metric_key IN ('40yd_Dash', 'Standing-Broad', 'OH-MB_Throw')
+      )
+    GROUP BY s.id
+    ORDER BY COUNT(*) DESC, s.id ASC
+    LIMIT 1
+  `;
+  const id = (rows[0] as { id?: unknown } | undefined)?.id;
+  return id == null ? null : String(id);
+}
+
 export async function loadBatteryBoard(
   batteryId: string,
-  options: { view: "today" | "meet"; group: string; dayKeys?: readonly string[] }
+  options: {
+    view: BoardView;
+    group: string;
+    dayKey?: string;
+    dayKeys?: readonly string[];
+    sample?: boolean;
+  }
 ): Promise<BoardPayload | null> {
   const batteryResult = await sql`
     SELECT id, title, hugo_group, grouping_mode, cutoff_n, comparison_session_id
@@ -634,10 +675,16 @@ export async function loadBatteryBoard(
     }))
     .toSorted((a, b) => a.sort_order - b.sort_order || a.day_key.localeCompare(b.day_key));
 
+  const sampleOn = options.sample === true && process.env.NODE_ENV !== "production";
   const basketballSessionIds = days.flatMap((day) => (day.session_id ? [day.session_id] : []));
   const basketballSessions = new Set(basketballSessionIds);
-  const comparisonSessionId =
+  let comparisonSessionId =
     battery.comparison_session_id == null ? null : String(battery.comparison_session_id);
+  // Sample mode can still show the Sept 2 changes when the battery row never
+  // stored a comparison session. The lookup is read-only.
+  if (sampleOn && comparisonSessionId == null) {
+    comparisonSessionId = await sampleComparisonSessionId();
+  }
   const sessionIds = [...new Set([...basketballSessionIds, ...(comparisonSessionId ? [comparisonSessionId] : [])])];
   const entries = await loadEntries(sessionIds);
   const basketballRows = entries.filter((row) => basketballSessions.has(row.session_id));
@@ -686,9 +733,9 @@ export async function loadBatteryBoard(
     else groupsByAthlete.set(athleteId, new Set([groupKey]));
   }
 
-  const todayDay = days.find((day) => day.closed_at == null) ?? days[days.length - 1] ?? null;
-  // Today is the open day, even before its session is linked. Do not fall back to an
-  // earlier closed day. Closed days stay on the meet so Wednesday does not sort by Monday.
+  const focusDay = boardFocusDay(days, options.view, options.dayKey);
+  // Today is the open day, even before its session is linked. A chosen day ranks
+  // only that day's tests, the same way, including after it has been closed.
   const meetRows = basketballRows.filter(
     (row) => comparisonSessionId == null || row.session_id !== comparisonSessionId
   );
@@ -706,16 +753,16 @@ export async function loadBatteryBoard(
           )
         );
   const scoringRows =
-    options.view === "today"
-      ? meetRows.filter(
-          (row) => todayDay?.session_id != null && row.session_id === todayDay.session_id
-        )
-      : scoringSessionIds == null
+    options.view === "meet"
+      ? scoringSessionIds == null
         ? meetRows
-        : meetRows.filter((row) => scoringSessionIds.has(row.session_id));
+        : meetRows.filter((row) => scoringSessionIds.has(row.session_id))
+      : meetRows.filter(
+          (row) => focusDay?.session_id != null && row.session_id === focusDay.session_id
+        );
 
-  const todayKeys = todayDay
-    ? new Set(expandedDayKeys(testsForDay(todayDay.day_key)))
+  const focusKeys = focusDay
+    ? new Set(expandedDayKeys(testsForDay(focusDay.day_key)))
     : new Set<string>();
   const dayA = days.find((day) => day.day_key === "A") ?? null;
   const dayARows = meetRows.filter(
@@ -730,17 +777,40 @@ export async function loadBatteryBoard(
   const scoreDri =
     options.view === "meet"
       ? meetDayKeys == null || meetDayKeys.has("A")
-      : todayKeys.has("DRI");
+      : focusKeys.has("DRI");
 
+  const samplePack = sampleOn
+    ? applySampleOverrides(
+        battery.id,
+        sampleMarksForRoster(
+          [...roster.values()].map((athlete) => ({
+            athlete_id: athlete.athlete_id,
+            first_name: athlete.first_name,
+            last_name: athlete.last_name,
+          }))
+        )
+      )
+    : null;
   const lockedBox = lockedDriBox(days);
-  const teamBox = lockedBox ?? pickTeamDriBox([...dayADri.values()].flat());
+  const scoredDri = samplePack ? (scoreDri ? samplePack.dri : new Map()) : dayADri;
+  const teamBox = lockedBox ?? pickTeamDriBox([...scoredDri.values()].flat());
   // Today only scores that day's tests. A vertical saved on Monday must not
   // add points or pull the athlete out of untested.
-  const marks = [
-    ...higherMarks(scoringRows),
-    ...sprintMarks(scoringRows),
-    ...repeatMarks(scoringRows),
-  ].filter((mark) => options.view !== "today" || todayKeys.has(mark.key));
+  const limitedMeetKeys =
+    samplePack && options.view === "meet" && meetDayKeys != null
+      ? new Set(
+          [...meetDayKeys].flatMap((dayKey) => expandedDayKeys(testsForDay(dayKey)))
+        )
+      : null;
+  const marks = (
+    samplePack
+      ? samplePack.marks
+      : [...higherMarks(scoringRows), ...sprintMarks(scoringRows), ...repeatMarks(scoringRows)]
+  ).filter((mark) => {
+    if (options.view !== "meet") return focusKeys.has(mark.key);
+    if (limitedMeetKeys != null) return limitedMeetKeys.has(mark.key);
+    return true;
+  });
   const poolIds =
     options.group === "overall"
       ? undefined
@@ -753,7 +823,7 @@ export async function loadBatteryBoard(
       athlete_id: athlete.athlete_id,
       first_name: athlete.first_name,
       last_name: athlete.last_name,
-      dri_marks: scoreDri ? (dayADri.get(athlete.athlete_id) ?? []) : [],
+      dri_marks: scoreDri ? (scoredDri.get(athlete.athlete_id) ?? []) : [],
     })),
     marks,
     teamBox,
@@ -764,9 +834,11 @@ export async function loadBatteryBoard(
   const includeMondayQualifier =
     options.view === "meet"
       ? meetDayKeys == null || meetDayKeys.has("A")
-      : todayKeys.has("10-5_RSI");
+      : focusKeys.has("10-5_RSI");
   const qualifierByAthlete = includeMondayQualifier
-    ? bestRsiQualifier(scoringRows)
+    ? samplePack
+      ? samplePack.qualifiers
+      : bestRsiQualifier(scoringRows)
     : new Map<string, string>();
   const athletes: BoardAthlete[] = scored.map((row) => {
     const cells: Record<string, BoardCell> = {};
@@ -804,8 +876,8 @@ export async function loadBatteryBoard(
   const columnKeys =
     options.view === "meet"
       ? meetColumnKeys(present, present.has("40yd_Dash") || hasFortyEntry(scoringRows))
-      : todayDay
-        ? expandedDayKeys(testsForDay(todayDay.day_key))
+      : focusDay
+        ? expandedDayKeys(testsForDay(focusDay.day_key))
         : [];
   const columns = columnKeys.map((key) => columnFor(key, teamBox));
   const viewKeys = new Set(columns.map((column) => column.key));
@@ -825,10 +897,22 @@ export async function loadBatteryBoard(
       team_dri_locked: lockedBox != null,
     },
     view: options.view,
-    day_label: options.view === "meet" ? "Meet" : asText(todayDay?.label).trim(),
+    day_key: focusDay?.day_key ?? null,
+    day_label:
+      options.view === "meet"
+        ? "Meet"
+        : focusDay
+          ? focusDay.label || `Day ${focusDay.day_key}`
+          : "",
+    days: days.map((day) => ({
+      day_key: day.day_key,
+      label: day.label,
+      open: day.closed_at == null,
+    })),
     groups,
     columns,
     athletes,
     untested_ids: untestedIds,
+    sample: samplePack != null,
   };
 }

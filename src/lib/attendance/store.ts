@@ -234,7 +234,7 @@ export async function dismissContest(
 
 /**
  * Pull varsity dates for one sport from Bound.
- * Volleyball, boys soccer, XC, and football use that sport's schedule table.
+ * Volleyball, boys soccer, XC, football, and both basketball teams use that sport's schedule table.
  * Football is the St. Agnes co-op page. Other sports use the school overview.
  * A page with no parsed varsity contests fails before any write.
  * Manual rows and dismissed rows are left as they are.

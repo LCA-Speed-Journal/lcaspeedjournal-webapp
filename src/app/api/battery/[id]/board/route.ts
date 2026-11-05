@@ -14,14 +14,27 @@ export async function GET(
     const { id } = await params;
     const { searchParams } = new URL(request.url);
     const viewParam = searchParams.get("view") ?? "today";
-    if (viewParam !== "today" && viewParam !== "meet") {
-      return NextResponse.json({ error: "view must be today or meet" }, { status: 400 });
+    if (viewParam !== "today" && viewParam !== "day" && viewParam !== "meet") {
+      return NextResponse.json({ error: "view must be today, day, or meet" }, { status: 400 });
+    }
+    const dayParam = searchParams.get("day")?.trim() ?? "";
+    if (viewParam === "day" && dayParam === "") {
+      return NextResponse.json({ error: "Choose a testing day." }, { status: 400 });
     }
     const groupParam = searchParams.get("group");
     const group = groupParam == null || groupParam.trim() === "" ? "overall" : groupParam.trim();
-    const data = await loadBatteryBoard(id, { view: viewParam, group });
+    const sample = searchParams.get("sample") === "1" && process.env.NODE_ENV !== "production";
+    const data = await loadBatteryBoard(id, {
+      view: viewParam,
+      group,
+      dayKey: dayParam,
+      sample,
+    });
     if (!data) {
       return NextResponse.json({ error: "Battery not found" }, { status: 404 });
+    }
+    if (viewParam === "day" && data.day_key == null) {
+      return NextResponse.json({ error: "That testing day is not on this battery." }, { status: 400 });
     }
     return NextResponse.json({ data });
   } catch (err) {

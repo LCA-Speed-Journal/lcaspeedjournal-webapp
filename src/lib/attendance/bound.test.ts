@@ -67,11 +67,37 @@ describe("parseVarsityScheduleTable", () => {
     expect(rows.every((row) => row.bound_key.startsWith("volleyball:"))).toBe(true);
   });
 
+  it("reads a weekday prefix in the date cell", () => {
+    const live = `
+      <table class="table table-sm">
+        <tr>
+          <td class="text-nowrap"><span class="text-muted mr-1">Sat</span>12/5/26</td>
+          <td><span class="mr-1">vs</span><a href="/direct/teams/abc/show">River Falls</a></td>
+        </tr>
+      </table>
+    `;
+    const rows = parseVarsityScheduleTable(live, "mens_basketball");
+    expect(rows).toEqual([
+      {
+        hugo_group: "mens_basketball",
+        contest_date: "2026-12-05",
+        bound_key: "mens_basketball:2026-12-05",
+        label: "vs River Falls",
+      },
+    ]);
+  });
+
   it("points football at the St. Agnes co-op schedule", () => {
     expect(boundScheduleUrl("football")).toBe(
       "https://www.gobound.com/mn/mshsl/fb/2026-27/stagnes/v/schedule",
     );
     expect(boundScheduleUrl("volleyball")).toContain("/lclassical/v/schedule");
+    expect(boundScheduleUrl("mens_basketball")).toBe(
+      "https://www.gobound.com/mn/mshsl/boysbasketball/2026-27/lclassical/v/schedule",
+    );
+    expect(boundScheduleUrl("womens_basketball")).toBe(
+      "https://www.gobound.com/mn/mshsl/girlsbasketball/2026-27/lclassical/v/schedule",
+    );
     expect(boundScheduleUrl("womens_tennis")).toBe(
       "https://www.gobound.com/mn/schools/lclassical",
     );

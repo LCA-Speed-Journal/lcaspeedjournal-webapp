@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
-import { useTheme, type Theme } from "@/app/components/ThemeProvider";
 import { orderBoard, type BoardRow } from "@/lib/battery/board-order";
 import type { BoardCell, BoardColumn, BoardPayload } from "@/lib/battery/load";
 
@@ -12,14 +11,21 @@ export { orderBoard };
 const PAGE_SIZE = 12;
 const ADVANCE_MS = 8000;
 const REFRESH_MS = 5000;
-const SLOT_COUNT = 9;
 
 const QUALIFIERS = [
-  { key: "reactive", letter: "R", label: "Reactive", tone: "bg-blue-500", ink: "text-white" },
-  { key: "compliant", letter: "C", label: "Compliant", tone: "bg-red-500", ink: "text-white" },
-  { key: "stiff", letter: "S", label: "Stiff", tone: "bg-green-500", ink: "text-white" },
-  { key: "developing", letter: "D", label: "Developing", tone: "bg-yellow-400", ink: "text-neutral-950" },
+  { key: "reactive", label: "Reactive", text: "text-blue-800 [.dark_&]:text-blue-400" },
+  { key: "compliant", label: "Compliant", text: "text-red-800 [.dark_&]:text-red-400" },
+  { key: "stiff", label: "Stiff", text: "text-green-800 [.dark_&]:text-green-400" },
+  { key: "developing", label: "Developing", text: "text-yellow-800 [.dark_&]:text-yellow-400" },
 ] as const;
+
+const DRI_BAND_TEXT: Record<string, string> = {
+  "Warming Up": "text-neutral-600 [.dark_&]:text-neutral-400",
+  "Rebound Ready": "text-yellow-800 [.dark_&]:text-yellow-400",
+  "Pretty Springy": "text-green-800 [.dark_&]:text-green-400",
+  Bouncy: "text-blue-800 [.dark_&]:text-blue-400",
+  Elite: "text-purple-800 [.dark_&]:text-purple-400",
+};
 
 type QualifierMark = (typeof QUALIFIERS)[number];
 
@@ -48,19 +54,6 @@ function usePageVisible(): boolean {
     return () => document.removeEventListener("visibilitychange", handler);
   }, []);
   return visible;
-}
-
-/** Dark board for this route only. The previous choice is restored when the coach leaves. */
-function useDarkGymBoard() {
-  const { theme, setTheme } = useTheme();
-  const previous = useRef<Theme | null>(null);
-  if (previous.current === null) previous.current = theme;
-
-  useEffect(() => {
-    const restore = previous.current ?? "system";
-    setTheme("dark");
-    return () => setTheme(restore);
-  }, [setTheme]);
 }
 
 async function fetchBoard(url: string): Promise<BoardResponse> {
@@ -113,9 +106,27 @@ export function pageItems(rows: BoardRow[], page: number, cutoffAfter: number | 
   return items;
 }
 
-function formatMark(value: number, units: string): string {
-  if (units === "%") return value.toFixed(1);
-  if (units === "s" || units === "RSI" || units === "DRI") return value.toFixed(2);
+function formatFeetInches(feet: number): string {
+  const totalInches = Math.round(Math.abs(feet) * 12);
+  const whole = Math.floor(totalInches / 12);
+  const inches = totalInches % 12;
+  const sign = feet < 0 ? "-" : "";
+  return `${sign}${whole}'${inches}"`;
+}
+
+export function formatMark(value: number, units: string): string {
+  if (units === "ft") return formatFeetInches(value);
+  if (units === "in") {
+    const body = Math.abs(value) >= 10 ? value.toFixed(1) : value.toFixed(2);
+    return `${body}in.`;
+  }
+  if (units === "%") return `${value.toFixed(1)}%`;
+  if (units === "s") return `${value.toFixed(2)}s`;
+  if (units === "mph") {
+    const body = Math.abs(value) >= 10 ? value.toFixed(1) : value.toFixed(2);
+    return `${body}mph`;
+  }
+  if (units === "RSI" || units === "DRI" || units === "") return value.toFixed(2);
   if (Math.abs(value) >= 100) return Math.round(value).toString();
   if (Math.abs(value) >= 10) return value.toFixed(1);
   return value.toFixed(2);
@@ -132,8 +143,29 @@ export function formatDelta(change: number): string {
   return digits === 0 ? "0" : (0).toFixed(digits);
 }
 
+/** Absolute change plus the percent of the soccer mark, e.g. "-0.3 (-6%)". */
+export function formatDeltaLine(change: number, previous: number): string {
+  const amount = formatDelta(change);
+  if (!Number.isFinite(previous) || previous === 0 || !Number.isFinite(change)) return amount;
+  const pct = (change / previous) * 100;
+  if (!Number.isFinite(pct)) return amount;
+  const rounded = Math.round(pct);
+  const percent = rounded > 0 ? `+${rounded}%` : `${rounded}%`;
+  return `${amount} (${percent})`;
+}
+
 function formatPoints(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+/** Phone column: "Jax T." The wide board still shows the full name. */
+export function shortName(first: string, last: string): string {
+  const firstName = first.trim();
+  const initial = last.trim().charAt(0).toUpperCase();
+  if (!firstName && !initial) return "Athlete";
+  if (!initial) return firstName;
+  if (!firstName) return `${initial}.`;
+  return `${firstName} ${initial}.`;
 }
 
 function placeTone(place: number | null): string {
@@ -149,15 +181,21 @@ function chipClass(active: boolean): string {
     : "rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-foreground-muted hover:border-accent/50 hover:text-foreground";
 }
 
+const PLACE_COL = "2.25rem";
+const NAME_COL = "minmax(5.25rem, 1.05fr)";
+
 function columnTemplate(count: number): string {
-  return `3.25rem 2.75rem minmax(6.5rem, 1.15fr) repeat(${count}, minmax(0, 1fr)) 3.25rem 2.9rem`;
+  return `${PLACE_COL} ${NAME_COL} repeat(${count}, minmax(4.75rem, 1fr)) 2.75rem`;
 }
+
+const PIN_PLACE = "sticky left-0 z-10";
+const PIN_NAME = "sticky left-[2.25rem] z-10 border-r border-border/80";
 
 function BoardFrame({ children }: { children: ReactNode }) {
   return (
     <div className="relative h-dvh overflow-hidden bg-background text-foreground">
       <PageBackground />
-      <div className="relative z-10 flex h-full min-w-0 flex-col px-3 py-3 sm:px-5">{children}</div>
+      <div className="relative z-10 flex h-full min-w-0 flex-col px-3 pb-3 pt-14 sm:px-5">{children}</div>
     </div>
   );
 }
@@ -178,23 +216,18 @@ function qualifierMark(qualifier: string | null): QualifierMark | null {
   return QUALIFIERS.find((item) => item.key === key) ?? null;
 }
 
-function QualifierLetter({ item }: { item: QualifierMark }) {
-  return (
-    <span
-      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-sm font-bold ${item.tone} ${item.ink}`}
-      title={item.label}
-    >
-      {item.letter}
-    </span>
-  );
+function podiumFrame(rank: number): string {
+  if (rank === 1) return "rounded-md border border-gold/70 bg-gold/15";
+  if (rank === 2) return "rounded-md border border-silver/70 bg-silver/15";
+  if (rank === 3) return "rounded-md border border-bronze/70 bg-bronze/15";
+  return "";
 }
 
 function QualifierLegend() {
   return (
-    <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-foreground">
+    <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold">
       {QUALIFIERS.map((item) => (
-        <span key={item.key} className="inline-flex items-center gap-1.5">
-          <QualifierLetter item={item} />
+        <span key={item.key} className={item.text}>
           {item.label}
         </span>
       ))}
@@ -206,38 +239,63 @@ function MarkCell({
   column,
   cell,
   qualifier,
+  numberClass,
 }: {
   column: BoardColumn;
   cell: BoardCell | undefined;
   qualifier: string | null;
+  numberClass: string;
 }) {
-  if (!cell) {
-    return <span className="block text-center font-mono text-xs text-foreground-muted">—</span>;
-  }
-  const place = cell.tied ? `T${cell.rank}` : String(cell.rank);
-  const rsi = column.key === "10-5_RSI" ? qualifierMark(qualifier) : null;
+  const place = cell ? (cell.tied ? `T${cell.rank}` : String(cell.rank)) : "";
+  const rsi = cell && column.key === "10-5_RSI" ? qualifierMark(qualifier) : null;
+  const frame = cell ? podiumFrame(cell.rank) : "";
+  const shown = cell ? formatMark(cell.value, column.units) : "";
+  const suffix =
+    column.units === "s" || column.units === "mph" || column.units === "%"
+      ? column.units
+      : column.units === "in"
+        ? "in."
+        : "";
+  const body = suffix && shown.endsWith(suffix) ? shown.slice(0, -suffix.length) : shown;
   return (
-    <div className="min-w-0 overflow-hidden text-center leading-none">
-      <div className="flex items-center justify-center gap-1">
-        {rsi ? <QualifierLetter item={rsi} /> : null}
-        <span className="font-mono text-sm font-semibold tabular-nums">{formatMark(cell.value, column.units)}</span>
-        <span className="font-mono text-[10px] tabular-nums text-foreground-muted">{place}</span>
+    <div className="relative grid h-full min-w-0 grid-rows-[1fr_auto_1fr] self-stretch overflow-hidden px-0 text-center md:px-0.5">
+      {frame ? <div className={`pointer-events-none absolute inset-x-0.5 inset-y-[5%] ${frame}`} /> : null}
+      <div />
+      {cell ? (
+        <div className="flex items-baseline justify-center gap-0.5 leading-none md:gap-1">
+          <span
+            className={`font-mono font-bold tabular-nums leading-none ${numberClass} ${rsi ? rsi.text : ""}`}
+            title={rsi?.label}
+            data-mark={column.key}
+          >
+            {body}
+            {suffix ? <span className="text-[11px] font-semibold md:text-[0.45em]">{suffix}</span> : null}
+          </span>
+          <span className="font-mono text-[11px] tabular-nums text-foreground-muted">{place}</span>
+        </div>
+      ) : (
+        <span className="font-mono text-xs leading-none text-foreground-muted">—</span>
+      )}
+      <div className="self-start leading-none">
+        {cell?.delta ? (
+          <p
+            className={`font-mono text-[11px] tabular-nums ${
+              cell.delta.improved ? "text-success" : "text-foreground-muted"
+            }`}
+            data-delta={column.key}
+          >
+            {formatDeltaLine(cell.delta.change, cell.delta.previous)}
+          </p>
+        ) : null}
+        {cell && column.key === "DRI" && cell.band ? (
+          <p
+            className={`text-[11px] font-medium leading-none ${DRI_BAND_TEXT[cell.band] ?? "text-foreground-muted"}`}
+            title={cell.band}
+          >
+            {cell.band}
+          </p>
+        ) : null}
       </div>
-      {cell.delta ? (
-        <p
-          className={`mt-0.5 font-mono text-[10px] tabular-nums ${
-            cell.delta.improved ? "text-success" : "text-foreground-muted"
-          }`}
-          data-delta={column.key}
-        >
-          {formatDelta(cell.delta.change)}
-        </p>
-      ) : null}
-      {column.key === "DRI" && cell.band ? (
-        <p className="mt-1 text-base font-semibold leading-tight text-accent" title={cell.band}>
-          {cell.band}
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -246,16 +304,22 @@ function AthleteRow({
   row,
   columns,
   template,
+  numberClass,
 }: {
   row: BoardRow;
   columns: BoardColumn[];
   template: string;
+  numberClass: string;
 }) {
   const { athlete, place, untested } = row;
   const name = `${athlete.first_name} ${athlete.last_name}`.trim() || "Athlete";
+  const compact = shortName(athlete.first_name, athlete.last_name);
+  const pinBg = untested
+    ? "bg-[color-mix(in_srgb,var(--surface)_40%,var(--background))]"
+    : "bg-[color-mix(in_srgb,var(--surface)_25%,var(--background))]";
   return (
     <div
-      className={`grid min-h-0 max-h-24 min-w-0 flex-1 items-center overflow-hidden border-b border-border/70 ${
+      className={`grid w-full min-h-0 flex-1 items-center border-b border-border/70 ${
         untested ? "bg-surface/40 text-foreground-muted" : "bg-surface/25"
       }`}
       style={{ gridTemplateColumns: template }}
@@ -264,14 +328,20 @@ function AthleteRow({
       data-untested={untested ? "true" : "false"}
       data-athlete={athlete.athlete_id}
     >
-      <span className={`pl-1 text-center font-mono text-2xl font-bold leading-none tabular-nums ${placeTone(place)}`}>
+      <span
+        className={`${PIN_PLACE} ${pinBg} flex items-center justify-center self-stretch text-center font-mono text-[17px] font-bold leading-none tabular-nums md:text-2xl ${placeTone(place)}`}
+      >
         {place ?? "—"}
       </span>
-      <span className="truncate text-center font-mono text-xs tabular-nums text-foreground-muted">
-        {athlete.bib ?? "—"}
-      </span>
-      <span className="truncate pr-2 text-sm font-semibold" title={name}>
-        {name}
+      <span
+        className={`${PIN_NAME} ${pinBg} flex min-w-0 flex-col justify-center self-stretch px-1`}
+        title={name}
+      >
+        <span className="truncate text-[15px] font-semibold leading-tight md:hidden">{compact}</span>
+        <span className="hidden truncate text-base font-semibold leading-tight md:inline">{name}</span>
+        <span className="truncate font-mono text-[11px] font-medium tabular-nums leading-tight text-foreground-muted md:text-xs">
+          {athlete.bib ?? "—"}
+        </span>
       </span>
       {columns.map((column) => (
         <MarkCell
@@ -279,31 +349,46 @@ function AthleteRow({
           column={column}
           cell={athlete.cells[column.key]}
           qualifier={athlete.qualifier}
+          numberClass={numberClass}
         />
       ))}
-      <span className="text-center font-mono text-sm font-semibold tabular-nums">
+      <span className="pr-1 text-center font-mono text-[13px] font-semibold tabular-nums md:text-sm">
         {formatPoints(athlete.total_points)}
-      </span>
-      <span className="pr-1 text-center font-mono text-xs tabular-nums text-foreground-muted">
-        {athlete.slots_completed}/{SLOT_COUNT}
       </span>
     </div>
   );
 }
 
-export function BatteryBoard({ batteryId }: { batteryId: string }) {
-  useDarkGymBoard();
-  const [view, setView] = useState<"today" | "meet">("today");
+const SAMPLE_ALLOWED = process.env.NODE_ENV === "development";
+
+export function BatteryBoard({
+  batteryId,
+  initialSample = false,
+}: {
+  batteryId: string;
+  initialSample?: boolean;
+}) {
+  const [view, setView] = useState<"today" | "day" | "meet">("today");
+  const [dayKey, setDayKey] = useState("");
   const [group, setGroup] = useState("overall");
   const [paused, setPaused] = useState(false);
   const [page, setPage] = useState(0);
-  const scope = `${view}:${group}`;
+  const [sample, setSample] = useState(initialSample);
+  const scope = `${view}:${dayKey}:${group}:${sample ? "sample" : "live"}`;
   const [pageScope, setPageScope] = useState(scope);
 
+  useEffect(() => {
+    if (!SAMPLE_ALLOWED) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("sample", sample ? "1" : "0");
+    window.history.replaceState(null, "", url);
+  }, [sample]);
+
   const isVisible = usePageVisible();
-  const url = `/api/battery/${encodeURIComponent(batteryId)}/board?view=${view}&group=${encodeURIComponent(group)}`;
+  const dayQuery = view === "day" && dayKey ? `&day=${encodeURIComponent(dayKey)}` : "";
+  const url = `/api/battery/${encodeURIComponent(batteryId)}/board?view=${view}&group=${encodeURIComponent(group)}${dayQuery}${SAMPLE_ALLOWED && sample ? "&sample=1" : ""}`;
   const { data, error, isLoading } = useSWR<BoardResponse>(url, fetchBoard, {
-    refreshInterval: isVisible ? REFRESH_MS : 0,
+    refreshInterval: isVisible ? (sample ? 1000 : REFRESH_MS) : 0,
   });
   const fetched = data?.url === url ? data.data : undefined;
   const payload = !isLoading && fetched?.view === view ? fetched : undefined;
@@ -320,6 +405,47 @@ export function BatteryBoard({ batteryId }: { batteryId: string }) {
   const lineAfter = cutoffAfterIndex(ordered, cutoff);
   const testedCount = ordered.reduce((count, row) => count + (row.untested ? 0 : 1), 0);
   const refreshFailed = Boolean(payload && error);
+  const rowListRef = useRef<HTMLDivElement>(null);
+  const rowTops = useRef(new Map<string, number>());
+  const markText = useRef(new Map<string, string>());
+  const motionKey = ordered
+    .map((row) => {
+      const cells = Object.entries(row.athlete.cells)
+        .map(([key, cell]) => `${key}:${cell.value}`)
+        .join(",");
+      return `${row.athlete.athlete_id}:${row.place ?? ""}:${cells}`;
+    })
+    .join("|");
+
+  useLayoutEffect(() => {
+    const root = rowListRef.current;
+    if (!root) return;
+    root.querySelectorAll<HTMLElement>("[data-board-row]").forEach((node) => {
+      const id = node.dataset.athlete;
+      if (!id) return;
+      const top = node.getBoundingClientRect().top;
+      const previousTop = rowTops.current.get(id);
+      if (previousTop != null && Math.abs(previousTop - top) > 1) {
+        node.animate(
+          [{ transform: `translateY(${previousTop - top}px)` }, { transform: "translateY(0)" }],
+          { duration: 480, easing: "ease-out" }
+        );
+      }
+      rowTops.current.set(id, top);
+      node.querySelectorAll<HTMLElement>("[data-mark]").forEach((mark) => {
+        const markKey = `${id}:${mark.dataset.mark ?? ""}`;
+        const text = mark.textContent ?? "";
+        const previous = markText.current.get(markKey);
+        if (previous != null && previous !== text) {
+          mark.animate(
+            [{ backgroundColor: "rgba(250, 204, 21, 0.55)" }, { backgroundColor: "rgba(250, 204, 21, 0)" }],
+            { duration: 700 }
+          );
+        }
+        markText.current.set(markKey, text);
+      });
+    });
+  }, [motionKey]);
 
   useEffect(() => {
     if (paused || !isVisible || ordered.length <= PAGE_SIZE) return;
@@ -354,6 +480,10 @@ export function BatteryBoard({ batteryId }: { batteryId: string }) {
   const columns = payload.columns;
   const showRsiLegend = columns.some((column) => column.key === "10-5_RSI");
   const template = columnTemplate(columns.length);
+  const numberClass =
+    columns.length > 7
+      ? "text-[15px] md:text-[clamp(1.05rem,1.35vw,2rem)]"
+      : "text-[17px] md:text-[clamp(1.85rem,2.6vw,3.5rem)]";
   const items = pageItems(ordered, safePage, lineAfter);
   const dayLabel = payload.day_label.trim() || (payload.view === "meet" ? "Meet" : "Today");
   const showGroups = payload.battery.grouping_mode === "subteam";
@@ -362,26 +492,66 @@ export function BatteryBoard({ batteryId }: { batteryId: string }) {
 
   return (
     <BoardFrame>
-      <header className="mb-2 shrink-0">
-        <div className="mb-2 h-1 w-12 rounded-full bg-accent" />
-        <div className="flex flex-wrap items-end justify-between gap-3">
+      <header className="mb-1 shrink-0">
+        <div className="mb-1 h-0.5 w-10 rounded-full bg-accent" />
+        <div className="flex flex-wrap items-end justify-between gap-2">
           <div className="min-w-0">
             <p className="truncate text-[11px] font-medium uppercase tracking-[0.22em] text-foreground-muted">
               {payload.battery.title}
             </p>
-            <h1 className="truncate text-3xl font-bold tracking-tight text-foreground">{dayLabel}</h1>
+            <h1 className="truncate text-xl font-bold tracking-tight text-foreground md:text-2xl">{dayLabel}</h1>
             {showSpots ? (
               <p className="mt-1 text-sm font-medium text-accent" data-spots-note>
                 {testedCount} of {cutoff} spots filled
               </p>
             ) : null}
+            {payload.sample ? (
+              <p className="mt-1 text-sm font-medium text-accent" data-sample-note>
+                Sample marks for this roster. Nothing is saved.
+              </p>
+            ) : null}
             {showRsiLegend ? <QualifierLegend /> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {SAMPLE_ALLOWED ? (
+              <button
+                type="button"
+                aria-pressed={sample}
+                className={chipClass(sample)}
+                onClick={() => setSample((current) => !current)}
+              >
+                Sample
+              </button>
+            ) : null}
+            {SAMPLE_ALLOWED && sample ? (
+              <a
+                href={`/battery/${encodeURIComponent(batteryId)}/sample`}
+                target="_blank"
+                rel="noreferrer"
+                className={chipClass(false)}
+              >
+                Adjust
+              </a>
+            ) : null}
             <div className="flex rounded-full border border-border bg-surface p-0.5">
               <button type="button" className={chipClass(view === "today")} onClick={() => setView("today")}>
                 Today
               </button>
+              {payload.days.map((day) => (
+                <button
+                  key={day.day_key}
+                  type="button"
+                  title={day.open ? `${day.label} (open)` : day.label}
+                  aria-label={day.label || `Day ${day.day_key}`}
+                  className={chipClass(view === "day" && dayKey === day.day_key)}
+                  onClick={() => {
+                    setDayKey(day.day_key);
+                    setView("day");
+                  }}
+                >
+                  Day {day.day_key}
+                </button>
+              ))}
               <button type="button" className={chipClass(view === "meet")} onClick={() => setView("meet")}>
                 Meet
               </button>
@@ -421,59 +591,60 @@ export function BatteryBoard({ batteryId }: { batteryId: string }) {
         </div>
       </header>
 
-      <div
-        className="grid shrink-0 border-b border-border text-[10px] font-semibold uppercase tracking-wide text-foreground-muted"
-        style={{ gridTemplateColumns: template }}
-      >
-        <span className="py-1 text-center">#</span>
-        <span className="py-1 text-center">Bib</span>
-        <span className="py-1">Athlete</span>
-        {columns.map((column) => (
-          <span key={column.key} className="truncate px-0.5 py-1 text-center" title={column.label}>
-            {column.label}
-          </span>
-        ))}
-        <span className="py-1 text-center">Pts</span>
-        <span className="py-1 text-center">Slots</span>
-      </div>
+      <div className="min-h-0 min-w-0 flex-1 overflow-x-auto overscroll-x-contain" data-row-count={dataRowCount} ref={rowListRef}>
+        <div className="flex h-full w-max min-w-full flex-col">
+          <div
+            className="grid w-full shrink-0 border-b border-border text-[11px] font-semibold uppercase tracking-wide text-foreground-muted"
+            style={{ gridTemplateColumns: template }}
+          >
+            <span className={`${PIN_PLACE} bg-background py-1 text-center`}>#</span>
+            <span className={`${PIN_NAME} bg-background py-1`}>Athlete</span>
+            {columns.map((column) => (
+              <span key={column.key} className="truncate px-0 py-1 text-center md:px-0.5" title={column.label}>
+                {column.label}
+              </span>
+            ))}
+            <span className="py-1 pr-1 text-center">Pts</span>
+          </div>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col" data-row-count={dataRowCount}>
-        {items.length === 0 ? (
-          <p className="px-1 py-6 text-sm text-foreground-muted">No athletes on this board yet.</p>
-        ) : (
-          items.map((item) => {
-            if (item.kind === "cutoff") {
+          {items.length === 0 ? (
+            <p className="px-1 py-6 text-sm text-foreground-muted">No athletes on this board yet.</p>
+          ) : (
+            items.map((item) => {
+              if (item.kind === "cutoff") {
+                return (
+                  <div key="cutoff" className="flex w-full shrink-0 items-center gap-3 py-1" data-cutoff={cutoff}>
+                    <div className="h-px flex-1 bg-accent shadow-[0_0_10px_var(--accent)]" />
+                    <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
+                      Cutoff {cutoff}
+                    </span>
+                    <div className="h-px flex-1 bg-accent shadow-[0_0_10px_var(--accent)]" />
+                  </div>
+                );
+              }
+              if (item.kind === "untested") {
+                return (
+                  <div key="untested" className="flex w-full shrink-0 items-center gap-3 py-1" data-untested-block>
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground-muted">
+                      Not tested
+                    </span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                );
+              }
               return (
-                <div key="cutoff" className="flex shrink-0 items-center gap-3 py-1" data-cutoff={cutoff}>
-                  <div className="h-px flex-1 bg-accent shadow-[0_0_10px_var(--accent)]" />
-                  <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
-                    Cutoff {cutoff}
-                  </span>
-                  <div className="h-px flex-1 bg-accent shadow-[0_0_10px_var(--accent)]" />
-                </div>
+                <AthleteRow
+                  key={item.row.athlete.athlete_id}
+                  row={item.row}
+                  columns={columns}
+                  template={template}
+                  numberClass={numberClass}
+                />
               );
-            }
-            if (item.kind === "untested") {
-              return (
-                <div key="untested" className="flex shrink-0 items-center gap-3 py-1" data-untested-block>
-                  <div className="h-px flex-1 bg-border" />
-                  <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.22em] text-foreground-muted">
-                    Not tested
-                  </span>
-                  <div className="h-px flex-1 bg-border" />
-                </div>
-              );
-            }
-            return (
-              <AthleteRow
-                key={item.row.athlete.athlete_id}
-                row={item.row}
-                columns={columns}
-                template={template}
-              />
-            );
-          })
-        )}
+            })
+          )}
+        </div>
       </div>
     </BoardFrame>
   );

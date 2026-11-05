@@ -333,3 +333,44 @@ export async function POST(
     return NextResponse.json({ error: "Failed to assign bibs" }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { id } = await params;
+    const outcome = await withTransaction(async (tx) => {
+      const batteryResult = await tx`
+        SELECT id
+        FROM testing_batteries
+        WHERE id = ${id}
+        FOR UPDATE
+      `;
+      if (!batteryResult.rows.length) return { status: "missing" as const };
+      await tx`DELETE FROM testing_battery_bibs WHERE battery_id = ${id}`;
+      await tx`
+        UPDATE testing_batteries
+        SET bibs_issued_at = NULL
+        WHERE id = ${id}
+      `;
+      return { status: "ok" as const };
+    });
+    if (outcome.status === "missing") {
+      return NextResponse.json({ error: "Battery not found" }, { status: 404 });
+    }
+    return NextResponse.json({ reset: true });
+  } catch (err) {
+    if (isBatterySchemaMissing(err)) return schemaResponse();
+    if (readPgError(err).codes.includes("22P02")) {
+      return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    }
+    console.error("DELETE /api/battery/[id]/bibs:", err);
+    return NextResponse.json({ error: "Failed to reset bibs" }, { status: 500 });
+  }
+}

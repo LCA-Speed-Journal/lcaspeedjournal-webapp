@@ -183,16 +183,93 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/** Coach lookup: the battery that owns this testing-day session, if any. */
+type BatteryListDay = {
+  day_key: string;
+  label: string;
+  session_date: string | null;
+  session_id: string | null;
+  sort_order: number;
+};
+
+type BatteryListItem = {
+  id: string;
+  title: string;
+  hugo_group: string;
+  grouping_mode: string;
+  cutoff_n: number | null;
+  created_at: string;
+  days: BatteryListDay[];
+};
+
+function asDateText(raw: unknown): string | null {
+  if (raw == null) return null;
+  if (raw instanceof Date) return raw.toISOString().slice(0, 10);
+  const text = String(raw);
+  return text.length >= 10 ? text.slice(0, 10) : text;
+}
+
+async function listBatteries() {
+  try {
+    const { rows } = await sql`
+      SELECT
+        b.id,
+        b.title,
+        b.hugo_group,
+        b.grouping_mode,
+        b.cutoff_n,
+        b.created_at,
+        d.day_key,
+        d.label,
+        d.session_date,
+        d.session_id,
+        d.sort_order
+      FROM testing_batteries b
+      LEFT JOIN testing_battery_days d ON d.battery_id = b.id
+      ORDER BY b.created_at DESC, d.sort_order ASC
+    `;
+    const byId = new Map<string, BatteryListItem>();
+    for (const row of rows as Record<string, unknown>[]) {
+      const id = String(row.id);
+      let item = byId.get(id);
+      if (!item) {
+        const created = row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at ?? "");
+        const cutoff = row.cutoff_n == null ? null : Number(row.cutoff_n);
+        item = {
+          id,
+          title: String(row.title ?? ""),
+          hugo_group: String(row.hugo_group ?? ""),
+          grouping_mode: String(row.grouping_mode ?? ""),
+          cutoff_n: cutoff != null && Number.isFinite(cutoff) ? cutoff : null,
+          created_at: created,
+          days: [],
+        };
+        byId.set(id, item);
+      }
+      if (row.day_key == null) continue;
+      item.days.push({
+        day_key: String(row.day_key),
+        label: String(row.label ?? ""),
+        session_date: asDateText(row.session_date),
+        session_id: row.session_id == null ? null : String(row.session_id),
+        sort_order: Number(row.sort_order ?? 0),
+      });
+    }
+    return NextResponse.json({ data: [...byId.values()] });
+  } catch (err) {
+    if (isBatterySchemaMissing(err)) return schemaResponse();
+    console.error("GET /api/battery:", err);
+    return NextResponse.json({ error: "Failed to list batteries" }, { status: 500 });
+  }
+}
+
+/** Public list. A session_id query stays the coach lookup used by data entry. */
 export async function GET(request: NextRequest) {
+  const sessionId = new URL(request.url).searchParams.get("session_id")?.trim() ?? "";
+  if (!sessionId) return listBatteries();
+
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const sessionId = new URL(request.url).searchParams.get("session_id")?.trim() ?? "";
-  if (!sessionId) {
-    return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
   }
 
   try {

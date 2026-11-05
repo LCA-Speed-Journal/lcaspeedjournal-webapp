@@ -1,3 +1,9 @@
+export const BATTERY_TEMPLATES = [
+  { id: "boys_basketball_baseline", label: "Boys Basketball Baseline" },
+] as const;
+
+export type BatteryTemplateId = (typeof BATTERY_TEMPLATES)[number]["id"];
+
 export const BOYS_BASKETBALL_BASELINE = {
   title: "Boys Basketball Baseline",
   hugo_group: "mens_basketball",

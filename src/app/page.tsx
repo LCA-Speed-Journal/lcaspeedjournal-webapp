@@ -36,6 +36,12 @@ export default function Home() {
               </p>
               <div className="flex flex-wrap justify-center gap-3">
                 <Link
+                  href="/battery"
+                  className="rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
+                >
+                  Batteries
+                </Link>
+                <Link
                   href="/historical"
                   className="rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
                 >
