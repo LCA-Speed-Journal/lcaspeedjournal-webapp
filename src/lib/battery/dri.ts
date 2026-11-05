@@ -19,6 +19,8 @@ export function median(values: number[]): number | null {
   return (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+const MEDIAN_TIE_EPSILON = 1e-9;
+
 export function pickTeamDriBox(
   marks: { box: string; value: number }[]
 ): DriBox | null {
@@ -26,11 +28,12 @@ export function pickTeamDriBox(
   for (const box of DRI_BOXES) {
     const med = median(marks.filter((mark) => mark.box === box).map((mark) => mark.value));
     if (med == null) continue;
-    if (
-      !best ||
-      med > best.median ||
-      (med === best.median && Number(box) < Number(best.box))
-    ) {
+    if (!best) {
+      best = { box, median: med };
+      continue;
+    }
+    const tied = Math.abs(med - best.median) <= MEDIAN_TIE_EPSILON;
+    if ((!tied && med > best.median) || (tied && Number(box) < Number(best.box))) {
       best = { box, median: med };
     }
   }

@@ -32,6 +32,25 @@ describe("pickTeamDriBox", () => {
     ]);
     expect(box).toBe("12");
   });
+
+  it("treats a float-averaged median as equal to an exact one and keeps the lower box", () => {
+    const box = pickTeamDriBox([
+      { box: "6", value: 1.2 },
+      { box: "12", value: 1.1 },
+      { box: "12", value: 1.3 },
+    ]);
+    expect(box).toBe("6");
+  });
+
+  it("keeps the lower box when its exact pair matches a float-averaged higher box", () => {
+    const box = pickTeamDriBox([
+      { box: "12", value: 1.2 },
+      { box: "12", value: 1.2 },
+      { box: "18", value: 1.1 },
+      { box: "18", value: 1.3 },
+    ]);
+    expect(box).toBe("12");
+  });
 });
 
 describe("higherBoxFlag", () => {
