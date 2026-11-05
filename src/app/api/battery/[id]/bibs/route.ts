@@ -1,0 +1,294 @@
+/**
+ * Assign and read testing-battery bibs. Coach only.
+ * A null bibs_issued_at replaces every row. Once issued, stored bibs stay put.
+ */
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { sql } from "@/lib/db";
+import { isBatterySchemaMissing, readPgError } from "@/lib/battery/load";
+import { assignBibs, type BibAthlete, type IssuedBib } from "@/lib/battery/bibs";
+
+const MIGRATION_ERROR = "Run scripts/migrate-testing-battery.sql";
+
+type BibWriteRow = {
+  athlete_id: string;
+  bib: string;
+  grade_digit: number;
+  alpha_index: number;
+};
+
+type SheetRow = {
+  bib: string;
+  athlete_id: string;
+  first_name: string;
+  last_name: string;
+  grade_digit: number;
+};
+
+function schemaResponse() {
+  return NextResponse.json({ error: MIGRATION_ERROR }, { status: 503 });
+}
+
+function asText(raw: unknown): string {
+  return typeof raw === "string" ? raw : raw == null ? "" : String(raw);
+}
+
+function finiteInt(raw: unknown): number | null {
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : null;
+  }
+  return null;
+}
+
+function rosterFrom(rows: unknown[]): BibAthlete[] {
+  const byId = new Map<string, BibAthlete>();
+  for (const row of rows) {
+    const rec = row as {
+      athlete_id?: unknown;
+      first_name?: unknown;
+      last_name?: unknown;
+      graduating_class?: unknown;
+    };
+    if (rec.athlete_id == null) continue;
+    const athleteId = String(rec.athlete_id);
+    if (byId.has(athleteId)) continue;
+    byId.set(athleteId, {
+      athlete_id: athleteId,
+      first_name: asText(rec.first_name),
+      last_name: asText(rec.last_name),
+      graduating_class: finiteInt(rec.graduating_class),
+    });
+  }
+  return [...byId.values()];
+}
+
+function issuedFrom(rows: unknown[]): IssuedBib[] {
+  const out: IssuedBib[] = [];
+  for (const row of rows) {
+    const rec = row as { athlete_id?: unknown; bib?: unknown };
+    if (rec.athlete_id == null || rec.bib == null) continue;
+    out.push({ athlete_id: String(rec.athlete_id), bib: String(rec.bib) });
+  }
+  return out;
+}
+
+function sheetFrom(rows: BibWriteRow[], roster: BibAthlete[]): SheetRow[] {
+  const byId = new Map(roster.map((athlete) => [athlete.athlete_id, athlete]));
+  return rows.map((row) => {
+    const athlete = byId.get(row.athlete_id);
+    return {
+      bib: row.bib,
+      athlete_id: row.athlete_id,
+      first_name: athlete?.first_name ?? "",
+      last_name: athlete?.last_name ?? "",
+      grade_digit: row.grade_digit,
+    };
+  });
+}
+
+async function readIssueFlag(request: NextRequest): Promise<boolean> {
+  const text = await request.text();
+  if (text.trim() === "") return false;
+  let body: unknown;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    throw new Error("INVALID_JSON");
+  }
+  if (body == null || typeof body !== "object") return false;
+  return (body as { issue?: unknown }).issue === true;
+}
+
+async function insertBibRows(batteryId: string, rows: BibWriteRow[]) {
+  if (rows.length === 0) return;
+  const payload = JSON.stringify(rows);
+  await sql`
+    INSERT INTO testing_battery_bibs (
+      battery_id, athlete_id, bib, grade_digit, alpha_index
+    )
+    SELECT
+      ${batteryId}::uuid,
+      x.athlete_id,
+      x.bib,
+      x.grade_digit,
+      x.alpha_index
+    FROM json_to_recordset(${payload}::json) AS x(
+      athlete_id uuid,
+      bib text,
+      grade_digit int,
+      alpha_index int
+    )
+  `;
+}
+
+async function replaceBatteryBibs(batteryId: string, rows: BibWriteRow[]) {
+  await sql`DELETE FROM testing_battery_bibs WHERE battery_id = ${batteryId}`;
+  await insertBibRows(batteryId, rows);
+}
+
+async function insertNewBibs(batteryId: string, rows: BibWriteRow[]) {
+  if (rows.length === 0) return;
+  const payload = JSON.stringify(rows);
+  await sql`
+    INSERT INTO testing_battery_bibs (
+      battery_id, athlete_id, bib, grade_digit, alpha_index
+    )
+    SELECT
+      ${batteryId}::uuid,
+      x.athlete_id,
+      x.bib,
+      x.grade_digit,
+      x.alpha_index
+    FROM json_to_recordset(${payload}::json) AS x(
+      athlete_id uuid,
+      bib text,
+      grade_digit int,
+      alpha_index int
+    )
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM testing_battery_bibs existing
+      WHERE existing.battery_id = ${batteryId}::uuid
+        AND existing.athlete_id = x.athlete_id
+    )
+  `;
+}
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { id } = await params;
+    const [batteryResult, bibResult] = await Promise.all([
+      sql`SELECT id FROM testing_batteries WHERE id = ${id} LIMIT 1`,
+      sql`
+        SELECT b.bib, b.athlete_id, a.first_name, a.last_name, b.grade_digit
+        FROM testing_battery_bibs b
+        INNER JOIN athletes a ON a.id = b.athlete_id
+        WHERE b.battery_id = ${id}
+        ORDER BY b.grade_digit ASC, b.alpha_index ASC, b.bib ASC
+      `,
+    ]);
+    if (!batteryResult.rows.length) {
+      return NextResponse.json({ error: "Battery not found" }, { status: 404 });
+    }
+    const data: SheetRow[] = (bibResult.rows as {
+      bib: unknown;
+      athlete_id: unknown;
+      first_name: unknown;
+      last_name: unknown;
+      grade_digit: unknown;
+    }[]).map((row) => ({
+      bib: asText(row.bib),
+      athlete_id: asText(row.athlete_id),
+      first_name: asText(row.first_name),
+      last_name: asText(row.last_name),
+      grade_digit: finiteInt(row.grade_digit) ?? 0,
+    }));
+    return NextResponse.json({ data });
+  } catch (err) {
+    if (isBatterySchemaMissing(err)) return schemaResponse();
+    if (readPgError(err).codes.includes("22P02")) {
+      return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    }
+    console.error("GET /api/battery/[id]/bibs:", err);
+    return NextResponse.json({ error: "Failed to load bibs" }, { status: 500 });
+  }
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let issue = false;
+  try {
+    issue = await readIssueFlag(request);
+  } catch (err) {
+    if (err instanceof Error && err.message === "INVALID_JSON") {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+    throw err;
+  }
+
+  try {
+    const { id } = await params;
+    const batteryResult = await sql`
+      SELECT hugo_group, senior_grad_year, bibs_issued_at
+      FROM testing_batteries
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+    if (!batteryResult.rows.length) {
+      return NextResponse.json({ error: "Battery not found" }, { status: 404 });
+    }
+    const battery = batteryResult.rows[0] as {
+      hugo_group: unknown;
+      senior_grad_year: unknown;
+      bibs_issued_at: unknown;
+    };
+    const hugoGroup = asText(battery.hugo_group);
+    const seniorGradYear = finiteInt(battery.senior_grad_year);
+    if (!hugoGroup || seniorGradYear == null) {
+      return NextResponse.json({ error: "Battery is missing roster settings" }, { status: 500 });
+    }
+    const issuedAt = battery.bibs_issued_at;
+
+    const rosterPromise = sql`
+      SELECT a.id AS athlete_id, a.first_name, a.last_name, a.graduating_class
+      FROM athletes a
+      INNER JOIN athlete_hugo_memberships m ON m.athlete_id = a.id
+      WHERE m.hugo_group = ${hugoGroup}
+    `;
+    const storedPromise =
+      issuedAt == null
+        ? Promise.resolve({ rows: [] as unknown[] })
+        : sql`
+            SELECT athlete_id, bib
+            FROM testing_battery_bibs
+            WHERE battery_id = ${id}
+          `;
+    const [rosterResult, storedResult] = await Promise.all([rosterPromise, storedPromise]);
+    const roster = rosterFrom(rosterResult.rows);
+    const issued = issuedAt == null ? [] : issuedFrom(storedResult.rows);
+    const assigned = assignBibs(roster, seniorGradYear, issued);
+
+    if (issuedAt == null) {
+      await replaceBatteryBibs(id, assigned);
+      if (issue) {
+        await sql`
+          UPDATE testing_batteries
+          SET bibs_issued_at = NOW()
+          WHERE id = ${id} AND bibs_issued_at IS NULL
+        `;
+      }
+    } else {
+      const storedIds = new Set(issued.map((row) => row.athlete_id));
+      const newcomers = assigned.filter((row) => !storedIds.has(row.athlete_id));
+      await insertNewBibs(id, newcomers);
+    }
+
+    return NextResponse.json({ data: sheetFrom(assigned, roster) });
+  } catch (err) {
+    if (isBatterySchemaMissing(err)) return schemaResponse();
+    const { codes } = readPgError(err);
+    if (codes.includes("22P02")) {
+      return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    }
+    console.error("POST /api/battery/[id]/bibs:", err);
+    return NextResponse.json({ error: "Failed to assign bibs" }, { status: 500 });
+  }
+}

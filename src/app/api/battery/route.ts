@@ -182,3 +182,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to create battery" }, { status: 500 });
   }
 }
+
+/** Coach lookup: the battery that owns this testing-day session, if any. */
+export async function GET(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const sessionId = new URL(request.url).searchParams.get("session_id")?.trim() ?? "";
+  if (!sessionId) {
+    return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
+  }
+
+  try {
+    const { rows } = await sql`
+      SELECT battery_id
+      FROM testing_battery_days
+      WHERE session_id = ${sessionId}
+      LIMIT 1
+    `;
+    const batteryId = (rows[0] as { battery_id?: string } | undefined)?.battery_id;
+    if (!batteryId) {
+      return NextResponse.json({ error: "Battery not found" }, { status: 404 });
+    }
+    return NextResponse.json({ id: String(batteryId) });
+  } catch (err) {
+    if (isBatterySchemaMissing(err)) return schemaResponse();
+    if (readPgError(err).codes.includes("22P02")) {
+      return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+    }
+    console.error("GET /api/battery:", err);
+    return NextResponse.json({ error: "Failed to look up battery" }, { status: 500 });
+  }
+}

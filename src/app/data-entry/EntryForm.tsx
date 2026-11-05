@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { segmentInputToCumulativeInput } from "@/lib/parser";
 import {
@@ -39,6 +39,30 @@ import { directionFromUnits, summarizeDropoff } from "@/lib/dropoff/summarize";
 import { LEGACY_SPEED_KEYS } from "@/lib/speed/windows";
 
 const SPEED_RUN_KEY = "SpeedRun";
+const REPEAT_REP_COUNT = 10;
+const DRI_BOX_LABELS = ["6", "12", "18", "24"] as const;
+const RSI_QUALIFIERS = [
+  { value: "reactive", label: "Reactive", selected: "bg-blue-500 text-white" },
+  { value: "compliant", label: "Compliant", selected: "bg-red-500 text-white" },
+  { value: "stiff", label: "Stiff", selected: "bg-green-600 text-white" },
+  { value: "developing", label: "Developing", selected: "bg-yellow-400 text-neutral-950" },
+] as const;
+
+type BatteryBib = {
+  bib: string;
+  athlete_id: string;
+  first_name: string;
+  last_name: string;
+  grade_digit: number;
+};
+
+function emptyReps(): string[] {
+  return Array.from({ length: REPEAT_REP_COUNT }, () => "");
+}
+
+function clearUnknownBibError(prev: string): string {
+  return prev === "Unknown bib" ? "" : prev;
+}
 
 function sessionAllowsMetric(dayMetrics: string[] | null | undefined, key: string): boolean {
   if (!Array.isArray(dayMetrics) || dayMetrics.length === 0) return true;
@@ -209,6 +233,13 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const [quickGrade, setQuickGrade] = useState<"" | "9" | "10" | "11" | "12">("");
   const [quickCreating, setQuickCreating] = useState(false);
   const [quickCreateError, setQuickCreateError] = useState("");
+  const [batterySession, setBatterySession] = useState(false);
+  const [bibs, setBibs] = useState<BatteryBib[]>([]);
+  const [bibInput, setBibInput] = useState("");
+  const [rsiQualifier, setRsiQualifier] = useState("");
+  const [driValues, setDriValues] = useState<string[]>(["", "", "", ""]);
+  const [repValues, setRepValues] = useState<string[]>(emptyReps);
+  const bibInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (sessionIdProp) setSessionId(sessionIdProp);
@@ -221,6 +252,54 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
+
+  useEffect(() => {
+    const lookupId = sessionIdProp ?? sessionId;
+    setBibInput("");
+    setRsiQualifier("");
+    setDriValues(["", "", "", ""]);
+    setRepValues(emptyReps());
+    setBatterySession(false);
+    setBibs([]);
+    if (!lookupId) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const batteryRes = await fetch(
+          `/api/battery?session_id=${encodeURIComponent(lookupId)}`,
+          { cache: "no-store" }
+        );
+        if (cancelled || !batteryRes.ok) return;
+        const batteryJson = (await batteryRes.json()) as { id?: unknown };
+        const batteryId = typeof batteryJson.id === "string" ? batteryJson.id : "";
+        if (!batteryId) return;
+        const bibRes = await fetch(`/api/battery/${encodeURIComponent(batteryId)}/bibs`, {
+          cache: "no-store",
+        });
+        if (cancelled || !bibRes.ok) return;
+        const bibJson = (await bibRes.json()) as { data?: BatteryBib[] };
+        if (cancelled) return;
+        setBibs(Array.isArray(bibJson.data) ? bibJson.data : []);
+        setBatterySession(true);
+      } catch {
+        if (!cancelled) {
+          setBatterySession(false);
+          setBibs([]);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, sessionIdProp]);
+
+  const bibByNumber = useMemo(() => {
+    const map = new Map<string, BatteryBib>();
+    for (const row of bibs) map.set(row.bib, row);
+    return map;
+  }, [bibs]);
 
   const { data: sessionsRes } = useSWR<{
     data: {
@@ -250,7 +329,11 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const selectedRecord = selectedAthlete
     ? (athletes.find((a) => a.id === selectedAthlete.id) ?? selectedAthlete)
     : null;
-  const athleteId = selectedRecord?.id ?? "";
+  const matchedBib =
+    batterySession && bibInput.length === 3 ? (bibByNumber.get(bibInput) ?? null) : null;
+  const searchAthleteId = selectedRecord?.id ?? "";
+  const athleteId =
+    batterySession && bibInput.length > 0 ? (matchedBib?.athlete_id ?? "") : searchAthleteId;
   const dropoffCaption = (() => {
     if (!isDropoffMetric(metricKey) || !athleteId) return null;
     const picked = overallAttemptsFor(
@@ -289,6 +372,8 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setSelectedAthlete(a);
     setAthleteQuery("");
     setDropdownOpen(false);
+    setBibInput("");
+    setError(clearUnknownBibError);
   }, []);
 
   const closeQuickCreate = useCallback(() => {
@@ -427,7 +512,58 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     sessionId,
   ]);
 
+  function clearBatteryEntry() {
+    if (!batterySession) return;
+    setBibInput("");
+    setSelectedAthlete(null);
+    setAthleteQuery("");
+    setRsiQualifier("");
+    setDriValues(["", "", "", ""]);
+    setRepValues(emptyReps());
+    requestAnimationFrame(() => bibInputRef.current?.focus());
+  }
+
+  function onBibChange(raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, 3);
+    setBibInput(digits);
+    if (digits.length > 0) {
+      setSelectedAthlete(null);
+      setAthleteQuery("");
+      closeQuickCreate();
+    }
+    if (digits.length === 3 && !bibByNumber.has(digits)) {
+      setSuccess("");
+      setError("Unknown bib");
+      return;
+    }
+    setError(clearUnknownBibError);
+  }
+
   async function submitEntry() {
+    if (batterySession && bibInput.length > 0 && matchedBib == null) {
+      setSuccess("");
+      setError(bibInput.length === 3 ? "Unknown bib" : "Enter a 3-digit bib");
+      return;
+    }
+    if (batterySession && metricKey === "DRI" && driValues.some((value) => value.trim() === "")) {
+      setSuccess("");
+      setError("Enter all four DRI boxes");
+      return;
+    }
+    if (
+      batterySession &&
+      metricKey === "10x10m" &&
+      repValues.some((value) => value.trim() === "")
+    ) {
+      setSuccess("");
+      setError("Enter all ten times");
+      return;
+    }
+    if (batterySession && metricKey === "10-5_RSI" && rsiQualifier === "") {
+      setSuccess("");
+      setError("Pick Reactive, Compliant, Stiff, or Developing");
+      return;
+    }
     setError("");
     setSuccess("");
     setLoading(true);
@@ -457,6 +593,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         const count = json.data?.count ?? 1;
         setSuccess(`Saved ${count} ${count === 1 ? "entry" : "entries"}`);
         setSpeedDraft(EMPTY_SPEED_RUN_DRAFT);
+        clearBatteryEntry();
         void globalMutate(
           (key) => typeof key === "string" && key.startsWith("/api/leaderboard"),
           undefined,
@@ -474,7 +611,11 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       return;
     }
     let rawToSend: string;
-    if (showNamedFlies) {
+    if (batterySession && metricKey === "DRI") {
+      rawToSend = driValues.map((value) => value.trim()).join(", ");
+    } else if (batterySession && metricKey === "10x10m") {
+      rawToSend = repValues.map((value) => value.trim()).join(", ");
+    } else if (showNamedFlies) {
       rawToSend = splitValues.map((v) => v.trim()).join("|");
     } else if (showMobileSplits) {
       const str = splitValues.map((v) => v.trim()).join("|");
@@ -513,6 +654,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           metric_key: metricKey,
           raw_input: rawToSend,
           context_hugo_group: contextHugoGroupForSave(sportFilter),
+          ...(metricKey === "10-5_RSI" && rsiQualifier ? { qualifier: rsiQualifier } : {}),
         }),
       });
       const json = await res.json();
@@ -528,6 +670,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       } else if (showMobileSplits) {
         setSplitValues(Array(splitCount).fill(""));
       }
+      clearBatteryEntry();
       // Invalidate leaderboard cache so live leaderboard (and any open tab) refetches
       void globalMutate(
         (key) => typeof key === "string" && key.startsWith("/api/leaderboard"),
@@ -563,13 +706,25 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     ? namedFortyComponents.length
     : splitCount;
   const speedPreview = metricKey === SPEED_RUN_KEY ? previewSpeedRun(speedDraft) : null;
+  const batteryDriReady =
+    driValues.length === DRI_BOX_LABELS.length &&
+    driValues.every((value) => value.trim() !== "");
+  const batteryRepsReady =
+    repValues.length === REPEAT_REP_COUNT && repValues.every((value) => value.trim() !== "");
   const hasValue =
-    metricKey === SPEED_RUN_KEY
-      ? speedPreview?.ok === true
-      : multiFieldEntry
-        ? allSplitsFilled && splitValues.length === expectedFieldCount
-        : rawInput.trim() !== "";
-  const canSubmit = effectiveSessionId && athleteId && metricKey && hasValue;
+    batterySession && metricKey === "DRI"
+      ? batteryDriReady
+      : batterySession && metricKey === "10x10m"
+        ? batteryRepsReady
+        : batterySession && metricKey === "10-5_RSI"
+          ? rawInput.trim() !== "" && rsiQualifier !== ""
+          : metricKey === SPEED_RUN_KEY
+            ? speedPreview?.ok === true
+            : multiFieldEntry
+              ? allSplitsFilled && splitValues.length === expectedFieldCount
+              : rawInput.trim() !== "";
+  const bibReady = !batterySession || bibInput.length === 0 || matchedBib != null;
+  const canSubmit = Boolean(effectiveSessionId && athleteId && metricKey && hasValue && bibReady);
 
   return (
     <form
@@ -608,6 +763,34 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           </select>
         </div>
       )}
+
+      {batterySession ? (
+        <div>
+          <label htmlFor="entry_bib" className="mb-1 block text-sm font-medium text-foreground">
+            Bib
+          </label>
+          <input
+            id="entry_bib"
+            ref={bibInputRef}
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={3}
+            value={bibInput}
+            onChange={(e) => onBibChange(e.target.value)}
+            placeholder="000"
+            className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-2xl tracking-widest text-foreground placeholder:text-foreground-muted focus:border-accent"
+          />
+          {matchedBib ? (
+            <p
+              id="entry_bib_name"
+              className="mt-2 text-4xl font-semibold leading-tight text-foreground"
+            >
+              {matchedBib.first_name} {matchedBib.last_name}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div>
         <label className="mb-2 flex cursor-pointer items-center gap-2">
@@ -662,6 +845,8 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
               setSelectedAthlete(null);
               setDropdownOpen(true);
               closeQuickCreate();
+              setBibInput("");
+              setError(clearUnknownBibError);
             }}
             onFocus={() => setDropdownOpen(true)}
             onBlur={() => setTimeout(closeDropdown, 150)}
@@ -702,9 +887,11 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
               }
             }}
             placeholder={
-              sportFilter
-                ? `Search ${HUGO_GROUP_META[sportFilter].label} athletes…`
-                : "Search or select athlete…"
+              batterySession
+                ? "Or search by name…"
+                : sportFilter
+                  ? `Search ${HUGO_GROUP_META[sportFilter].label} athletes…`
+                  : "Search or select athlete…"
             }
             className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 pr-8 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
             aria-expanded={dropdownOpen}
@@ -953,6 +1140,9 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             setRawInput("");
             setSplitValues([]);
             setSplitEntryMode("cumulative");
+            setRsiQualifier("");
+            setDriValues(["", "", "", ""]);
+            setRepValues(emptyReps());
           }}
           className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground focus:border-accent"
           required
@@ -1004,7 +1194,59 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             </button>
           </div>
         )}
-        {showNamedFlies ? (
+        {batterySession && metricKey === "DRI" ? (
+          <div className="grid grid-cols-2 gap-2">
+            {DRI_BOX_LABELS.map((label, i) => (
+              <div key={label}>
+                <label
+                  htmlFor={`entry_dri_${label}`}
+                  className="mb-0.5 block text-xs text-foreground-muted"
+                >
+                  {label} in
+                </label>
+                <input
+                  id={`entry_dri_${label}`}
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={driValues[i] ?? ""}
+                  onChange={(e) => {
+                    const next = [...driValues];
+                    next[i] = e.target.value;
+                    setDriValues(next);
+                  }}
+                  className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
+                />
+              </div>
+            ))}
+          </div>
+        ) : batterySession && metricKey === "10x10m" ? (
+          <div className="grid grid-cols-2 gap-2">
+            {Array.from({ length: REPEAT_REP_COUNT }, (_, i) => (
+              <div key={i}>
+                <label
+                  htmlFor={`entry_rep_${i}`}
+                  className="mb-0.5 block text-xs text-foreground-muted"
+                >
+                  Rep {i + 1}
+                </label>
+                <input
+                  id={`entry_rep_${i}`}
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={repValues[i] ?? ""}
+                  onChange={(e) => {
+                    const next = [...repValues];
+                    next[i] = e.target.value;
+                    setRepValues(next);
+                  }}
+                  className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
+                />
+              </div>
+            ))}
+          </div>
+        ) : showNamedFlies ? (
           <div className="space-y-2">
             {namedFortyComponents.map((label, i) => (
               <div key={label}>
@@ -1073,11 +1315,31 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             required
           />
         )}
-        {!showNamedFlies && (
+        {batterySession && metricKey === "10-5_RSI" ? (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {RSI_QUALIFIERS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setRsiQualifier(option.value)}
+                className={`min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium ${
+                  rsiQualifier === option.value
+                    ? option.selected
+                    : "border border-border text-foreground hover:bg-surface"
+                }`}
+                aria-pressed={rsiQualifier === option.value}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {!showNamedFlies &&
+        !(batterySession && (metricKey === "DRI" || metricKey === "10x10m")) ? (
           <p className="mt-1 text-xs text-foreground-muted">
             {inputHint(selectedMetric, selectedSession?.day_splits, splitEntryMode)}
           </p>
-        )}
+        ) : null}
         {dropoffCaption ? (
           <p className="mt-2 font-mono text-xs tabular-nums text-foreground-muted" role="status">
             {dropoffCaption}
