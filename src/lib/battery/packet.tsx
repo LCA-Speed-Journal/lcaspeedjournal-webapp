@@ -1,7 +1,5 @@
 import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 
-export const PACKET_PAGE_SIZE = 12;
-
 const QUALIFIER_NAMES: Record<string, string> = {
   reactive: "Reactive",
   compliant: "Compliant",
@@ -42,13 +40,19 @@ export type CoachPacketData = {
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 28,
+    paddingTop: 58,
     paddingBottom: 28,
     paddingHorizontal: 28,
     fontSize: 8,
     fontFamily: "Helvetica",
     color: "#111111",
     backgroundColor: "#ffffff",
+  },
+  header: {
+    position: "absolute",
+    top: 22,
+    left: 28,
+    right: 28,
   },
   h1: {
     fontSize: 14,
@@ -133,50 +137,35 @@ function comparisonLine(comparison: PacketComparison): string {
   return `${comparison.label} ${current}  Sept 2 ${formatMark(comparison.september)}  ${formatChange(comparison.change)}`;
 }
 
-function pagesOf(athletes: PacketAthlete[]): PacketAthlete[][] {
-  if (athletes.length === 0) return [[]];
-  const pages: PacketAthlete[][] = [];
-  for (let index = 0; index < athletes.length; index += PACKET_PAGE_SIZE) {
-    pages.push(athletes.slice(index, index + PACKET_PAGE_SIZE));
-  }
-  return pages;
-}
-
 function PacketDocument({ data }: { data: CoachPacketData }) {
-  const pages = pagesOf(data.athletes);
   const team = data.teamBox ? `Team box ${data.teamBox}` : "Team box —";
   return (
     <Document>
-      {pages.map((page, pageIndex) => (
-        <Page
-          key={pageIndex}
-          size="LETTER"
-          orientation="landscape"
-          style={styles.page}
-        >
+      <Page size="LETTER" orientation="landscape" style={styles.page}>
+        <View style={styles.header} fixed>
           <Text style={styles.h1}>{data.title}</Text>
           <Text style={styles.muted}>Coach packet · {team}</Text>
-          {page.length === 0 ? (
-            <Text style={styles.line}>No athletes on this battery.</Text>
-          ) : (
-            page.map((athlete) => (
-              <View key={athlete.athlete_id} style={styles.athlete} wrap={false}>
-                <Text style={styles.name}>{athleteName(athlete)}</Text>
-                <Text style={styles.line}>{rsiLine(athlete)}</Text>
-                <Text style={styles.line}>{driLine(athlete, data.teamBox)}</Text>
-                {athlete.higher_box ? (
-                  <Text style={[styles.line, styles.flag]}>
-                    Higher eccentric load than the team box.
-                  </Text>
-                ) : null}
-                <Text style={styles.line}>
-                  {athlete.comparisons.map((comparison) => comparisonLine(comparison)).join("    ")}
+        </View>
+        {data.athletes.length === 0 ? (
+          <Text style={styles.line}>No athletes on this battery.</Text>
+        ) : (
+          data.athletes.map((athlete) => (
+            <View key={athlete.athlete_id} style={styles.athlete} wrap={false}>
+              <Text style={styles.name}>{athleteName(athlete)}</Text>
+              <Text style={styles.line}>{rsiLine(athlete)}</Text>
+              <Text style={styles.line}>{driLine(athlete, data.teamBox)}</Text>
+              {athlete.higher_box ? (
+                <Text style={[styles.line, styles.flag]}>
+                  Higher eccentric load than the team box.
                 </Text>
-              </View>
-            ))
-          )}
-        </Page>
-      ))}
+              ) : null}
+              <Text style={styles.line}>
+                {athlete.comparisons.map((comparison) => comparisonLine(comparison)).join("    ")}
+              </Text>
+            </View>
+          ))
+        )}
+      </Page>
     </Document>
   );
 }

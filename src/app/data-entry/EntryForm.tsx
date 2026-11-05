@@ -541,15 +541,6 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     return fallback;
   }
 
-  async function refreshBibs(id: string) {
-    const bibRes = await fetch(`/api/battery/${encodeURIComponent(id)}/bibs`, {
-      cache: "no-store",
-    });
-    if (!bibRes.ok) return;
-    const bibJson: unknown = await bibRes.json();
-    setBibs(Array.isArray(bibJson) ? (bibJson as BatteryBib[]) : []);
-  }
-
   async function downloadBatteryPdf(path: string, fallbackName: string) {
     if (!batteryId) return;
     setSheetBusy(true);
@@ -572,7 +563,56 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      if (path.endsWith("/hand-sheet")) await refreshBibs(batteryId);
+    } catch {
+      setSheetNote("Could not download the PDF");
+    } finally {
+      setSheetBusy(false);
+    }
+  }
+
+  async function printHandSheet() {
+    if (!batteryId) return;
+    setSheetBusy(true);
+    setSheetNote("");
+    try {
+      const assignRes = await fetch(`/api/battery/${encodeURIComponent(batteryId)}/bibs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+        cache: "no-store",
+      });
+      const assigned: unknown = await assignRes.json().catch(() => null);
+      if (!assignRes.ok) {
+        const message =
+          assigned != null &&
+          typeof assigned === "object" &&
+          typeof (assigned as { error?: unknown }).error === "string"
+            ? (assigned as { error: string }).error
+            : "Could not assign bibs";
+        setSheetNote(message);
+        return;
+      }
+      setBibs(Array.isArray(assigned) ? (assigned as BatteryBib[]) : []);
+      const res = await fetch(
+        `/api/battery/${encodeURIComponent(batteryId)}/hand-sheet`,
+        { cache: "no-store" }
+      );
+      const type = res.headers.get("content-type") ?? "";
+      if (!res.ok || !type.includes("application/pdf")) {
+        setSheetNote(await readSheetError(res, "Could not download the PDF"));
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const disposition = res.headers.get("content-disposition") ?? "";
+      const match = /filename="([^"]+)"/.exec(disposition);
+      link.download = match?.[1] ?? "boys-basketball-baseline-hand-sheet.pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
     } catch {
       setSheetNote("Could not download the PDF");
     } finally {
@@ -886,12 +926,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             <button
               type="button"
               disabled={sheetBusy}
-              onClick={() =>
-                void downloadBatteryPdf(
-                  `/api/battery/${encodeURIComponent(batteryId)}/hand-sheet`,
-                  "boys-basketball-baseline-hand-sheet.pdf"
-                )
-              }
+              onClick={() => void printHandSheet()}
               className="min-h-[44px] rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-50"
             >
               Print hand sheet

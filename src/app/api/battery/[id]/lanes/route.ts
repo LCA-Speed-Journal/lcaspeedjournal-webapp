@@ -29,7 +29,8 @@ function sheetFromBoard(board: BoardPayload): FrozenLaneSheet {
       first_name: row.athlete.first_name,
       last_name: row.athlete.last_name,
       place: row.place,
-    }))
+    })),
+    board.battery.cutoff_n
   );
 }
 

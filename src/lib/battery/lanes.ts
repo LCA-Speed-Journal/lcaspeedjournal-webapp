@@ -36,23 +36,22 @@ export function laneSeedIds(athletes: LaneSeedAthlete[]): string[] {
 
 /**
  * Heat number to draw the cutoff line after.
- * The line sits between the heat that contains place 18 and the heat that contains place 19.
- * Those heats are neighbors: 17 is paired with 18, and 19 is paired with 20.
+ * That heat holds the last athlete whose place is at or under the cutoff.
+ * Ties skip numbers and untested athletes have no place, so the next number
+ * often does not exist. Everyone at the cutoff place stays above the line.
+ * The next heat (a skipped place, or athletes with no place) is below it.
+ * No line when nobody has a place at or under the cutoff.
  */
 export function cutoffAfterHeat(
-  heats: { heat: number; places: (number | null)[] }[]
+  heats: { heat: number; places: (number | null)[] }[],
+  cutoff: number | null
 ): number | null {
-  const heats18 = heats.filter((heat) => heat.places.includes(18)).map((heat) => heat.heat);
-  const heats19 = heats.filter((heat) => heat.places.includes(19)).map((heat) => heat.heat);
+  if (cutoff == null || cutoff <= 0) return null;
   let boundary: number | null = null;
-  for (const heat18 of heats18) {
-    for (const heat19 of heats19) {
-      if (heat18 === heat19) continue;
-      const earlier = Math.min(heat18, heat19);
-      const later = Math.max(heat18, heat19);
-      if (later !== earlier + 1) continue;
-      boundary = earlier;
-    }
+  for (const heat of heats) {
+    const qualifies = heat.places.some((place) => place != null && place <= cutoff);
+    if (!qualifies) continue;
+    if (boundary == null || heat.heat < boundary) boundary = heat.heat;
   }
   return boundary;
 }
@@ -82,18 +81,41 @@ export function seedLanes(placeOrder: string[]): LaneHeat[] {
   }));
 }
 
-/** Places and the cutoff line from the board at freeze time. Untested athletes have no place. */
-export function freezeLaneSheet(athletes: LaneSeedAthlete[]): FrozenLaneSheet {
-  const placeById = new Map(athletes.map((athlete) => [athlete.athlete_id, athlete.place]));
-  const heats = seedLanes(laneSeedIds(athletes)).map((heat) => ({
+function athleteQualifies(athlete: LaneSeedAthlete, cutoff: number | null): boolean {
+  return cutoff != null && cutoff > 0 && athlete.place != null && athlete.place <= cutoff;
+}
+
+/**
+ * Places and the cutoff line from the board at freeze time.
+ * Athletes at or under the cutoff are paired on their own, so a tie or an
+ * untested athlete starts the next heat instead of sharing the cutoff heat.
+ */
+export function freezeLaneSheet(
+  athletes: LaneSeedAthlete[],
+  cutoff: number | null = 18
+): FrozenLaneSheet {
+  const byId = new Map(athletes.map((athlete) => [athlete.athlete_id, athlete]));
+  const ordered = laneSeedIds(athletes).flatMap((id) => {
+    const athlete = byId.get(id);
+    return athlete ? [athlete] : [];
+  });
+  const qualifying = ordered.filter((athlete) => athleteQualifies(athlete, cutoff));
+  const rest = ordered.filter((athlete) => !athleteQualifies(athlete, cutoff));
+  const restHeats = seedLanes(rest.map((athlete) => athlete.athlete_id));
+  const qualifyingHeats = seedLanes(qualifying.map((athlete) => athlete.athlete_id)).map((heat) => ({
+    ...heat,
+    heat: heat.heat + restHeats.length,
+  }));
+  const heats = [...restHeats, ...qualifyingHeats];
+  const placeById = new Map(ordered.map((athlete) => [athlete.athlete_id, athlete.place]));
+  const placed = heats.map((heat, index) => ({
     ...heat,
     places: heat.athlete_ids.map((id) => placeById.get(id) ?? null),
+    is_final: index === heats.length - 1,
   }));
   return {
-    heats,
-    cutoff_after_heat: cutoffAfterHeat(
-      heats.map((heat) => ({ heat: heat.heat, places: heat.places }))
-    ),
+    heats: placed,
+    cutoff_after_heat: cutoffAfterHeat(placed, cutoff),
   };
 }
 

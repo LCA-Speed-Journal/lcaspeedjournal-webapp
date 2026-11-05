@@ -88,7 +88,8 @@ export async function GET(
     }
 
     const frozen = laneSheetFromFreeze(stored, new Map());
-    const ordered = frozen.heats.toSorted((a, b) => a.heat - b.heat);
+    // Best heat first, so the stored cutoff sits above the next heat.
+    const ordered = frozen.heats.toSorted((a, b) => b.heat - a.heat);
     const heats: LaneSheetHeat[] = ordered.map((heat) => ({
       heat: heat.heat,
       cutoffAfter: frozen.cutoff_after_heat === heat.heat,
