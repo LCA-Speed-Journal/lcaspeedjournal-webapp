@@ -255,6 +255,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
 
   useEffect(() => {
     const lookupId = sessionIdProp ?? sessionId;
+    setError("");
     setBibInput("");
     setRsiQualifier("");
     setDriValues(["", "", "", ""]);

@@ -1,11 +1,13 @@
 /**
  * Assign and read testing-battery bibs. Coach only.
  * A null bibs_issued_at replaces every row. Once issued, stored bibs stay put.
+ * The replace and the issue timestamp share one locked transaction, so a second
+ * request cannot delete bibs after another request has already issued them.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { sql } from "@/lib/db";
+import { sql, withTransaction, type DbSql } from "@/lib/db";
 import { isBatterySchemaMissing, readPgError } from "@/lib/battery/load";
 import {
   assignBibs,
@@ -131,10 +133,10 @@ async function readIssueFlag(request: NextRequest): Promise<boolean> {
   return (body as { issue?: unknown }).issue === true;
 }
 
-async function insertBibRows(batteryId: string, rows: BibWriteRow[]) {
+async function insertBibRows(tx: DbSql, batteryId: string, rows: BibWriteRow[]) {
   if (rows.length === 0) return;
   const payload = JSON.stringify(rows);
-  await sql`
+  await tx`
     INSERT INTO testing_battery_bibs (
       battery_id, athlete_id, bib, grade_digit, alpha_index
     )
@@ -153,15 +155,15 @@ async function insertBibRows(batteryId: string, rows: BibWriteRow[]) {
   `;
 }
 
-async function replaceBatteryBibs(batteryId: string, rows: BibWriteRow[]) {
-  await sql`DELETE FROM testing_battery_bibs WHERE battery_id = ${batteryId}`;
-  await insertBibRows(batteryId, rows);
+async function replaceBatteryBibs(tx: DbSql, batteryId: string, rows: BibWriteRow[]) {
+  await tx`DELETE FROM testing_battery_bibs WHERE battery_id = ${batteryId}`;
+  await insertBibRows(tx, batteryId, rows);
 }
 
-async function insertNewBibs(batteryId: string, rows: BibWriteRow[]) {
+async function insertNewBibs(tx: DbSql, batteryId: string, rows: BibWriteRow[]) {
   if (rows.length === 0) return;
   const payload = JSON.stringify(rows);
-  await sql`
+  await tx`
     INSERT INTO testing_battery_bibs (
       battery_id, athlete_id, bib, grade_digit, alpha_index
     )
@@ -255,67 +257,72 @@ export async function POST(
 
   try {
     const { id } = await params;
-    const batteryResult = await sql`
-      SELECT hugo_group, senior_grad_year, bibs_issued_at
-      FROM testing_batteries
-      WHERE id = ${id}
-      LIMIT 1
-    `;
-    if (!batteryResult.rows.length) {
+    const outcome = await withTransaction(async (tx) => {
+      const batteryResult = await tx`
+        SELECT hugo_group, senior_grad_year, bibs_issued_at
+        FROM testing_batteries
+        WHERE id = ${id}
+        FOR UPDATE
+      `;
+      if (!batteryResult.rows.length) return { status: "missing" as const };
+      const battery = batteryResult.rows[0] as {
+        hugo_group: unknown;
+        senior_grad_year: unknown;
+        bibs_issued_at: unknown;
+      };
+      const hugoGroup = asText(battery.hugo_group);
+      const seniorGradYear = finiteInt(battery.senior_grad_year);
+      if (!hugoGroup || seniorGradYear == null) return { status: "settings" as const };
+      const issuedAt = battery.bibs_issued_at;
+
+      const rosterResult = await tx`
+        SELECT a.id AS athlete_id, a.first_name, a.last_name, a.graduating_class
+        FROM athletes a
+        INNER JOIN athlete_hugo_memberships m ON m.athlete_id = a.id
+        WHERE m.hugo_group = ${hugoGroup}
+      `;
+      const roster = rosterFrom(rosterResult.rows);
+      const storedResult =
+        issuedAt == null
+          ? { rows: [] as unknown[] }
+          : await tx`
+              SELECT athlete_id, bib
+              FROM testing_battery_bibs
+              WHERE battery_id = ${id}
+            `;
+      const issued = issuedAt == null ? [] : issuedFrom(storedResult.rows);
+      const athletes =
+        issuedAt == null ? roster : athletesForIssuedBibs(roster, issued, seniorGradYear);
+      const assigned = assignBibs(athletes, seniorGradYear, issued);
+
+      if (issuedAt == null) {
+        await replaceBatteryBibs(tx, id, assigned);
+        if (issue) {
+          await tx`
+            UPDATE testing_batteries
+            SET bibs_issued_at = NOW()
+            WHERE id = ${id} AND bibs_issued_at IS NULL
+          `;
+        }
+      } else {
+        const rosterIds = new Set(roster.map((athlete) => athlete.athlete_id));
+        const storedIds = new Set(issued.map((row) => row.athlete_id));
+        const newcomers = assigned.filter(
+          (row) => rosterIds.has(row.athlete_id) && !storedIds.has(row.athlete_id)
+        );
+        await insertNewBibs(tx, id, newcomers);
+      }
+
+      return { status: "ok" as const, sheet: sheetForRoster(roster, assigned, issued) };
+    });
+
+    if (outcome.status === "missing") {
       return NextResponse.json({ error: "Battery not found" }, { status: 404 });
     }
-    const battery = batteryResult.rows[0] as {
-      hugo_group: unknown;
-      senior_grad_year: unknown;
-      bibs_issued_at: unknown;
-    };
-    const hugoGroup = asText(battery.hugo_group);
-    const seniorGradYear = finiteInt(battery.senior_grad_year);
-    if (!hugoGroup || seniorGradYear == null) {
+    if (outcome.status === "settings") {
       return NextResponse.json({ error: "Battery is missing roster settings" }, { status: 500 });
     }
-    const issuedAt = battery.bibs_issued_at;
-
-    const rosterPromise = sql`
-      SELECT a.id AS athlete_id, a.first_name, a.last_name, a.graduating_class
-      FROM athletes a
-      INNER JOIN athlete_hugo_memberships m ON m.athlete_id = a.id
-      WHERE m.hugo_group = ${hugoGroup}
-    `;
-    const storedPromise =
-      issuedAt == null
-        ? Promise.resolve({ rows: [] as unknown[] })
-        : sql`
-            SELECT athlete_id, bib
-            FROM testing_battery_bibs
-            WHERE battery_id = ${id}
-          `;
-    const [rosterResult, storedResult] = await Promise.all([rosterPromise, storedPromise]);
-    const roster = rosterFrom(rosterResult.rows);
-    const issued = issuedAt == null ? [] : issuedFrom(storedResult.rows);
-    const athletes =
-      issuedAt == null ? roster : athletesForIssuedBibs(roster, issued, seniorGradYear);
-    const assigned = assignBibs(athletes, seniorGradYear, issued);
-    const rosterIds = new Set(roster.map((athlete) => athlete.athlete_id));
-
-    if (issuedAt == null) {
-      await replaceBatteryBibs(id, assigned);
-      if (issue) {
-        await sql`
-          UPDATE testing_batteries
-          SET bibs_issued_at = NOW()
-          WHERE id = ${id} AND bibs_issued_at IS NULL
-        `;
-      }
-    } else {
-      const storedIds = new Set(issued.map((row) => row.athlete_id));
-      const newcomers = assigned.filter(
-        (row) => rosterIds.has(row.athlete_id) && !storedIds.has(row.athlete_id)
-      );
-      await insertNewBibs(id, newcomers);
-    }
-
-    return NextResponse.json(sheetForRoster(roster, assigned, issued));
+    return NextResponse.json(outcome.sheet);
   } catch (err) {
     if (isBatterySchemaMissing(err)) return schemaResponse();
     const { codes } = readPgError(err);
