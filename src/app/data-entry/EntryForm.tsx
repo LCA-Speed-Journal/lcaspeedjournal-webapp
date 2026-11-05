@@ -278,9 +278,9 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           cache: "no-store",
         });
         if (cancelled || !bibRes.ok) return;
-        const bibJson = (await bibRes.json()) as { data?: BatteryBib[] };
+        const bibJson: unknown = await bibRes.json();
         if (cancelled) return;
-        setBibs(Array.isArray(bibJson.data) ? bibJson.data : []);
+        setBibs(Array.isArray(bibJson) ? (bibJson as BatteryBib[]) : []);
         setBatterySession(true);
       } catch {
         if (!cancelled) {

@@ -24,6 +24,43 @@ export function gradeDigit(
   return digit;
 }
 
+function graduatingClassForDigit(digit: number, seniorGradYear: number): number {
+  return seniorGradYear + (4 - digit);
+}
+
+function bibGradeDigit(bib: string): number | null {
+  const digit = Number(bib[0]);
+  if (digit !== 1 && digit !== 2 && digit !== 3 && digit !== 4) return null;
+  return digit;
+}
+
+/**
+ * Athletes assignBibs should see after bibs are issued.
+ * Stored numbers stay reserved when that athlete has left the roster,
+ * or when their current grade digit no longer matches the stored bib.
+ */
+export function athletesForIssuedBibs(
+  roster: BibAthlete[],
+  stored: IssuedBib[],
+  seniorGradYear: number
+): BibAthlete[] {
+  const rosterById = new Map(roster.map((athlete) => [athlete.athlete_id, athlete]));
+  const placeholders: BibAthlete[] = [];
+  for (const row of stored) {
+    const digit = bibGradeDigit(row.bib);
+    if (digit == null) continue;
+    const athlete = rosterById.get(row.athlete_id);
+    if (athlete && gradeDigit(athlete.graduating_class, seniorGradYear) === digit) continue;
+    placeholders.push({
+      athlete_id: row.athlete_id,
+      first_name: "",
+      last_name: "",
+      graduating_class: graduatingClassForDigit(digit, seniorGradYear),
+    });
+  }
+  return [...roster, ...placeholders];
+}
+
 function byName(a: BibAthlete, b: BibAthlete): number {
   return (
     a.last_name.localeCompare(b.last_name) ||

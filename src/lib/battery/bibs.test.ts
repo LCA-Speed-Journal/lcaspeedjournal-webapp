@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assignBibs, gradeDigit } from "./bibs";
+import { assignBibs, athletesForIssuedBibs, gradeDigit } from "./bibs";
 
 const senior = 2027;
 
@@ -43,5 +43,25 @@ describe("assignBibs", () => {
     );
     expect(bibs.find((row) => row.athlete_id === "a")?.bib).toBe("201");
     expect(bibs.find((row) => row.athlete_id === "z")?.bib).toBe("202");
+  });
+
+  it("does not give a departed athlete's bib to a new freshman", () => {
+    const stored = [{ athlete_id: "gone", bib: "101" }];
+    const roster = [
+      { athlete_id: "new", first_name: "Ned", last_name: "New", graduating_class: 2030 },
+    ];
+    const bibs = assignBibs(athletesForIssuedBibs(roster, stored, senior), senior, stored);
+    expect(bibs.find((row) => row.athlete_id === "new")?.bib).toBe("102");
+    expect(bibs.find((row) => row.athlete_id === "gone")?.bib).toBe("101");
+  });
+
+  it("does not reuse a stored bib when that athlete's grade digit changed", () => {
+    const stored = [{ athlete_id: "a", bib: "101" }];
+    const roster = [
+      { athlete_id: "a", first_name: "Ann", last_name: "Adams", graduating_class: 2027 },
+      { athlete_id: "new", first_name: "Ned", last_name: "New", graduating_class: 2030 },
+    ];
+    const bibs = assignBibs(athletesForIssuedBibs(roster, stored, senior), senior, stored);
+    expect(bibs.find((row) => row.athlete_id === "new")?.bib).toBe("102");
   });
 });

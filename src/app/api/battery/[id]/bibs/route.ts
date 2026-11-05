@@ -7,7 +7,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { isBatterySchemaMissing, readPgError } from "@/lib/battery/load";
-import { assignBibs, type BibAthlete, type IssuedBib } from "@/lib/battery/bibs";
+import {
+  assignBibs,
+  athletesForIssuedBibs,
+  type BibAthlete,
+  type IssuedBib,
+} from "@/lib/battery/bibs";
 
 const MIGRATION_ERROR = "Run scripts/migrate-testing-battery.sql";
 
@@ -75,18 +80,42 @@ function issuedFrom(rows: unknown[]): IssuedBib[] {
   return out;
 }
 
-function sheetFrom(rows: BibWriteRow[], roster: BibAthlete[]): SheetRow[] {
-  const byId = new Map(roster.map((athlete) => [athlete.athlete_id, athlete]));
-  return rows.map((row) => {
-    const athlete = byId.get(row.athlete_id);
-    return {
+function sheetForRoster(
+  roster: BibAthlete[],
+  assigned: BibWriteRow[],
+  issued: IssuedBib[]
+): SheetRow[] {
+  const storedById = new Map(issued.map((row) => [row.athlete_id, row.bib]));
+  const assignedById = new Map<string, BibWriteRow>();
+  for (const row of assigned) {
+    if (storedById.has(row.athlete_id)) continue;
+    assignedById.set(row.athlete_id, row);
+  }
+  const sheet: SheetRow[] = [];
+  for (const athlete of roster) {
+    const storedBib = storedById.get(athlete.athlete_id);
+    if (storedBib) {
+      const digit = Number(storedBib[0]);
+      sheet.push({
+        bib: storedBib,
+        athlete_id: athlete.athlete_id,
+        first_name: athlete.first_name,
+        last_name: athlete.last_name,
+        grade_digit: digit === 1 || digit === 2 || digit === 3 || digit === 4 ? digit : 0,
+      });
+      continue;
+    }
+    const row = assignedById.get(athlete.athlete_id);
+    if (!row) continue;
+    sheet.push({
       bib: row.bib,
-      athlete_id: row.athlete_id,
-      first_name: athlete?.first_name ?? "",
-      last_name: athlete?.last_name ?? "",
+      athlete_id: athlete.athlete_id,
+      first_name: athlete.first_name,
+      last_name: athlete.last_name,
       grade_digit: row.grade_digit,
-    };
-  });
+    });
+  }
+  return sheet;
 }
 
 async function readIssueFlag(request: NextRequest): Promise<boolean> {
@@ -194,7 +223,7 @@ export async function GET(
       last_name: asText(row.last_name),
       grade_digit: finiteInt(row.grade_digit) ?? 0,
     }));
-    return NextResponse.json({ data });
+    return NextResponse.json(data);
   } catch (err) {
     if (isBatterySchemaMissing(err)) return schemaResponse();
     if (readPgError(err).codes.includes("22P02")) {
@@ -264,7 +293,10 @@ export async function POST(
     const [rosterResult, storedResult] = await Promise.all([rosterPromise, storedPromise]);
     const roster = rosterFrom(rosterResult.rows);
     const issued = issuedAt == null ? [] : issuedFrom(storedResult.rows);
-    const assigned = assignBibs(roster, seniorGradYear, issued);
+    const athletes =
+      issuedAt == null ? roster : athletesForIssuedBibs(roster, issued, seniorGradYear);
+    const assigned = assignBibs(athletes, seniorGradYear, issued);
+    const rosterIds = new Set(roster.map((athlete) => athlete.athlete_id));
 
     if (issuedAt == null) {
       await replaceBatteryBibs(id, assigned);
@@ -277,11 +309,13 @@ export async function POST(
       }
     } else {
       const storedIds = new Set(issued.map((row) => row.athlete_id));
-      const newcomers = assigned.filter((row) => !storedIds.has(row.athlete_id));
+      const newcomers = assigned.filter(
+        (row) => rosterIds.has(row.athlete_id) && !storedIds.has(row.athlete_id)
+      );
       await insertNewBibs(id, newcomers);
     }
 
-    return NextResponse.json({ data: sheetFrom(assigned, roster) });
+    return NextResponse.json(sheetForRoster(roster, assigned, issued));
   } catch (err) {
     if (isBatterySchemaMissing(err)) return schemaResponse();
     const { codes } = readPgError(err);
