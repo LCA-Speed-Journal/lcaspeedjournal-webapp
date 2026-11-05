@@ -4,7 +4,10 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
 import { useTheme, type Theme } from "@/app/components/ThemeProvider";
-import type { BoardAthlete, BoardCell, BoardColumn, BoardPayload } from "@/lib/battery/load";
+import { orderBoard, type BoardRow } from "@/lib/battery/board-order";
+import type { BoardCell, BoardColumn, BoardPayload } from "@/lib/battery/load";
+
+export { orderBoard };
 
 const PAGE_SIZE = 12;
 const ADVANCE_MS = 8000;
@@ -21,12 +24,6 @@ const QUALIFIERS = [
 type QualifierMark = (typeof QUALIFIERS)[number];
 
 type BoardResponse = { data: BoardPayload; url: string };
-
-type BoardRow = {
-  athlete: BoardAthlete;
-  place: number | null;
-  untested: boolean;
-};
 
 type PageItem =
   | { kind: "row"; row: BoardRow }
@@ -81,43 +78,6 @@ async function fetchBoard(url: string): Promise<BoardResponse> {
     throw new BoardRequestError(response.status, "Failed to load battery board");
   }
   return { data: body.data, url };
-}
-
-function tieKey(athlete: BoardAthlete): string {
-  return `${athlete.total_points}|${athlete.slots_completed}`;
-}
-
-function compareBoardAthletes(a: BoardAthlete, b: BoardAthlete): number {
-  if (a.total_points !== b.total_points) return b.total_points - a.total_points;
-  if (a.slots_completed !== b.slots_completed) return b.slots_completed - a.slots_completed;
-  const byLast = a.last_name.localeCompare(b.last_name);
-  if (byLast !== 0) return byLast;
-  const byFirst = a.first_name.localeCompare(b.first_name);
-  if (byFirst !== 0) return byFirst;
-  return a.athlete_id.localeCompare(b.athlete_id);
-}
-
-/** Places among athletes who have a mark. Ties share a place and the next place skips. */
-export function orderBoard(athletes: BoardAthlete[], untestedIds: string[]): BoardRow[] {
-  const untested = new Set(untestedIds);
-  const tested = athletes
-    .filter((athlete) => !untested.has(athlete.athlete_id))
-    .toSorted(compareBoardAthletes);
-  const waiting = athletes.filter((athlete) => untested.has(athlete.athlete_id));
-  let place = 0;
-  let previousKey: string | null = null;
-  const testedRows = tested.map((athlete, index) => {
-    const key = tieKey(athlete);
-    if (key !== previousKey) {
-      place = index + 1;
-      previousKey = key;
-    }
-    return { athlete, place, untested: false as const };
-  });
-  return [
-    ...testedRows,
-    ...waiting.map((athlete) => ({ athlete, place: null, untested: true as const })),
-  ];
 }
 
 /** Index of the last tested athlete who stays above the cutoff. Null when the line should not be drawn. */

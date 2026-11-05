@@ -234,6 +234,9 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const [quickCreating, setQuickCreating] = useState(false);
   const [quickCreateError, setQuickCreateError] = useState("");
   const [batterySession, setBatterySession] = useState(false);
+  const [batteryId, setBatteryId] = useState("");
+  const [sheetBusy, setSheetBusy] = useState(false);
+  const [sheetNote, setSheetNote] = useState("");
   const [bibs, setBibs] = useState<BatteryBib[]>([]);
   const [bibInput, setBibInput] = useState("");
   const [rsiQualifier, setRsiQualifier] = useState("");
@@ -261,6 +264,8 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setDriValues(["", "", "", ""]);
     setRepValues(emptyReps());
     setBatterySession(false);
+    setBatteryId("");
+    setSheetNote("");
     setBibs([]);
     if (!lookupId) return;
 
@@ -273,16 +278,18 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         );
         if (cancelled || !batteryRes.ok) return;
         const batteryJson = (await batteryRes.json()) as { id?: unknown };
-        const batteryId = typeof batteryJson.id === "string" ? batteryJson.id : "";
-        if (!batteryId) return;
-        const bibRes = await fetch(`/api/battery/${encodeURIComponent(batteryId)}/bibs`, {
+        const nextBatteryId = typeof batteryJson.id === "string" ? batteryJson.id : "";
+        if (!nextBatteryId) return;
+        if (cancelled) return;
+        setBatteryId(nextBatteryId);
+        setBatterySession(true);
+        const bibRes = await fetch(`/api/battery/${encodeURIComponent(nextBatteryId)}/bibs`, {
           cache: "no-store",
         });
         if (cancelled || !bibRes.ok) return;
         const bibJson: unknown = await bibRes.json();
         if (cancelled) return;
         setBibs(Array.isArray(bibJson) ? (bibJson as BatteryBib[]) : []);
-        setBatterySession(true);
       } catch {
         if (!cancelled) {
           setBatterySession(false);
@@ -522,6 +529,111 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setDriValues(["", "", "", ""]);
     setRepValues(emptyReps());
     requestAnimationFrame(() => bibInputRef.current?.focus());
+  }
+
+  async function readSheetError(res: Response, fallback: string): Promise<string> {
+    try {
+      const body = (await res.json()) as { error?: unknown };
+      if (typeof body.error === "string" && body.error.trim() !== "") return body.error;
+    } catch {
+      // The body was not JSON.
+    }
+    return fallback;
+  }
+
+  async function refreshBibs(id: string) {
+    const bibRes = await fetch(`/api/battery/${encodeURIComponent(id)}/bibs`, {
+      cache: "no-store",
+    });
+    if (!bibRes.ok) return;
+    const bibJson: unknown = await bibRes.json();
+    setBibs(Array.isArray(bibJson) ? (bibJson as BatteryBib[]) : []);
+  }
+
+  async function downloadBatteryPdf(path: string, fallbackName: string) {
+    if (!batteryId) return;
+    setSheetBusy(true);
+    setSheetNote("");
+    try {
+      const res = await fetch(path, { cache: "no-store" });
+      const type = res.headers.get("content-type") ?? "";
+      if (!res.ok || !type.includes("application/pdf")) {
+        setSheetNote(await readSheetError(res, "Could not download the PDF"));
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const disposition = res.headers.get("content-disposition") ?? "";
+      const match = /filename="([^"]+)"/.exec(disposition);
+      link.download = match?.[1] ?? fallbackName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      if (path.endsWith("/hand-sheet")) await refreshBibs(batteryId);
+    } catch {
+      setSheetNote("Could not download the PDF");
+    } finally {
+      setSheetBusy(false);
+    }
+  }
+
+  async function freezeFridayLanes() {
+    if (!batteryId) return;
+    setSheetBusy(true);
+    setSheetNote("");
+    try {
+      const res = await fetch(`/api/battery/${encodeURIComponent(batteryId)}/lanes`, {
+        method: "POST",
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        setSheetNote(await readSheetError(res, "Could not freeze Friday lanes"));
+        return;
+      }
+      setSheetNote("Friday lanes are frozen. You can print the lane sheet.");
+    } catch {
+      setSheetNote("Could not freeze Friday lanes");
+    } finally {
+      setSheetBusy(false);
+    }
+  }
+
+  async function issueBibs() {
+    if (!batteryId) return;
+    const confirmed = window.confirm(
+      "Issue bibs now? Issued numbers do not get renumbered."
+    );
+    if (!confirmed) return;
+    setSheetBusy(true);
+    setSheetNote("");
+    try {
+      const res = await fetch(`/api/battery/${encodeURIComponent(batteryId)}/bibs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ issue: true }),
+        cache: "no-store",
+      });
+      const body: unknown = await res.json().catch(() => null);
+      if (!res.ok) {
+        const message =
+          body != null &&
+          typeof body === "object" &&
+          typeof (body as { error?: unknown }).error === "string"
+            ? (body as { error: string }).error
+            : "Could not issue bibs";
+        setSheetNote(message);
+        return;
+      }
+      setBibs(Array.isArray(body) ? (body as BatteryBib[]) : []);
+      setSheetNote("Bibs issued. Those numbers stay put.");
+    } catch {
+      setSheetNote("Could not issue bibs");
+    } finally {
+      setSheetBusy(false);
+    }
   }
 
   function onBibChange(raw: string) {
@@ -764,6 +876,76 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           </select>
         </div>
       )}
+
+      {batterySession && batteryId ? (
+        <div className="space-y-2">
+          <p className="text-xs font-medium uppercase tracking-wider text-foreground-muted">
+            Battery sheets
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={sheetBusy}
+              onClick={() =>
+                void downloadBatteryPdf(
+                  `/api/battery/${encodeURIComponent(batteryId)}/hand-sheet`,
+                  "boys-basketball-baseline-hand-sheet.pdf"
+                )
+              }
+              className="min-h-[44px] rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-50"
+            >
+              Print hand sheet
+            </button>
+            <button
+              type="button"
+              disabled={sheetBusy}
+              onClick={() => void freezeFridayLanes()}
+              className="min-h-[44px] rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-50"
+            >
+              Freeze Friday lanes
+            </button>
+            <button
+              type="button"
+              disabled={sheetBusy}
+              onClick={() =>
+                void downloadBatteryPdf(
+                  `/api/battery/${encodeURIComponent(batteryId)}/lanes/pdf`,
+                  "friday-lane-sheet.pdf"
+                )
+              }
+              className="min-h-[44px] rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-50"
+            >
+              Print lane sheet
+            </button>
+            <button
+              type="button"
+              disabled={sheetBusy}
+              onClick={() =>
+                void downloadBatteryPdf(
+                  `/api/battery/${encodeURIComponent(batteryId)}/packet`,
+                  "boys-basketball-baseline-coach-packet.pdf"
+                )
+              }
+              className="min-h-[44px] rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-50"
+            >
+              Print coach packet
+            </button>
+            <button
+              type="button"
+              disabled={sheetBusy}
+              onClick={() => void issueBibs()}
+              className="min-h-[44px] rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-surface disabled:opacity-50"
+            >
+              Issue bibs
+            </button>
+          </div>
+          {sheetNote ? (
+            <p className="text-sm text-foreground-muted" role="status">
+              {sheetNote}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {batterySession ? (
         <div>

@@ -584,7 +584,7 @@ function lockedDriBox(days: DayRow[]): string | null {
 
 export async function loadBatteryBoard(
   batteryId: string,
-  options: { view: "today" | "meet"; group: string }
+  options: { view: "today" | "meet"; group: string; dayKeys?: readonly string[] }
 ): Promise<BoardPayload | null> {
   const batteryResult = await sql`
     SELECT id, title, hugo_group, grouping_mode, cutoff_n, comparison_session_id
@@ -692,12 +692,27 @@ export async function loadBatteryBoard(
   const meetRows = basketballRows.filter(
     (row) => comparisonSessionId == null || row.session_id !== comparisonSessionId
   );
+  // A meet can be limited to named days. Friday lanes use A and B so day C reps do not move places.
+  const meetDayKeys =
+    options.view === "meet" && options.dayKeys != null && options.dayKeys.length > 0
+      ? new Set(options.dayKeys)
+      : null;
+  const scoringSessionIds =
+    meetDayKeys == null
+      ? null
+      : new Set(
+          days.flatMap((day) =>
+            meetDayKeys.has(day.day_key) && day.session_id != null ? [day.session_id] : []
+          )
+        );
   const scoringRows =
     options.view === "today"
       ? meetRows.filter(
           (row) => todayDay?.session_id != null && row.session_id === todayDay.session_id
         )
-      : meetRows;
+      : scoringSessionIds == null
+        ? meetRows
+        : meetRows.filter((row) => scoringSessionIds.has(row.session_id));
 
   const todayKeys = todayDay
     ? new Set(expandedDayKeys(testsForDay(todayDay.day_key)))
@@ -712,7 +727,10 @@ export async function loadBatteryBoard(
       return [{ athlete_id: row.athlete_id, box: row.component, value: row.display_value }];
     })
   );
-  const scoreDri = options.view === "meet" || todayKeys.has("DRI");
+  const scoreDri =
+    options.view === "meet"
+      ? meetDayKeys == null || meetDayKeys.has("A")
+      : todayKeys.has("DRI");
 
   const lockedBox = lockedDriBox(days);
   const teamBox = lockedBox ?? pickTeamDriBox([...dayADri.values()].flat());
@@ -743,10 +761,13 @@ export async function loadBatteryBoard(
   });
 
   const previousByAthlete = comparisonValues(comparisonRows);
-  const qualifierByAthlete =
-    options.view === "meet" || todayKeys.has("10-5_RSI")
-      ? bestRsiQualifier(scoringRows)
-      : new Map<string, string>();
+  const includeMondayQualifier =
+    options.view === "meet"
+      ? meetDayKeys == null || meetDayKeys.has("A")
+      : todayKeys.has("10-5_RSI");
+  const qualifierByAthlete = includeMondayQualifier
+    ? bestRsiQualifier(scoringRows)
+    : new Map<string, string>();
   const athletes: BoardAthlete[] = scored.map((row) => {
     const cells: Record<string, BoardCell> = {};
     const previous = previousByAthlete.get(row.athlete_id);
@@ -782,7 +803,7 @@ export async function loadBatteryBoard(
   const present = keysWithCells(scored);
   const columnKeys =
     options.view === "meet"
-      ? meetColumnKeys(present, present.has("40yd_Dash") || hasFortyEntry(meetRows))
+      ? meetColumnKeys(present, present.has("40yd_Dash") || hasFortyEntry(scoringRows))
       : todayDay
         ? expandedDayKeys(testsForDay(todayDay.day_key))
         : [];
