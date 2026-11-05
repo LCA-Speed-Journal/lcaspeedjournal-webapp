@@ -218,8 +218,7 @@ function todayColumnKeys(dayTests: string[], present: Set<string>): string[] {
   const keys: string[] = [];
   for (const test of dayTests) {
     if (test === "40yd_Dash") {
-      const sprint = SPRINT_COLUMN_KEYS.filter((key) => present.has(key));
-      keys.push(...(sprint.length > 0 ? sprint : ["40yd_Dash"]));
+      keys.push(...SPRINT_COLUMN_KEYS);
       continue;
     }
     if (test === "10x10m") {
@@ -232,8 +231,17 @@ function todayColumnKeys(dayTests: string[], present: Set<string>): string[] {
   return keys;
 }
 
-function meetColumnKeys(present: Set<string>): string[] {
-  return COLUMN_ORDER.filter((key) => key !== "10x10m" && present.has(key));
+function meetColumnKeys(present: Set<string>, expandSprint: boolean): string[] {
+  const sprint = new Set<string>(SPRINT_COLUMN_KEYS);
+  return COLUMN_ORDER.filter((key) => {
+    if (key === "10x10m") return false;
+    if (expandSprint && sprint.has(key)) return true;
+    return present.has(key);
+  });
+}
+
+function hasFortyEntry(rows: NormEntry[]): boolean {
+  return rows.some((row) => sameSpeedMark(row, FORTY_YD_DASH, null));
 }
 
 function toDerived(row: NormEntry): DerivedSplitRow {
@@ -661,20 +669,22 @@ export async function loadBatteryBoard(
     else groupsByAthlete.set(athleteId, new Set([groupKey]));
   }
 
-  const linkedDays = days.filter((day) => day.session_id != null);
-  const todayDay = linkedDays.find((day) => day.closed_at == null) ?? linkedDays[linkedDays.length - 1] ?? null;
-  // Today ranks the open session only. Closed days stay on the meet, so Wednesday
-  // does not sort athletes by Monday points while showing Wednesday columns.
+  const todayDay = days.find((day) => day.closed_at == null) ?? days[days.length - 1] ?? null;
+  // Today is the open day, even before its session is linked. Do not fall back to an
+  // earlier closed day. Closed days stay on the meet so Wednesday does not sort by Monday.
+  const meetRows = basketballRows.filter(
+    (row) => comparisonSessionId == null || row.session_id !== comparisonSessionId
+  );
   const scoringRows =
     options.view === "today"
-      ? basketballRows.filter(
+      ? meetRows.filter(
           (row) => todayDay?.session_id != null && row.session_id === todayDay.session_id
         )
-      : basketballRows;
+      : meetRows;
 
   const scoringDriByAthlete = new Map<string, { box: string; value: number }[]>();
   const allDri: { box: string; value: number }[] = [];
-  for (const row of basketballRows) {
+  for (const row of meetRows) {
     if (row.metric_key !== "DRI" || row.component == null || row.component.trim() === "") continue;
     const mark = { box: row.component, value: row.display_value };
     allDri.push(mark);
@@ -714,7 +724,7 @@ export async function loadBatteryBoard(
   });
 
   const previousByAthlete = comparisonValues(comparisonRows);
-  const qualifierByAthlete = bestRsiQualifier(basketballRows);
+  const qualifierByAthlete = bestRsiQualifier(scoringRows);
   const athletes: BoardAthlete[] = scored.map((row) => {
     const cells: Record<string, BoardCell> = {};
     const previous = previousByAthlete.get(row.athlete_id);
@@ -750,7 +760,7 @@ export async function loadBatteryBoard(
   const present = keysWithCells(scored);
   const columnKeys =
     options.view === "meet"
-      ? meetColumnKeys(present)
+      ? meetColumnKeys(present, present.has("40yd_Dash") || hasFortyEntry(meetRows))
       : todayDay
         ? todayColumnKeys(testsForDay(todayDay.day_key), present)
         : [];

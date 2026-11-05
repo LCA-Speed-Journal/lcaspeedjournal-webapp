@@ -92,7 +92,7 @@ export async function POST(
     if (isBatterySchemaMissing(err)) {
       return NextResponse.json({ error: MIGRATION_ERROR }, { status: 503 });
     }
-    console.error("POST /api/battery/[id]/close:", err);
+    console.error("POST /api/battery/[id]/days/close:", err);
     return NextResponse.json({ error: "Failed to close day" }, { status: 500 });
   }
 }

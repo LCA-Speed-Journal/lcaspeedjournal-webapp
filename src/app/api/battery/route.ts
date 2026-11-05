@@ -42,7 +42,57 @@ async function insertBattery(
   }
 }
 
-async function comparisonSessionId(sessionDate: string): Promise<string | null> {
+async function comparisonSessionId(
+  sessionDate: string,
+  hugoGroup: string
+): Promise<string | null> {
+  const pickGrouped = async (includeLegacy: boolean) => {
+    if (includeLegacy) {
+      const { rows } = await sql`
+        SELECT s.id
+        FROM sessions s
+        INNER JOIN entries e ON e.session_id = s.id
+        WHERE s.session_date = ${sessionDate}::date
+          AND e.context_hugo_group = ${hugoGroup}
+          AND (
+            e.metric_key = ${"40yd_Dash"}
+            OR e.legacy_metric_key = ${"40yd_Dash"}
+          )
+        GROUP BY s.id
+        ORDER BY COUNT(*) DESC, s.id ASC
+        LIMIT 1
+      `;
+      const id = (rows[0] as { id: string } | undefined)?.id;
+      return id == null ? null : String(id);
+    }
+    const { rows } = await sql`
+      SELECT s.id
+      FROM sessions s
+      INNER JOIN entries e ON e.session_id = s.id
+      WHERE s.session_date = ${sessionDate}::date
+        AND e.context_hugo_group = ${hugoGroup}
+        AND e.metric_key = ${"40yd_Dash"}
+      GROUP BY s.id
+      ORDER BY COUNT(*) DESC, s.id ASC
+      LIMIT 1
+    `;
+    const id = (rows[0] as { id: string } | undefined)?.id;
+    return id == null ? null : String(id);
+  };
+
+  try {
+    return await pickGrouped(true);
+  } catch (err) {
+    const { codes, message } = readPgError(err);
+    if (!codes.includes("42703")) throw err;
+    const msg = message.toLowerCase();
+    if (msg.includes("context_hugo_group")) return dateOnlyComparisonSessionId(sessionDate);
+    if (msg.includes("legacy_metric_key")) return pickGrouped(false);
+    throw err;
+  }
+}
+
+async function dateOnlyComparisonSessionId(sessionDate: string): Promise<string | null> {
   const pick = async (includeLegacy: boolean) => {
     if (includeLegacy) {
       const { rows } = await sql`
@@ -97,7 +147,10 @@ export async function POST(request: NextRequest) {
     }
 
     const template = BOYS_BASKETBALL_BASELINE;
-    const comparisonId = await comparisonSessionId(template.comparison_date);
+    const comparisonId = await comparisonSessionId(
+      template.comparison_date,
+      template.comparison_hugo_group
+    );
     const inserted = await insertBattery(template, comparisonId);
     const id = (inserted.rows[0] as { id: string } | undefined)?.id;
     if (!id) {
