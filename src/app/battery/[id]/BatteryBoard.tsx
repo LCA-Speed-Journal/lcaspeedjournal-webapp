@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
+import { useTheme, type Theme } from "@/app/components/ThemeProvider";
 import type { BoardAthlete, BoardCell, BoardColumn, BoardPayload } from "@/lib/battery/load";
 
 const PAGE_SIZE = 12;
@@ -10,14 +11,16 @@ const ADVANCE_MS = 8000;
 const REFRESH_MS = 5000;
 const SLOT_COUNT = 9;
 
-const QUALIFIER_DOT: Record<string, string> = {
-  reactive: "bg-blue-500",
-  compliant: "bg-red-500",
-  stiff: "bg-green-500",
-  developing: "bg-yellow-400",
-};
+const QUALIFIERS = [
+  { key: "reactive", letter: "R", label: "Reactive", tone: "bg-blue-500", ink: "text-white" },
+  { key: "compliant", letter: "C", label: "Compliant", tone: "bg-red-500", ink: "text-white" },
+  { key: "stiff", letter: "S", label: "Stiff", tone: "bg-green-500", ink: "text-white" },
+  { key: "developing", letter: "D", label: "Developing", tone: "bg-yellow-400", ink: "text-neutral-950" },
+] as const;
 
-type BoardResponse = { data: BoardPayload };
+type QualifierMark = (typeof QUALIFIERS)[number];
+
+type BoardResponse = { data: BoardPayload; url: string };
 
 type BoardRow = {
   athlete: BoardAthlete;
@@ -50,15 +53,17 @@ function usePageVisible(): boolean {
   return visible;
 }
 
-function useGymDark() {
+/** Dark board for this route only. The previous choice is restored when the coach leaves. */
+function useDarkGymBoard() {
+  const { theme, setTheme } = useTheme();
+  const previous = useRef<Theme | null>(null);
+  if (previous.current === null) previous.current = theme;
+
   useEffect(() => {
-    const html = document.documentElement;
-    const hadDark = html.classList.contains("dark");
-    html.classList.add("dark");
-    return () => {
-      if (!hadDark) html.classList.remove("dark");
-    };
-  }, []);
+    const restore = previous.current ?? "system";
+    setTheme("dark");
+    return () => setTheme(restore);
+  }, [setTheme]);
 }
 
 async function fetchBoard(url: string): Promise<BoardResponse> {
@@ -75,17 +80,29 @@ async function fetchBoard(url: string): Promise<BoardResponse> {
   if (!body.data) {
     throw new BoardRequestError(response.status, "Failed to load battery board");
   }
-  return { data: body.data };
+  return { data: body.data, url };
 }
 
 function tieKey(athlete: BoardAthlete): string {
   return `${athlete.total_points}|${athlete.slots_completed}`;
 }
 
+function compareBoardAthletes(a: BoardAthlete, b: BoardAthlete): number {
+  if (a.total_points !== b.total_points) return b.total_points - a.total_points;
+  if (a.slots_completed !== b.slots_completed) return b.slots_completed - a.slots_completed;
+  const byLast = a.last_name.localeCompare(b.last_name);
+  if (byLast !== 0) return byLast;
+  const byFirst = a.first_name.localeCompare(b.first_name);
+  if (byFirst !== 0) return byFirst;
+  return a.athlete_id.localeCompare(b.athlete_id);
+}
+
 /** Places among athletes who have a mark. Ties share a place and the next place skips. */
 export function orderBoard(athletes: BoardAthlete[], untestedIds: string[]): BoardRow[] {
   const untested = new Set(untestedIds);
-  const tested = athletes.filter((athlete) => !untested.has(athlete.athlete_id));
+  const tested = athletes
+    .filter((athlete) => !untested.has(athlete.athlete_id))
+    .toSorted(compareBoardAthletes);
   const waiting = athletes.filter((athlete) => untested.has(athlete.athlete_id));
   let place = 0;
   let previousKey: string | null = null;
@@ -122,9 +139,9 @@ export function pageItems(rows: BoardRow[], page: number, cutoffAfter: number | 
   const start = page * PAGE_SIZE;
   const slice = rows.slice(start, start + PAGE_SIZE);
   const items: PageItem[] = [];
-  let inUntested = start > 0 && (rows[start - 1]?.untested ?? false);
+  let inUntested = false;
   slice.forEach((row, index) => {
-    if (row.untested && !inUntested) {
+    if (row.untested && (index === 0 || !inUntested)) {
       items.push({ kind: "untested" });
       inUntested = true;
     }
@@ -176,18 +193,9 @@ function columnTemplate(count: number): string {
   return `3.25rem 2.75rem minmax(6.5rem, 1.15fr) repeat(${count}, minmax(0, 1fr)) 3.25rem 2.9rem`;
 }
 
-function BoardFrame({
-  children,
-  onClick,
-}: {
-  children: ReactNode;
-  onClick?: () => void;
-}) {
+function BoardFrame({ children }: { children: ReactNode }) {
   return (
-    <div
-      className="relative h-dvh overflow-hidden bg-background text-foreground"
-      onClick={onClick}
-    >
+    <div className="relative h-dvh overflow-hidden bg-background text-foreground">
       <PageBackground />
       <div className="relative z-10 flex h-full min-w-0 flex-col px-3 py-3 sm:px-5">{children}</div>
     </div>
@@ -204,16 +212,33 @@ function StatusScreen({ message }: { message: string }) {
   );
 }
 
-function QualifierDot({ qualifier }: { qualifier: string | null }) {
+function qualifierMark(qualifier: string | null): QualifierMark | null {
   if (!qualifier) return null;
-  const tone = QUALIFIER_DOT[qualifier.trim().toLowerCase()];
-  if (!tone) return null;
+  const key = qualifier.trim().toLowerCase();
+  return QUALIFIERS.find((item) => item.key === key) ?? null;
+}
+
+function QualifierLetter({ item }: { item: QualifierMark }) {
   return (
     <span
-      className={`inline-block h-2 w-2 shrink-0 rounded-full ${tone}`}
-      title={qualifier}
-      aria-label={qualifier}
-    />
+      className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-sm font-bold ${item.tone} ${item.ink}`}
+      title={item.label}
+    >
+      {item.letter}
+    </span>
+  );
+}
+
+function QualifierLegend() {
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-foreground">
+      {QUALIFIERS.map((item) => (
+        <span key={item.key} className="inline-flex items-center gap-1.5">
+          <QualifierLetter item={item} />
+          {item.label}
+        </span>
+      ))}
+    </p>
   );
 }
 
@@ -230,10 +255,11 @@ function MarkCell({
     return <span className="block text-center font-mono text-xs text-foreground-muted">—</span>;
   }
   const place = cell.tied ? `T${cell.rank}` : String(cell.rank);
+  const rsi = column.key === "10-5_RSI" ? qualifierMark(qualifier) : null;
   return (
     <div className="min-w-0 overflow-hidden text-center leading-none">
       <div className="flex items-center justify-center gap-1">
-        {column.key === "10-5_RSI" ? <QualifierDot qualifier={qualifier} /> : null}
+        {rsi ? <QualifierLetter item={rsi} /> : null}
         <span className="font-mono text-sm font-semibold tabular-nums">{formatMark(cell.value, column.units)}</span>
         <span className="font-mono text-[10px] tabular-nums text-foreground-muted">{place}</span>
       </div>
@@ -248,7 +274,7 @@ function MarkCell({
         </p>
       ) : null}
       {column.key === "DRI" && cell.band ? (
-        <p className="mt-0.5 truncate text-[9px] font-medium uppercase tracking-wide text-accent" title={cell.band}>
+        <p className="mt-1 text-base font-semibold leading-tight text-accent" title={cell.band}>
           {cell.band}
         </p>
       ) : null}
@@ -269,7 +295,7 @@ function AthleteRow({
   const name = `${athlete.first_name} ${athlete.last_name}`.trim() || "Athlete";
   return (
     <div
-      className={`grid min-h-0 max-h-20 min-w-0 flex-1 items-center overflow-hidden border-b border-border/70 ${
+      className={`grid min-h-0 max-h-24 min-w-0 flex-1 items-center overflow-hidden border-b border-border/70 ${
         untested ? "bg-surface/40 text-foreground-muted" : "bg-surface/25"
       }`}
       style={{ gridTemplateColumns: template }}
@@ -306,7 +332,7 @@ function AthleteRow({
 }
 
 export function BatteryBoard({ batteryId }: { batteryId: string }) {
-  useGymDark();
+  useDarkGymBoard();
   const [view, setView] = useState<"today" | "meet">("today");
   const [group, setGroup] = useState("overall");
   const [paused, setPaused] = useState(false);
@@ -316,11 +342,11 @@ export function BatteryBoard({ batteryId }: { batteryId: string }) {
 
   const isVisible = usePageVisible();
   const url = `/api/battery/${encodeURIComponent(batteryId)}/board?view=${view}&group=${encodeURIComponent(group)}`;
-  const { data, error } = useSWR<BoardResponse>(url, fetchBoard, {
+  const { data, error, isLoading } = useSWR<BoardResponse>(url, fetchBoard, {
     refreshInterval: isVisible ? REFRESH_MS : 0,
-    keepPreviousData: true,
   });
-  const payload = data?.data;
+  const fetched = data?.url === url ? data.data : undefined;
+  const payload = !isLoading && fetched?.view === view ? fetched : undefined;
   const ordered = payload ? orderBoard(payload.athletes, payload.untested_ids) : [];
   const pageCount = Math.max(1, Math.ceil(ordered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount - 1);
@@ -333,6 +359,7 @@ export function BatteryBoard({ batteryId }: { batteryId: string }) {
   const cutoff = payload?.battery.cutoff_n ?? null;
   const lineAfter = cutoffAfterIndex(ordered, cutoff);
   const testedCount = ordered.reduce((count, row) => count + (row.untested ? 0 : 1), 0);
+  const refreshFailed = Boolean(payload && error);
 
   useEffect(() => {
     if (paused || !isVisible || ordered.length <= PAGE_SIZE) return;
@@ -341,10 +368,10 @@ export function BatteryBoard({ batteryId }: { batteryId: string }) {
       setPage((current) => (current + 1) % count);
     }, ADVANCE_MS);
     return () => window.clearInterval(timer);
-  }, [paused, isVisible, ordered.length]);
+  }, [paused, isVisible, ordered.length, scope]);
 
   if (!payload) {
-    if (error) {
+    if (error && !isLoading) {
       const message =
         error instanceof BoardRequestError && error.status === 404
           ? "This battery is missing."
@@ -356,7 +383,16 @@ export function BatteryBoard({ batteryId }: { batteryId: string }) {
     return <StatusScreen message="Loading board…" />;
   }
 
+  const statusLabel = [
+    refreshFailed ? "Refresh failed" : null,
+    paused ? "Paused" : refreshFailed ? null : "Live",
+    `${safePage + 1}/${pageCount}`,
+  ]
+    .filter((part) => part != null)
+    .join(" · ");
+
   const columns = payload.columns;
+  const showRsiLegend = columns.some((column) => column.key === "10-5_RSI");
   const template = columnTemplate(columns.length);
   const items = pageItems(ordered, safePage, lineAfter);
   const dayLabel = payload.day_label.trim() || (payload.view === "meet" ? "Meet" : "Today");
@@ -365,8 +401,8 @@ export function BatteryBoard({ batteryId }: { batteryId: string }) {
   const dataRowCount = items.filter((item) => item.kind === "row").length;
 
   return (
-    <BoardFrame onClick={() => setPaused((current) => !current)}>
-      <header className="mb-2 shrink-0 pr-36">
+    <BoardFrame>
+      <header className="mb-2 shrink-0">
         <div className="mb-2 h-1 w-12 rounded-full bg-accent" />
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="min-w-0">
@@ -379,8 +415,9 @@ export function BatteryBoard({ batteryId }: { batteryId: string }) {
                 {testedCount} of {cutoff} spots filled
               </p>
             ) : null}
+            {showRsiLegend ? <QualifierLegend /> : null}
           </div>
-          <div className="flex flex-wrap items-center gap-2" onClick={(event) => event.stopPropagation()}>
+          <div className="flex flex-wrap items-center gap-2">
             <div className="flex rounded-full border border-border bg-surface p-0.5">
               <button type="button" className={chipClass(view === "today")} onClick={() => setView("today")}>
                 Today
@@ -410,9 +447,16 @@ export function BatteryBoard({ batteryId }: { batteryId: string }) {
                 ))}
               </div>
             ) : null}
-            <p className="font-mono text-[11px] uppercase tracking-wider text-foreground-muted" data-board-status>
-              {paused ? "Paused" : "Live"} · {safePage + 1}/{pageCount}
-            </p>
+            <button
+              type="button"
+              aria-pressed={paused}
+              aria-live="polite"
+              data-board-status
+              onClick={() => setPaused((current) => !current)}
+              className="rounded-full border border-border bg-surface px-3 py-1 font-mono text-sm uppercase tracking-wider text-foreground hover:border-accent/50"
+            >
+              {statusLabel}
+            </button>
           </div>
         </div>
       </header>

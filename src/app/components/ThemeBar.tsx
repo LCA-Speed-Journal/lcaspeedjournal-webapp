@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/app/components/ThemeToggle";
 
 export function ThemeBar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const hideChrome = pathname === "/cohort";
+  const hideChrome = pathname === "/cohort" || pathname.startsWith("/battery");
 
   return (
     <>

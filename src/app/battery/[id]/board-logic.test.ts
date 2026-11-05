@@ -29,6 +29,27 @@ describe("gym board order", () => {
     expect(kinds).toEqual([13, 14, 15, 16, 17, 18, "cutoff", 19, 20]);
   });
 
+  it("shares a place when tied athletes are not adjacent in the payload", () => {
+    const rows = orderBoard(
+      [athlete(3, 10, 2), athlete(2, 4, 2), athlete(1, 10, 2)],
+      []
+    );
+    expect(rows.map((row) => row.athlete.athlete_id)).toEqual(["a1", "a3", "a2"]);
+    expect(rows.map((row) => row.place)).toEqual([1, 1, 3]);
+  });
+
+  it("repeats the not-tested label when a page starts in the untested block", () => {
+    const tested = [athlete(1, 10)];
+    const waiting = Array.from({ length: 14 }, (_, index) => athlete(100 + index, 0, 0));
+    const rows = orderBoard(
+      [...tested, ...waiting],
+      waiting.map((row) => row.athlete_id)
+    );
+    const secondPage = pageItems(rows, 1, null);
+    expect(secondPage[0]?.kind).toBe("untested");
+    expect(secondPage.filter((item) => item.kind === "row")).toHaveLength(3);
+  });
+
   it("keeps a tie on the cutoff above the line and skips the next place", () => {
     const athletes = [
       ...Array.from({ length: 17 }, (_, index) => athlete(index + 1, 100 - index)),
