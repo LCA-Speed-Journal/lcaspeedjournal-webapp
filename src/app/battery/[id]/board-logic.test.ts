@@ -1,0 +1,61 @@
+import { describe, expect, it } from "vitest";
+import { cutoffAfterIndex, formatDelta, orderBoard, pageItems } from "./BatteryBoard";
+import type { BoardAthlete } from "@/lib/battery/load";
+
+function athlete(index: number, points: number, slots = 1): BoardAthlete {
+  return {
+    athlete_id: `a${index}`,
+    bib: String(index),
+    first_name: "A",
+    last_name: String(index).padStart(2, "0"),
+    group_key: null,
+    total_points: points,
+    slots_completed: slots,
+    qualifier: null,
+    higher_box: false,
+    cells: { "Standing-Broad": { value: 7, rank: 1, tied: false, points: 1 } },
+  };
+}
+
+describe("gym board order", () => {
+  it("puts the cutoff between 18 and 19 when 20 athletes have marks", () => {
+    const athletes = Array.from({ length: 20 }, (_, index) => athlete(index + 1, 100 - index));
+    const rows = orderBoard(athletes, []);
+    expect(rows.map((row) => row.place)).toEqual(Array.from({ length: 20 }, (_, index) => index + 1));
+    const line = cutoffAfterIndex(rows, 18);
+    expect(line).toBe(17);
+    const secondPage = pageItems(rows, 1, line);
+    const kinds = secondPage.map((item) => (item.kind === "row" ? item.row.place : item.kind));
+    expect(kinds).toEqual([13, 14, 15, 16, 17, 18, "cutoff", 19, 20]);
+  });
+
+  it("keeps a tie on the cutoff above the line and skips the next place", () => {
+    const athletes = [
+      ...Array.from({ length: 17 }, (_, index) => athlete(index + 1, 100 - index)),
+      athlete(18, 10, 2),
+      athlete(19, 10, 2),
+      athlete(20, 9, 2),
+    ];
+    const rows = orderBoard(athletes, []);
+    expect(rows[17]?.place).toBe(18);
+    expect(rows[18]?.place).toBe(18);
+    expect(rows[19]?.place).toBe(20);
+    expect(cutoffAfterIndex(rows, 18)).toBe(18);
+  });
+
+  it("does not draw a line when fewer than the cutoff have a mark", () => {
+    const tested = Array.from({ length: 4 }, (_, index) => athlete(index + 1, 10 - index));
+    const waiting = athlete(5, 0, 0);
+    const rows = orderBoard([...tested, waiting], [waiting.athlete_id]);
+    expect(cutoffAfterIndex(rows, 18)).toBeNull();
+    expect(rows.filter((row) => !row.untested)).toHaveLength(4);
+    expect(rows.at(-1)?.untested).toBe(true);
+    expect(rows.at(-1)?.place).toBeNull();
+  });
+
+  it("formats a sprint hundredth and a one-decimal jump", () => {
+    expect(formatDelta(-0.06)).toBe("-0.06");
+    expect(formatDelta(0.4)).toBe("+0.4");
+    expect(formatDelta(12.4)).toBe("+12");
+  });
+});

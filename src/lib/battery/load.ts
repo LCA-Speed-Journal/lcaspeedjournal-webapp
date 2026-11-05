@@ -53,6 +53,11 @@ export type BoardAthlete = {
   cells: Record<string, BoardCell>;
 };
 
+export type BoardGroup = {
+  group_key: string;
+  label: string;
+};
+
 export type BoardPayload = {
   battery: {
     id: string;
@@ -63,6 +68,8 @@ export type BoardPayload = {
     team_dri_locked: boolean;
   };
   view: "today" | "meet";
+  day_label: string;
+  groups: BoardGroup[];
   columns: BoardColumn[];
   athletes: BoardAthlete[];
   untested_ids: string[];
@@ -119,6 +126,7 @@ type BatteryRow = {
 
 type DayRow = {
   day_key: string;
+  label: string;
   session_id: string | null;
   sort_order: number | string;
   closed_at: string | Date | null;
@@ -589,7 +597,7 @@ export async function loadBatteryBoard(
 
   const [dayResult, bibResult, groupResult, memberResult, hugoAthletes] = await Promise.all([
     sql`
-      SELECT day_key, session_id, sort_order, closed_at, locked_dri_box
+      SELECT day_key, label, session_id, sort_order, closed_at, locked_dri_box
       FROM testing_battery_days
       WHERE battery_id = ${battery.id}
       ORDER BY sort_order ASC, day_key ASC
@@ -601,9 +609,10 @@ export async function loadBatteryBoard(
       WHERE b.battery_id = ${battery.id}
     `,
     sql`
-      SELECT group_key
+      SELECT group_key, label
       FROM testing_battery_groups
       WHERE battery_id = ${battery.id}
+      ORDER BY sort_order ASC, group_key ASC
     `,
     sql`
       SELECT m.athlete_id, g.group_key
@@ -617,6 +626,7 @@ export async function loadBatteryBoard(
   const days = (dayResult.rows as DayRow[])
     .map((day) => ({
       day_key: String(day.day_key),
+      label: asText(day.label).trim(),
       session_id: day.session_id == null ? null : String(day.session_id),
       sort_order: Number(day.sort_order),
       closed_at: day.closed_at,
@@ -658,9 +668,11 @@ export async function loadBatteryBoard(
     rememberAthlete(roster, row.athlete_id, row.first_name, row.last_name, null);
   }
 
-  const knownGroups = new Set(
-    (groupResult.rows as { group_key: string }[]).map((row) => String(row.group_key))
-  );
+  const groups = (groupResult.rows as { group_key: string; label: string }[]).map((row) => ({
+    group_key: String(row.group_key),
+    label: asText(row.label).trim() || String(row.group_key),
+  }));
+  const knownGroups = new Set(groups.map((group) => group.group_key));
   const membersByGroup = new Map<string, string[]>();
   const groupsByAthlete = new Map<string, Set<string>>();
   for (const row of memberResult.rows as { athlete_id: string; group_key: string }[]) {
@@ -669,8 +681,8 @@ export async function loadBatteryBoard(
     const members = membersByGroup.get(groupKey);
     if (members) members.push(athleteId);
     else membersByGroup.set(groupKey, [athleteId]);
-    const groups = groupsByAthlete.get(athleteId);
-    if (groups) groups.add(groupKey);
+    const athleteGroups = groupsByAthlete.get(athleteId);
+    if (athleteGroups) athleteGroups.add(groupKey);
     else groupsByAthlete.set(athleteId, new Set([groupKey]));
   }
 
@@ -792,6 +804,8 @@ export async function loadBatteryBoard(
       team_dri_locked: lockedBox != null,
     },
     view: options.view,
+    day_label: options.view === "meet" ? "Meet" : asText(todayDay?.label).trim(),
+    groups,
     columns,
     athletes,
     untested_ids: untestedIds,
