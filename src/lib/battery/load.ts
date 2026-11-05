@@ -661,23 +661,38 @@ export async function loadBatteryBoard(
     else groupsByAthlete.set(athleteId, new Set([groupKey]));
   }
 
-  const driByAthlete = new Map<string, { box: string; value: number }[]>();
+  const linkedDays = days.filter((day) => day.session_id != null);
+  const todayDay = linkedDays.find((day) => day.closed_at == null) ?? linkedDays[linkedDays.length - 1] ?? null;
+  // Today ranks the open session only. Closed days stay on the meet, so Wednesday
+  // does not sort athletes by Monday points while showing Wednesday columns.
+  const scoringRows =
+    options.view === "today"
+      ? basketballRows.filter(
+          (row) => todayDay?.session_id != null && row.session_id === todayDay.session_id
+        )
+      : basketballRows;
+
+  const scoringDriByAthlete = new Map<string, { box: string; value: number }[]>();
   const allDri: { box: string; value: number }[] = [];
   for (const row of basketballRows) {
     if (row.metric_key !== "DRI" || row.component == null || row.component.trim() === "") continue;
     const mark = { box: row.component, value: row.display_value };
     allDri.push(mark);
-    const list = driByAthlete.get(row.athlete_id);
+  }
+  for (const row of scoringRows) {
+    if (row.metric_key !== "DRI" || row.component == null || row.component.trim() === "") continue;
+    const mark = { box: row.component, value: row.display_value };
+    const list = scoringDriByAthlete.get(row.athlete_id);
     if (list) list.push(mark);
-    else driByAthlete.set(row.athlete_id, [mark]);
+    else scoringDriByAthlete.set(row.athlete_id, [mark]);
   }
 
   const lockedBox = lockedDriBox(days);
   const teamBox = lockedBox ?? pickTeamDriBox(allDri);
   const marks = [
-    ...higherMarks(basketballRows),
-    ...sprintMarks(basketballRows),
-    ...repeatMarks(basketballRows),
+    ...higherMarks(scoringRows),
+    ...sprintMarks(scoringRows),
+    ...repeatMarks(scoringRows),
   ];
   const poolIds =
     options.group === "overall"
@@ -691,7 +706,7 @@ export async function loadBatteryBoard(
       athlete_id: athlete.athlete_id,
       first_name: athlete.first_name,
       last_name: athlete.last_name,
-      dri_marks: driByAthlete.get(athlete.athlete_id) ?? [],
+      dri_marks: scoringDriByAthlete.get(athlete.athlete_id) ?? [],
     })),
     marks,
     teamBox,
@@ -733,8 +748,6 @@ export async function loadBatteryBoard(
   });
 
   const present = keysWithCells(scored);
-  const linkedDays = days.filter((day) => day.session_id != null);
-  const todayDay = linkedDays.find((day) => day.closed_at == null) ?? linkedDays[linkedDays.length - 1] ?? null;
   const columnKeys =
     options.view === "meet"
       ? meetColumnKeys(present)
