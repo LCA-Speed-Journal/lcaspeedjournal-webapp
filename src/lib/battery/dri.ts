@@ -21,6 +21,30 @@ export function median(values: number[]): number | null {
 
 const MEDIAN_TIE_EPSILON = 1e-9;
 
+/** One mark per athlete per box. A warmup and the real jump must not both enter the team median. */
+export function bestDriPerAthleteBox(
+  trials: { athlete_id: string; box: string; value: number }[]
+): Map<string, { box: string; value: number }[]> {
+  const best = new Map<string, Map<string, number>>();
+  for (const trial of trials) {
+    let byBox = best.get(trial.athlete_id);
+    if (!byBox) {
+      byBox = new Map();
+      best.set(trial.athlete_id, byBox);
+    }
+    const current = byBox.get(trial.box);
+    if (current == null || trial.value > current) byBox.set(trial.box, trial.value);
+  }
+  const byAthlete = new Map<string, { box: string; value: number }[]>();
+  for (const [athleteId, byBox] of best) {
+    byAthlete.set(
+      athleteId,
+      [...byBox.entries()].map(([box, value]) => ({ box, value }))
+    );
+  }
+  return byAthlete;
+}
+
 export function pickTeamDriBox(
   marks: { box: string; value: number }[]
 ): DriBox | null {

@@ -33,7 +33,7 @@ export async function PATCH(
     const [batteryResult, dayResult] = await Promise.all([
       sql`SELECT id FROM testing_batteries WHERE id = ${id} LIMIT 1`,
       sql`
-        SELECT id
+        SELECT id, session_id, closed_at
         FROM testing_battery_days
         WHERE battery_id = ${id} AND day_key = ${dayKey}
         LIMIT 1
@@ -46,11 +46,31 @@ export async function PATCH(
       return NextResponse.json({ error: "Day not found" }, { status: 404 });
     }
 
-    await sql`
-      UPDATE testing_battery_days
-      SET session_id = ${sessionId}
-      WHERE battery_id = ${id} AND day_key = ${dayKey}
-    `;
+    const day = dayResult.rows[0] as {
+      session_id: string | null;
+      closed_at: string | Date | null;
+    };
+    const previousSession = day.session_id == null ? null : String(day.session_id);
+    const relink = day.closed_at != null && previousSession !== sessionId;
+    if (relink && dayKey === "A") {
+      await sql`
+        UPDATE testing_battery_days
+        SET session_id = ${sessionId}, closed_at = NULL, locked_dri_box = NULL
+        WHERE battery_id = ${id} AND day_key = ${dayKey}
+      `;
+    } else if (relink) {
+      await sql`
+        UPDATE testing_battery_days
+        SET session_id = ${sessionId}, closed_at = NULL
+        WHERE battery_id = ${id} AND day_key = ${dayKey}
+      `;
+    } else {
+      await sql`
+        UPDATE testing_battery_days
+        SET session_id = ${sessionId}
+        WHERE battery_id = ${id} AND day_key = ${dayKey}
+      `;
+    }
     return NextResponse.json({ data: { ok: true } });
   } catch (err) {
     if (isBatterySchemaMissing(err)) {

@@ -6,7 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { isBatterySchemaMissing } from "@/lib/battery/load";
-import { pickTeamDriBox } from "@/lib/battery/dri";
+import { bestDriPerAthleteBox, pickTeamDriBox } from "@/lib/battery/dri";
 
 const MIGRATION_ERROR = "Run scripts/migrate-testing-battery.sql";
 
@@ -19,20 +19,26 @@ function finiteNumber(raw: unknown): number | null {
   return null;
 }
 
-async function driMarks(sessionId: string | null): Promise<{ box: string; value: number }[]> {
+async function driMarks(
+  sessionId: string | null
+): Promise<{ athlete_id: string; box: string; value: number }[]> {
   if (!sessionId) return [];
   const { rows } = await sql`
-    SELECT component, display_value
+    SELECT athlete_id, component, display_value
     FROM entries
     WHERE session_id = ${sessionId}
       AND metric_key = ${"DRI"}
   `;
-  const marks: { box: string; value: number }[] = [];
-  for (const row of rows as { component: string | null; display_value: unknown }[]) {
+  const marks: { athlete_id: string; box: string; value: number }[] = [];
+  for (const row of rows as {
+    athlete_id: string;
+    component: string | null;
+    display_value: unknown;
+  }[]) {
     if (row.component == null || String(row.component).trim() === "") continue;
     const value = finiteNumber(row.display_value);
     if (value == null) continue;
-    marks.push({ box: String(row.component), value });
+    marks.push({ athlete_id: String(row.athlete_id), box: String(row.component), value });
   }
   return marks;
 }
@@ -73,7 +79,8 @@ export async function POST(
     const day = dayResult.rows[0] as { id: string; session_id: string | null };
     let lockedDriBox: string | null = null;
     if (dayKey === "A") {
-      lockedDriBox = pickTeamDriBox(await driMarks(day.session_id == null ? null : String(day.session_id)));
+      const trials = await driMarks(day.session_id == null ? null : String(day.session_id));
+      lockedDriBox = pickTeamDriBox([...bestDriPerAthleteBox(trials).values()].flat());
       await sql`
         UPDATE testing_battery_days
         SET closed_at = NOW(), locked_dri_box = ${lockedDriBox}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { driBand, higherBoxFlag, pickTeamDriBox } from "./dri";
+import { bestDriPerAthleteBox, driBand, higherBoxFlag, pickTeamDriBox } from "./dri";
 
 describe("driBand", () => {
   it("puts boundary marks in the higher band, and 3.0 stays Bouncy", () => {
@@ -40,6 +40,15 @@ describe("pickTeamDriBox", () => {
       { box: "12", value: 1.3 },
     ]);
     expect(box).toBe("6");
+  });
+
+  it("passes one higher mark per athlete per box into the team median", () => {
+    const marks = [...bestDriPerAthleteBox([
+      { athlete_id: "a", box: "12", value: 1 },
+      { athlete_id: "a", box: "12", value: 2 },
+    ]).values()].flat();
+    expect(marks).toEqual([{ box: "12", value: 2 }]);
+    expect(pickTeamDriBox(marks)).toBe("12");
   });
 
   it("keeps the lower box when its exact pair matches a float-averaged higher box", () => {

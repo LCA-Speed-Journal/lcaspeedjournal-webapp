@@ -10,8 +10,8 @@ import {
 } from "@/lib/norms/testing-day-derived";
 import { sameSpeedMark } from "@/lib/speed/windows";
 import { compareMark, SHARED_SOCCER_KEYS } from "./compare";
-import { pickTeamDriBox } from "./dri";
-import { scoreRepeatSprint } from "./repeat-sprint";
+import { bestDriPerAthleteBox, pickTeamDriBox } from "./dri";
+import { latestRepeatSeriesTimes, scoreRepeatSprint } from "./repeat-sprint";
 import { scoreBatteryRows, type BatteryMark, type ScoredCell } from "./score-row";
 import { BOYS_BASKETBALL_BASELINE } from "./template";
 
@@ -139,6 +139,8 @@ type RawEntry = {
   legacy_metric_key?: string | null;
   legacy_component?: string | null;
   qualifier?: string | null;
+  raw_input?: string | null;
+  created_at?: string | Date | number | null;
 };
 
 type NormEntry = {
@@ -155,6 +157,8 @@ type NormEntry = {
   legacy_metric_key: string | null;
   legacy_component: string | null;
   qualifier: string | null;
+  raw_input: string;
+  created_at: number;
 };
 
 type RosterAthlete = {
@@ -191,6 +195,32 @@ function finiteNumber(raw: unknown): number | null {
   return null;
 }
 
+function timestampMs(raw: unknown): number {
+  if (raw instanceof Date) return raw.getTime();
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const ms = Date.parse(raw);
+    return Number.isFinite(ms) ? ms : 0;
+  }
+  return 0;
+}
+
+function expandedDayKeys(dayTests: string[]): string[] {
+  const keys: string[] = [];
+  for (const test of dayTests) {
+    if (test === "40yd_Dash") {
+      keys.push(...SPRINT_COLUMN_KEYS);
+      continue;
+    }
+    if (test === "10x10m") {
+      keys.push(...REPEAT_COLUMN_KEYS);
+      continue;
+    }
+    keys.push(test);
+  }
+  return keys;
+}
+
 function asText(raw: unknown): string {
   return raw == null ? "" : String(raw);
 }
@@ -212,23 +242,6 @@ function keysWithCells(rows: { cells: Record<string, ScoredCell> }[]): Set<strin
     for (const key of Object.keys(row.cells)) present.add(key);
   }
   return present;
-}
-
-function todayColumnKeys(dayTests: string[], present: Set<string>): string[] {
-  const keys: string[] = [];
-  for (const test of dayTests) {
-    if (test === "40yd_Dash") {
-      keys.push(...SPRINT_COLUMN_KEYS);
-      continue;
-    }
-    if (test === "10x10m") {
-      const reps = REPEAT_COLUMN_KEYS.filter((key) => present.has(key));
-      keys.push(...(reps.length > 0 ? reps : ["10x10m"]));
-      continue;
-    }
-    keys.push(test);
-  }
-  return keys;
 }
 
 function meetColumnKeys(present: Set<string>, expandSprint: boolean): string[] {
@@ -277,6 +290,8 @@ function normalizeEntry(row: RawEntry): NormEntry | null {
     legacy_metric_key: row.legacy_metric_key == null ? null : String(row.legacy_metric_key),
     legacy_component: row.legacy_component == null ? null : String(row.legacy_component),
     qualifier: row.qualifier == null || row.qualifier === "" ? null : String(row.qualifier),
+    raw_input: row.raw_input == null ? "" : String(row.raw_input),
+    created_at: timestampMs(row.created_at),
   };
 }
 
@@ -309,7 +324,9 @@ async function loadEntries(sessionIds: string[]): Promise<NormEntry[]> {
         e.units,
         e.legacy_metric_key,
         e.legacy_component,
-        e.qualifier
+        e.qualifier,
+        e.raw_input,
+        e.created_at
       FROM entries e
       INNER JOIN athletes a ON a.id = e.athlete_id
       WHERE e.session_id = ANY(${ids}::uuid[])
@@ -334,7 +351,9 @@ async function loadEntries(sessionIds: string[]): Promise<NormEntry[]> {
         e.display_value,
         e.units,
         e.legacy_metric_key,
-        e.legacy_component
+        e.legacy_component,
+        e.raw_input,
+        e.created_at
       FROM entries e
       INNER JOIN athletes a ON a.id = e.athlete_id
       WHERE e.session_id = ANY(${ids}::uuid[])
@@ -361,7 +380,9 @@ async function loadEntries(sessionIds: string[]): Promise<NormEntry[]> {
       e.component,
       e.interval_index,
       e.display_value,
-      e.units
+      e.units,
+      e.raw_input,
+      e.created_at
     FROM entries e
     INNER JOIN athletes a ON a.id = e.athlete_id
     WHERE e.session_id = ANY(${ids}::uuid[])
@@ -442,36 +463,20 @@ function higherMarks(rows: NormEntry[]): BatteryMark[] {
 }
 
 function repeatMarks(rows: NormEntry[]): BatteryMark[] {
-  const byAthlete = new Map<string, Map<number, number>>();
-  for (const row of rows) {
-    if (row.metric_key !== "10x10m" || row.interval_index == null) continue;
-    if (!Number.isInteger(row.interval_index) || row.interval_index < 1 || row.interval_index > 10) {
-      continue;
-    }
-    let byIndex = byAthlete.get(row.athlete_id);
-    if (!byIndex) {
-      byIndex = new Map();
-      byAthlete.set(row.athlete_id, byIndex);
-    }
-    const previous = byIndex.get(row.interval_index);
-    if (previous == null || row.display_value < previous) {
-      byIndex.set(row.interval_index, row.display_value);
-    }
-  }
-
+  const reps = rows.flatMap((row) => {
+    if (row.metric_key !== "10x10m" || row.interval_index == null) return [];
+    return [
+      {
+        athlete_id: row.athlete_id,
+        raw_input: row.raw_input,
+        interval_index: row.interval_index,
+        value: row.display_value,
+        created_at: row.created_at,
+      },
+    ];
+  });
   const marks: BatteryMark[] = [];
-  for (const [athleteId, byIndex] of byAthlete) {
-    const times: number[] = [];
-    let complete = true;
-    for (let index = 1; index <= 10; index++) {
-      const time = byIndex.get(index);
-      if (time == null) {
-        complete = false;
-        break;
-      }
-      times.push(time);
-    }
-    if (!complete) continue;
+  for (const [athleteId, times] of latestRepeatSeriesTimes(reps)) {
     const score = scoreRepeatSprint(times);
     if (!score) continue;
     marks.push(
@@ -682,28 +687,30 @@ export async function loadBatteryBoard(
         )
       : meetRows;
 
-  const scoringDriByAthlete = new Map<string, { box: string; value: number }[]>();
-  const allDri: { box: string; value: number }[] = [];
-  for (const row of meetRows) {
-    if (row.metric_key !== "DRI" || row.component == null || row.component.trim() === "") continue;
-    const mark = { box: row.component, value: row.display_value };
-    allDri.push(mark);
-  }
-  for (const row of scoringRows) {
-    if (row.metric_key !== "DRI" || row.component == null || row.component.trim() === "") continue;
-    const mark = { box: row.component, value: row.display_value };
-    const list = scoringDriByAthlete.get(row.athlete_id);
-    if (list) list.push(mark);
-    else scoringDriByAthlete.set(row.athlete_id, [mark]);
-  }
+  const todayKeys = todayDay
+    ? new Set(expandedDayKeys(testsForDay(todayDay.day_key)))
+    : new Set<string>();
+  const dayA = days.find((day) => day.day_key === "A") ?? null;
+  const dayARows = meetRows.filter(
+    (row) => dayA?.session_id != null && row.session_id === dayA.session_id
+  );
+  const dayADri = bestDriPerAthleteBox(
+    dayARows.flatMap((row) => {
+      if (row.metric_key !== "DRI" || row.component == null || row.component.trim() === "") return [];
+      return [{ athlete_id: row.athlete_id, box: row.component, value: row.display_value }];
+    })
+  );
+  const scoreDri = options.view === "meet" || todayKeys.has("DRI");
 
   const lockedBox = lockedDriBox(days);
-  const teamBox = lockedBox ?? pickTeamDriBox(allDri);
+  const teamBox = lockedBox ?? pickTeamDriBox([...dayADri.values()].flat());
+  // Today only scores that day's tests. A vertical saved on Monday must not
+  // add points or pull the athlete out of untested.
   const marks = [
     ...higherMarks(scoringRows),
     ...sprintMarks(scoringRows),
     ...repeatMarks(scoringRows),
-  ];
+  ].filter((mark) => options.view !== "today" || todayKeys.has(mark.key));
   const poolIds =
     options.group === "overall"
       ? undefined
@@ -716,7 +723,7 @@ export async function loadBatteryBoard(
       athlete_id: athlete.athlete_id,
       first_name: athlete.first_name,
       last_name: athlete.last_name,
-      dri_marks: scoringDriByAthlete.get(athlete.athlete_id) ?? [],
+      dri_marks: scoreDri ? (dayADri.get(athlete.athlete_id) ?? []) : [],
     })),
     marks,
     teamBox,
@@ -724,7 +731,10 @@ export async function loadBatteryBoard(
   });
 
   const previousByAthlete = comparisonValues(comparisonRows);
-  const qualifierByAthlete = bestRsiQualifier(scoringRows);
+  const qualifierByAthlete =
+    options.view === "meet" || todayKeys.has("10-5_RSI")
+      ? bestRsiQualifier(scoringRows)
+      : new Map<string, string>();
   const athletes: BoardAthlete[] = scored.map((row) => {
     const cells: Record<string, BoardCell> = {};
     const previous = previousByAthlete.get(row.athlete_id);
@@ -762,7 +772,7 @@ export async function loadBatteryBoard(
     options.view === "meet"
       ? meetColumnKeys(present, present.has("40yd_Dash") || hasFortyEntry(meetRows))
       : todayDay
-        ? todayColumnKeys(testsForDay(todayDay.day_key), present)
+        ? expandedDayKeys(testsForDay(todayDay.day_key))
         : [];
   const columns = columnKeys.map((key) => columnFor(key, teamBox));
   const viewKeys = new Set(columns.map((column) => column.key));
