@@ -451,6 +451,26 @@
     "input_structure": "single_interval",
     "default_splits": []
   },
+  "DRI": {
+    "display_name": "DRI",
+    "category": "X-Factor",
+    "subcategory": "Vertical Jump",
+    "input_units": "DRI",
+    "display_units": "DRI",
+    "conversion_formula": "",
+    "input_structure": "dri_boxes",
+    "default_splits": ["6", "12", "18", "24"]
+  },
+  "10x10m": {
+    "display_name": "10x10m",
+    "category": "Lactic",
+    "subcategory": "Sprints",
+    "input_units": "s",
+    "display_units": "s",
+    "conversion_formula": "",
+    "input_structure": "repeat_reps",
+    "default_splits": [10]
+  },
   "Hop-Test_RSI": {
     "display_name": "Hop-Test_RSI",
     "category": "X-Factor",

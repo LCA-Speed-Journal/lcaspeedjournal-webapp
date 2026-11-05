@@ -1,7 +1,7 @@
 /**
  * Entry parsing engine — mirrors Python data_intake/parser.py.
  * Transforms raw coach input into entry rows based on metric input_structure:
- * single_interval, cumulative, paired_components, sided_optional.
+ * single_interval, cumulative, paired_components, sided_optional, dri_boxes, repeat_reps.
  */
 import type { ConversionFormula } from "./conversions";
 import { convertValue } from "./conversions";
@@ -29,7 +29,9 @@ type MetricDef = {
     | "single_interval"
     | "cumulative"
     | "paired_components"
-    | "sided_optional";
+    | "sided_optional"
+    | "dri_boxes"
+    | "repeat_reps";
   default_splits: (number | string)[];
   category?: string;
   subcategory?: string;
@@ -155,6 +157,12 @@ export function parseEntry(
   }
   if (inputStructure === "sided_optional") {
     return parseSidedOptional(metric, rawInput.trim());
+  }
+  if (inputStructure === "dri_boxes") {
+    return parseDriBoxes(metric, rawInput);
+  }
+  if (inputStructure === "repeat_reps") {
+    return parseRepeatReps(metric, rawInput);
   }
 
   throw new Error(`Unknown input_structure: ${inputStructure}`);
@@ -630,6 +638,56 @@ function parseSidedOptional(metric: MetricDef, rawInput: string): ParsedEntry[] 
   throw new Error(
     `${metric.display_name} expects 1 or 2 times, got ${values.length}`
   );
+}
+
+function parseDriBoxes(metric: MetricDef, rawInput: string): ParsedEntry[] {
+  const labels = metric.default_splits.filter((split): split is string => typeof split === "string");
+  const parts = splitValues(rawInput);
+  if (parts.length !== labels.length) {
+    throw new Error(
+      `DRI values (${parts.length}) do not match boxes (${labels.length}) for ${metric.display_name}`
+    );
+  }
+
+  return parts.map((part, index) => {
+    const value = parseFloat(part);
+    if (!Number.isFinite(value)) {
+      throw new Error(`Cannot parse DRI value "${part}"`);
+    }
+    return {
+      metric_key: metric.display_name,
+      interval_index: null,
+      component: labels[index],
+      value,
+      display_value: value,
+      units: metric.display_units,
+    };
+  });
+}
+
+function parseRepeatReps(metric: MetricDef, rawInput: string): ParsedEntry[] {
+  const expected = Number(metric.default_splits[0] ?? 10);
+  const parts = splitValues(rawInput);
+  if (parts.length !== expected) {
+    throw new Error(
+      `Repeat reps (${parts.length}) do not match expected count (${expected}) for ${metric.display_name}`
+    );
+  }
+
+  return parts.map((part, index) => {
+    const value = parseFloat(part);
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new Error(`Cannot parse repeat rep "${part}"`);
+    }
+    return {
+      metric_key: metric.display_name,
+      interval_index: index + 1,
+      component: null,
+      value,
+      display_value: value,
+      units: "s",
+    };
+  });
 }
 
 export function getMetricsRegistry(): Record<string, MetricDef> {
