@@ -123,10 +123,7 @@ export function freezeLaneSheet(
  * The printed sheet uses the frozen places and the frozen cutoff.
  * A later live place map does not move the line or the place column.
  */
-export function laneSheetFromFreeze(
-  stored: FrozenLaneSheet,
-  _livePlaces: ReadonlyMap<string, number | null>
-): FrozenLaneSheet {
+export function laneSheetFromFreeze(stored: FrozenLaneSheet): FrozenLaneSheet {
   return {
     cutoff_after_heat: stored.cutoff_after_heat,
     heats: stored.heats.map((heat) => ({

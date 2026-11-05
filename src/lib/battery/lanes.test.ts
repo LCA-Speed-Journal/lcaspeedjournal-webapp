@@ -104,7 +104,7 @@ describe("cutoffAfterHeat", () => {
     const athletes = seeded(20, (index) => index + 1);
     const stored = freezeLaneSheet(athletes, 18);
     const livePlaces = new Map(athletes.map((athlete) => [athlete.athlete_id, 1]));
-    const sheet = laneSheetFromFreeze(stored, livePlaces);
+    const sheet = laneSheetFromFreeze(stored);
     const heatOf = (place: number) =>
       sheet.heats.find((heat) => heat.places.includes(place))?.heat;
 
