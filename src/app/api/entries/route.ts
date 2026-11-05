@@ -13,6 +13,109 @@ import type { SpeedRunInput } from "@/lib/speed/windows";
 
 const INSERT_TIMEOUT_MS = 15000;
 
+const RSI_METRIC_KEY = "10-5_RSI";
+const RSI_QUALIFIERS = new Set(["reactive", "compliant", "stiff", "developing"]);
+
+function rsiQualifierForSave(metricKey: unknown, qualifier: unknown): string | null {
+  if (metricKey !== RSI_METRIC_KEY) return null;
+  if (typeof qualifier !== "string") return null;
+  const value = qualifier.trim().toLowerCase();
+  return RSI_QUALIFIERS.has(value) ? value : null;
+}
+
+function isMissingQualifierColumn(err: unknown): boolean {
+  const codes: string[] = [];
+  const messages: string[] = [];
+  let current: unknown = err;
+  for (let depth = 0; depth < 6 && current && typeof current === "object"; depth++) {
+    const rec = current as { code?: string; message?: string; cause?: unknown };
+    if (typeof rec.code === "string") codes.push(rec.code);
+    if (typeof rec.message === "string") messages.push(rec.message);
+    current = rec.cause;
+  }
+  return codes.includes("42703") && messages.join(" ").toLowerCase().includes("qualifier");
+}
+
+type StandardEntryInsert = {
+  session_id: string;
+  athlete_id: string;
+  metric_key: string;
+  interval_index: number | null;
+  component: string | null;
+  value: number;
+  display_value: number;
+  units: string;
+  raw_input: string;
+  context_hugo_group: string | null;
+};
+
+async function insertStandardEntry(row: StandardEntryInsert, qualifier: string | null) {
+  const run = (withQualifier: boolean) => {
+    if (withQualifier && qualifier != null) {
+      return sql`
+        INSERT INTO entries (
+          session_id, athlete_id, metric_key,
+          interval_index, component,
+          value, display_value, units, raw_input,
+          context_hugo_group, qualifier
+        )
+        VALUES (
+          ${row.session_id},
+          ${row.athlete_id},
+          ${row.metric_key},
+          ${row.interval_index},
+          ${row.component},
+          ${row.value},
+          ${row.display_value},
+          ${row.units},
+          ${row.raw_input},
+          ${row.context_hugo_group},
+          ${qualifier}
+        )
+        RETURNING id
+      `;
+    }
+    return sql`
+      INSERT INTO entries (
+        session_id, athlete_id, metric_key,
+        interval_index, component,
+        value, display_value, units, raw_input,
+        context_hugo_group
+      )
+      VALUES (
+        ${row.session_id},
+        ${row.athlete_id},
+        ${row.metric_key},
+        ${row.interval_index},
+        ${row.component},
+        ${row.value},
+        ${row.display_value},
+        ${row.units},
+        ${row.raw_input},
+        ${row.context_hugo_group}
+      )
+      RETURNING id
+    `;
+  };
+
+  const withTimeout = (query: ReturnType<typeof run>) =>
+    Promise.race([
+      query,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("insert_timeout")), INSERT_TIMEOUT_MS)
+      ),
+    ]);
+
+  try {
+    return await withTimeout(run(qualifier != null));
+  } catch (err) {
+    if (qualifier != null && isMissingQualifierColumn(err)) {
+      return await withTimeout(run(false));
+    }
+    throw err;
+  }
+}
+
 function isMissingSpeedWindowColumn(err: unknown): boolean {
   const messages: string[] = [];
   const codes: string[] = [];
@@ -159,35 +262,26 @@ export async function POST(request: NextRequest) {
 
     const parsed = parseEntry(metric_key, rawInputStr, sessionOverrides);
 
+    const qualifier = rsiQualifierForSave(metric_key, body.qualifier);
     const ids: string[] = [];
     for (const row of parsed) {
-      const insertPromise = sql`
-        INSERT INTO entries (
-          session_id, athlete_id, metric_key,
-          interval_index, component,
-          value, display_value, units, raw_input,
-          context_hugo_group
-        )
-        VALUES (
-          ${session_id},
-          ${athlete_id},
-          ${row.metric_key},
-          ${row.interval_index},
-          ${row.component},
-          ${row.value},
-          ${row.display_value},
-          ${row.units},
-          ${rawInputStr},
-          ${contextHugoGroup}
-        )
-        RETURNING id
-      `;
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("insert_timeout")), INSERT_TIMEOUT_MS)
+      const rowQualifier = row.metric_key === RSI_METRIC_KEY ? qualifier : null;
+      const result = await insertStandardEntry(
+        {
+          session_id,
+          athlete_id,
+          metric_key: row.metric_key,
+          interval_index: row.interval_index,
+          component: row.component,
+          value: row.value,
+          display_value: row.display_value,
+          units: row.units,
+          raw_input: rawInputStr,
+          context_hugo_group: contextHugoGroup,
+        },
+        rowQualifier
       );
-      const result = await Promise.race([insertPromise, timeoutPromise]);
-      const { rows } = result;
-      const id = (rows[0] as { id: string })?.id;
+      const id = (result.rows[0] as { id: string } | undefined)?.id;
       if (id) ids.push(id);
     }
 
