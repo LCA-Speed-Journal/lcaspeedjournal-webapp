@@ -37,16 +37,11 @@ import { formatDropoffCaption } from "@/lib/dropoff/format";
 import { isDropoffMetric } from "@/lib/dropoff/metrics";
 import { directionFromUnits, summarizeDropoff } from "@/lib/dropoff/summarize";
 import { LEGACY_SPEED_KEYS } from "@/lib/speed/windows";
+import { rsqQuadrant } from "@/lib/battery/rsq";
 
 const SPEED_RUN_KEY = "SpeedRun";
 const REPEAT_REP_COUNT = 10;
 const DRI_BOX_LABELS = ["6", "12", "18", "24"] as const;
-const RSI_QUALIFIERS = [
-  { value: "reactive", label: "Reactive", selected: "bg-blue-500 text-white" },
-  { value: "compliant", label: "Compliant", selected: "bg-red-500 text-white" },
-  { value: "stiff", label: "Stiff", selected: "bg-green-600 text-white" },
-  { value: "developing", label: "Developing", selected: "bg-yellow-400 text-neutral-950" },
-] as const;
 
 type BatteryBib = {
   bib: string;
@@ -239,7 +234,8 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const [sheetNote, setSheetNote] = useState("");
   const [bibs, setBibs] = useState<BatteryBib[]>([]);
   const [bibInput, setBibInput] = useState("");
-  const [rsiQualifier, setRsiQualifier] = useState("");
+  const [rsiJumpInches, setRsiJumpInches] = useState("");
+  const [rsiGctMs, setRsiGctMs] = useState("");
   const [driValues, setDriValues] = useState<string[]>(["", "", "", ""]);
   const [repValues, setRepValues] = useState<string[]>(emptyReps);
   const bibInputRef = useRef<HTMLInputElement>(null);
@@ -260,7 +256,8 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     const lookupId = sessionIdProp ?? sessionId;
     setError("");
     setBibInput("");
-    setRsiQualifier("");
+    setRsiJumpInches("");
+    setRsiGctMs("");
     setDriValues(["", "", "", ""]);
     setRepValues(emptyReps());
     setBatterySession(false);
@@ -525,7 +522,8 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setBibInput("");
     setSelectedAthlete(null);
     setAthleteQuery("");
-    setRsiQualifier("");
+    setRsiJumpInches("");
+    setRsiGctMs("");
     setDriValues(["", "", "", ""]);
     setRepValues(emptyReps());
     requestAnimationFrame(() => bibInputRef.current?.focus());
@@ -738,14 +736,71 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       setError("Enter all ten times");
       return;
     }
-    if (batterySession && metricKey === "10-5_RSI" && rsiQualifier === "") {
-      setSuccess("");
-      setError("Pick Reactive, Compliant, Stiff, or Developing");
-      return;
-    }
     setError("");
     setSuccess("");
     setLoading(true);
+    if (batterySession && metricKey === "10-5_RSI") {
+      const rsiRaw = rawInput.trim();
+      const jumpRaw = rsiJumpInches.trim();
+      const gctRaw = rsiGctMs.trim();
+      const rsi = Number(rsiRaw);
+      const jumpInches = Number(jumpRaw);
+      const gctMs = Number(gctRaw);
+      if (
+        rsiRaw === "" ||
+        jumpRaw === "" ||
+        gctRaw === "" ||
+        !Number.isFinite(rsi) ||
+        !Number.isFinite(jumpInches) ||
+        !Number.isFinite(gctMs)
+      ) {
+        setError("Enter RSI, jump height, and ground contact");
+        setLoading(false);
+        return;
+      }
+      const qualifier = rsqQuadrant(jumpInches, gctMs);
+      const shared = {
+        session_id: effectiveSessionId,
+        athlete_id: athleteId,
+        context_hugo_group: contextHugoGroupForSave(sportFilter),
+      };
+      const rows = [
+        { ...shared, metric_key: "10-5_RSI", raw_input: rsiRaw, qualifier },
+        { ...shared, metric_key: "10-5_JH", raw_input: jumpRaw },
+        { ...shared, metric_key: "10-5_GCT", raw_input: gctRaw },
+      ];
+      try {
+        for (const row of rows) {
+          const res = await fetch("/api/entries", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(row),
+          });
+          const json = await res.json();
+          if (!res.ok) {
+            setError(json.error ?? "Failed to save entry");
+            return;
+          }
+        }
+        setSuccess("Saved 3 entries");
+        setRawInput("");
+        clearBatteryEntry();
+        void globalMutate(
+          (key) => typeof key === "string" && key.startsWith("/api/leaderboard"),
+          undefined,
+          { revalidate: true }
+        );
+        if (entriesKey) {
+          void globalMutate(entriesKey);
+        }
+        onSuccess?.();
+      } catch {
+        setError("Network error");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     if (metricKey === SPEED_RUN_KEY) {
       const preview = previewSpeedRun(speedDraft);
       if (!preview.ok) {
@@ -836,7 +891,6 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           metric_key: metricKey,
           raw_input: rawToSend,
           context_hugo_group: contextHugoGroupForSave(sportFilter),
-          ...(metricKey === "10-5_RSI" && rsiQualifier ? { qualifier: rsiQualifier } : {}),
         }),
       });
       const json = await res.json();
@@ -897,7 +951,10 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       : batterySession && metricKey === "10x10m"
         ? batteryRepsReady
         : batterySession && metricKey === "10-5_RSI"
-          ? rawInput.trim() !== "" && rsiQualifier !== ""
+          ? [rawInput, rsiJumpInches, rsiGctMs].every((value) => {
+              const trimmed = value.trim();
+              return trimmed !== "" && Number.isFinite(Number(trimmed));
+            })
           : metricKey === SPEED_RUN_KEY
             ? speedPreview?.ok === true
             : multiFieldEntry
@@ -1393,7 +1450,8 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             setRawInput("");
             setSplitValues([]);
             setSplitEntryMode("cumulative");
-            setRsiQualifier("");
+            setRsiJumpInches("");
+            setRsiGctMs("");
             setDriValues(["", "", "", ""]);
             setRepValues(emptyReps());
           }}
@@ -1419,7 +1477,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       ) : (
       <div>
         <label htmlFor="entry_raw" className="mb-1 block text-sm font-medium text-foreground">
-          Value
+          {batterySession && metricKey === "10-5_RSI" ? "RSI" : "Value"}
         </label>
         {showSplitEntryToggle && (
           <div className="mb-2 flex gap-1 rounded border border-border bg-surface-elevated p-1">
@@ -1569,26 +1627,47 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           />
         )}
         {batterySession && metricKey === "10-5_RSI" ? (
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {RSI_QUALIFIERS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setRsiQualifier(option.value)}
-                className={`min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium ${
-                  rsiQualifier === option.value
-                    ? option.selected
-                    : "border border-border text-foreground hover:bg-surface"
-                }`}
-                aria-pressed={rsiQualifier === option.value}
+          <div className="mt-3 space-y-2">
+            <div>
+              <label
+                htmlFor="entry_rsi_jh"
+                className="mb-0.5 block text-xs text-foreground-muted"
               >
-                {option.label}
-              </button>
-            ))}
+                Jump height (inches)
+              </label>
+              <input
+                id="entry_rsi_jh"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={rsiJumpInches}
+                onChange={(e) => setRsiJumpInches(e.target.value)}
+                className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
+                required
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="entry_rsi_gct"
+                className="mb-0.5 block text-xs text-foreground-muted"
+              >
+                Ground contact (ms)
+              </label>
+              <input
+                id="entry_rsi_gct"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={rsiGctMs}
+                onChange={(e) => setRsiGctMs(e.target.value)}
+                className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
+                required
+              />
+            </div>
           </div>
         ) : null}
         {!showNamedFlies &&
-        !(batterySession && (metricKey === "DRI" || metricKey === "10x10m")) ? (
+        !(batterySession && (metricKey === "DRI" || metricKey === "10x10m" || metricKey === "10-5_RSI")) ? (
           <p className="mt-1 text-xs text-foreground-muted">
             {inputHint(selectedMetric, selectedSession?.day_splits, splitEntryMode)}
           </p>
