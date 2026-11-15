@@ -1,6 +1,6 @@
 /**
  * Frozen Friday lane heats. Coach only.
- * The first POST stores the A+B place order. A later POST returns that row.
+ * The first POST stores the A–C place order. A later POST returns that row.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -105,7 +105,7 @@ export async function POST(
       const board = await loadBatteryBoard(id, {
         view: "meet",
         group: "overall",
-        dayKeys: ["A", "B"],
+        dayKeys: ["A", "B", "C"],
       });
       if (!board) return { status: "missing" as const };
       const sheet = sheetFromBoard(board);
