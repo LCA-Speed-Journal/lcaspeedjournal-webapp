@@ -6,14 +6,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql, withTransaction } from "@/lib/db";
+import { athleteOnRoster } from "@/lib/battery/group-store";
 import { isBatterySchemaMissing, readPgError } from "@/lib/battery/load";
 import { testingLiftMovement } from "@/lib/battery/testing-lifts";
 import { BOYS_BASKETBALL_BASELINE } from "@/lib/battery/template";
-import {
-  insertTemplateWithMovements,
-  isUuid,
-  serializeDate,
-} from "@/lib/weight-room/insert-template";
+import { isUuid, serializeDate } from "@/lib/weight-room/insert-template";
 import { isHugoGroup } from "@/lib/weight-room/constants";
 
 const MIGRATION_ERROR = "Run scripts/migrate-testing-battery.sql";
@@ -135,66 +132,82 @@ export async function POST(
     }
     const hugoGroup = battery.hugo_group;
     const title = `${movementName} ${sessionDate}`;
-
-    const { rows: existing } = await sql`
-      SELECT t.id AS template_id, m.id AS movement_id
-      FROM workout_templates t
-      INNER JOIN workout_movements m
-        ON m.template_id = t.id AND m.name = ${movementName}
-      WHERE t.hugo_group = ${hugoGroup}
-        AND t.session_date = ${sessionDate}::date
-        AND (
-          (SELECT COUNT(*) FROM workout_movements c WHERE c.template_id = t.id) = 1
-          OR t.title = ${title}
-        )
-      ORDER BY (
-        EXISTS (
-          SELECT 1
-          FROM session_logs l
-          WHERE l.template_id = t.id AND l.athlete_id = ${athleteId}
-        )
-      ) DESC, t.created_at ASC, m.sort_index ASC
-      LIMIT 1
-    `;
-
-    let templateId: string;
-    let movementId: string;
-    const found = existing[0] as { template_id?: unknown; movement_id?: unknown } | undefined;
-    if (found?.template_id != null && found.movement_id != null) {
-      templateId = String(found.template_id);
-      movementId = String(found.movement_id);
-    } else {
-      const created = await insertTemplateWithMovements({
-        hugo_group: hugoGroup,
-        week_number: null,
-        day_name: "",
-        session_date: sessionDate,
-        focus: "Testing",
-        title,
-        movements: [
-          {
-            sort_index: 0,
-            label: "",
-            name: movementName,
-            block: "Main",
-            set_count: 1,
-            targets: ["1"],
-            notes: "",
-            from_pair: false,
-            speed_journal_metric_key: null,
-            speed_journal_component: null,
-          },
-        ],
-      });
-      templateId = created.id;
-      const movement = created.movements[0];
-      if (!movement) {
-        return NextResponse.json({ error: "Failed to save lift" }, { status: 500 });
-      }
-      movementId = movement.id;
+    if (!(await athleteOnRoster(athleteId, hugoGroup))) {
+      return NextResponse.json({ error: "Athlete is not on this roster" }, { status: 400 });
     }
 
-    await withTransaction(async (tx) => {
+    const saved = await withTransaction(async (tx) => {
+      const locked = await tx`
+        SELECT id FROM testing_batteries WHERE id = ${id} FOR UPDATE
+      `;
+      if (!locked.rows.length) return { ok: false as const };
+
+      const { rows: existing } = await tx`
+        SELECT t.id AS template_id, m.id AS movement_id
+        FROM workout_templates t
+        INNER JOIN workout_movements m
+          ON m.template_id = t.id AND m.name = ${movementName}
+        WHERE t.hugo_group = ${hugoGroup}
+          AND t.session_date = ${sessionDate}::date
+          AND (
+            (SELECT COUNT(*) FROM workout_movements c WHERE c.template_id = t.id) = 1
+            OR t.title = ${title}
+          )
+        ORDER BY (
+          EXISTS (
+            SELECT 1
+            FROM session_logs l
+            WHERE l.template_id = t.id AND l.athlete_id = ${athleteId}
+          )
+        ) DESC, t.created_at ASC, m.sort_index ASC
+        LIMIT 1
+      `;
+
+      let templateId: string;
+      let movementId: string;
+      const found = existing[0] as { template_id?: unknown; movement_id?: unknown } | undefined;
+      if (found?.template_id != null && found.movement_id != null) {
+        templateId = String(found.template_id);
+        movementId = String(found.movement_id);
+      } else {
+        templateId = crypto.randomUUID();
+        movementId = crypto.randomUUID();
+        const targetsJson = JSON.stringify(["1"]);
+        await tx`
+          INSERT INTO workout_templates (
+            id, hugo_group, week_number, day_name, session_date, focus, title
+          )
+          VALUES (
+            ${templateId},
+            ${hugoGroup},
+            ${null},
+            ${""},
+            ${sessionDate},
+            ${"Testing"},
+            ${title}
+          )
+        `;
+        await tx`
+          INSERT INTO workout_movements (
+            id, template_id, sort_index, label, name, block, set_count, targets, notes, from_pair, speed_journal_metric_key, speed_journal_component
+          )
+          VALUES (
+            ${movementId},
+            ${templateId},
+            ${0},
+            ${""},
+            ${movementName},
+            ${"Main"},
+            ${1},
+            ${targetsJson},
+            ${""},
+            ${false},
+            ${null},
+            ${null}
+          )
+        `;
+      }
+
       const { rows: logRows } = await tx`
         INSERT INTO session_logs (
           id, athlete_id, template_id, scan_id, session_date, hugo_group
@@ -219,12 +232,13 @@ export async function POST(
         WHERE session_log_id = ${logId}
           AND movement_id = ${movementId}
       `;
+      const resultId = crypto.randomUUID();
       await tx`
         INSERT INTO set_results (
           id, session_log_id, movement_id, set_index, raw_text, kind, load, reps, units, corrected
         )
         VALUES (
-          ${crypto.randomUUID()},
+          ${resultId},
           ${logId},
           ${movementId},
           ${0},
@@ -236,7 +250,22 @@ export async function POST(
           ${false}
         )
       `;
+      await tx`
+        DELETE FROM set_results AS r
+        USING session_logs AS l, workout_movements AS m
+        WHERE r.session_log_id = l.id
+          AND r.movement_id = m.id
+          AND l.athlete_id = ${athleteId}
+          AND l.hugo_group = ${hugoGroup}
+          AND l.session_date = ${sessionDate}::date
+          AND m.name = ${movementName}
+          AND l.id <> ${logId}
+      `;
+      return { ok: true as const };
     });
+    if (!saved.ok) {
+      return NextResponse.json({ error: "Battery not found" }, { status: 404 });
+    }
 
     return NextResponse.json({
       data: {
