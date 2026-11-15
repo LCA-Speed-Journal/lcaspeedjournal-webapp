@@ -1,4 +1,5 @@
 import type { BatteryMark } from "./score-row";
+import { rsqQuadrant } from "./rsq";
 
 export type SampleAthlete = {
   athlete_id: string;
@@ -13,8 +14,6 @@ export type SampleRosterMarks = {
   dri: Map<string, SampleDriMark[]>;
   qualifiers: Map<string, string>;
 };
-
-const QUALIFIERS = ["reactive", "compliant", "stiff", "developing"] as const;
 
 function hashId(athleteId: string): number {
   let hash = 2166136261;
@@ -31,6 +30,10 @@ function unit(hash: number, salt: number): number {
 
 function spread(hash: number, salt: number, min: number, max: number): number {
   return Math.round((min + unit(hash, salt) * (max - min)) * 100) / 100;
+}
+
+function whole(hash: number, salt: number, min: number, max: number): number {
+  return Math.round(min + unit(hash, salt) * (max - min));
 }
 
 function driMarks(hash: number): SampleDriMark[] {
@@ -76,7 +79,11 @@ export function sampleMarksForRoster(athletes: SampleAthlete[]): SampleRosterMar
 
     const rsi = hash % 9 === 1 ? 2.1 : spread(hash, 1, 1.15, 2.8);
     marks.push({ athlete_id: athlete.athlete_id, key: "10-5_RSI", value: rsi });
-    qualifiers.set(athlete.athlete_id, QUALIFIERS[hash % QUALIFIERS.length]);
+    const jump = spread(hash, 31, 6, 20);
+    const contact = whole(hash, 32, 140, 320);
+    marks.push({ athlete_id: athlete.athlete_id, key: "10-5_JH", value: jump });
+    marks.push({ athlete_id: athlete.athlete_id, key: "10-5_GCT", value: contact });
+    qualifiers.set(athlete.athlete_id, rsqQuadrant(jump, contact));
 
     if (hash % 6 !== 1) {
       marks.push({ athlete_id: athlete.athlete_id, key: "20yd_Dash", value: spread(hash, 2, 2.7, 3.35) });
@@ -111,6 +118,20 @@ export function sampleMarksForRoster(athletes: SampleAthlete[]): SampleRosterMar
         { athlete_id: athlete.athlete_id, key: "10x10m_decrement", value: spread(hash, 9, 3, 14) }
       );
     }
+
+    // hash % 8 === 0 already skipped this athlete. Residue 1 leaves Bench blank: one roster slot in eight.
+    if (hash % 8 !== 1) {
+      marks.push({
+        athlete_id: athlete.athlete_id,
+        key: "Bench-Press",
+        value: whole(hash, 33, 95, 225),
+      });
+    }
+    marks.push({
+      athlete_id: athlete.athlete_id,
+      key: "Hex-Deadlift",
+      value: whole(hash, 34, 135, 315),
+    });
   }
 
   return { marks, dri, qualifiers };

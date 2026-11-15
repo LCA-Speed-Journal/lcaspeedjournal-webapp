@@ -3,6 +3,8 @@ import type { SampleRosterMarks } from "./sample-marks";
 /** Columns a coach can nudge on the local sample board. DRI edits the 12in box. */
 export const SAMPLE_EDIT_KEYS = [
   "10-5_RSI",
+  "10-5_JH",
+  "10-5_GCT",
   "20yd_Dash",
   "40yd_Dash",
   "MaxVelocity",
@@ -10,9 +12,11 @@ export const SAMPLE_EDIT_KEYS = [
   "Standing-Broad",
   "Vertical Jump",
   "OH-MB_Throw",
+  "Bench-Press",
   "10x10m_best",
   "10x10m_mean",
   "10x10m_decrement",
+  "Hex-Deadlift",
 ] as const;
 
 export type SampleEditKey = (typeof SAMPLE_EDIT_KEYS)[number];
