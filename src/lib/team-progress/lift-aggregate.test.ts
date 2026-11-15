@@ -110,4 +110,62 @@ describe("aggregateLiftSeries", () => {
       "squat",
     ]);
   });
+
+  it("labels a hex-only hinge window Deadlift and keeps the projected median", () => {
+    const series = aggregateLiftSeries([
+      {
+        athlete_id: "a1",
+        session_date: "2026-09-01",
+        movement_name: "Trap-Bar Deadlift",
+        kind: "load_reps",
+        load: 230,
+      },
+      {
+        athlete_id: "a2",
+        session_date: "2026-09-01",
+        movement_name: "Trap-Bar Deadlift",
+        kind: "load_reps",
+        load: 210,
+      },
+      {
+        athlete_id: "a3",
+        session_date: "2026-09-08",
+        movement_name: "Hex Deadlift",
+        kind: "load_reps",
+        load: 200,
+      },
+    ]);
+    const hinge = series.find((s) => s.lift_id === "hinge");
+    expect(hinge?.label).toBe("Deadlift");
+    const hexDay = hinge?.points.find((p) => p.date === "2026-09-08");
+    expect(hexDay?.median).toBeCloseTo(200 / 1.15, 5);
+  });
+
+  it("keeps an RDL title when RDL athlete-days outnumber hex pulls", () => {
+    const series = aggregateLiftSeries([
+      {
+        athlete_id: "a1",
+        session_date: "2026-08-11",
+        movement_name: "BB RDL (3RM Test)",
+        kind: "load_reps",
+        load: 185,
+      },
+      {
+        athlete_id: "a2",
+        session_date: "2026-08-18",
+        movement_name: "BB RDL (3RM Test)",
+        kind: "load_reps",
+        load: 190,
+      },
+      {
+        athlete_id: "a3",
+        session_date: "2026-08-11",
+        movement_name: "Hex Deadlift",
+        kind: "load_reps",
+        load: 230,
+      },
+    ]);
+    const hinge = series.find((s) => s.lift_id === "hinge");
+    expect(hinge?.label).toBe("BB RDL (3RM Test)");
+  });
 });

@@ -37,6 +37,8 @@ export type LiftSeriesResult = {
 /**
  * Prefer the movement name with the most athlete-days within a lift pattern
  * for the chart title (e.g. Bench vs Overhead Press).
+ * Hex pulls are projected onto hinge, so they never supply the title.
+ * A hex-only hinge window is titled "Deadlift".
  */
 function preferredLabel(
   liftId: LiftId,
@@ -47,12 +49,15 @@ function preferredLabel(
   let bestCount = 0;
   for (const [name, count] of nameCounts) {
     if (classifyLiftName(name) !== liftId) continue;
+    if (isHexDeadliftName(name)) continue;
     if (count > bestCount) {
       bestCount = count;
       bestName = name;
     }
   }
-  return bestName ?? fallback;
+  if (bestName) return bestName;
+  if (liftId === "hinge") return "Deadlift";
+  return fallback;
 }
 
 export function aggregateLiftSeries(
