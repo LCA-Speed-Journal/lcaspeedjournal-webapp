@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
 import { orderBoard, type BoardRow } from "@/lib/battery/board-order";
 import type { BoardCell, BoardColumn, BoardPayload } from "@/lib/battery/load";
+import { RsqPlot } from "./RsqPlot";
 
 export { orderBoard };
 
@@ -483,6 +484,7 @@ export function BatteryBoard({
 
   const columns = payload.columns;
   const showRsiLegend = columns.some((column) => column.key === "10-5_RSI");
+  const showRsqPlot = payload.view === "meet" || payload.day_key === "A";
   const template = columnTemplate(columns.length);
   const numberClass =
     columns.length > 7
@@ -515,6 +517,7 @@ export function BatteryBoard({
               </p>
             ) : null}
             {showRsiLegend ? <QualifierLegend /> : null}
+            {showRsqPlot ? <RsqPlot athletes={payload.rsq} /> : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {SAMPLE_ALLOWED ? (

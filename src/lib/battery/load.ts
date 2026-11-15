@@ -88,8 +88,17 @@ export type BoardPayload = {
   columns: BoardColumn[];
   athletes: BoardAthlete[];
   untested_ids: string[];
+  /** Athletes who have both jump height and ground contact. Not scored. */
+  rsq: BoardRsqPoint[];
   /** True when the marks were invented for this request and not read from entries. */
   sample: boolean;
+};
+
+export type BoardRsqPoint = {
+  athlete_id: string;
+  name: string;
+  jump_in: number;
+  gct_ms: number;
 };
 
 const HIGHER_METRIC_KEYS = [
@@ -98,6 +107,11 @@ const HIGHER_METRIC_KEYS = [
   "Vertical Jump",
   "OH-MB_Throw",
 ] as const;
+
+/** Read with the session, plotted on Day A and the Meet, never ranked. */
+const RSQ_JUMP_KEY = "10-5_JH";
+const RSQ_CONTACT_KEY = "10-5_GCT";
+const RSQ_PLOT_KEYS = new Set<string>([RSQ_JUMP_KEY, RSQ_CONTACT_KEY]);
 
 const SPRINT_COLUMN_KEYS = ["20yd_Dash", "40yd_Dash", "MaxVelocity"] as const;
 const REPEAT_COLUMN_KEYS = ["10x10m_best", "10x10m_mean", "10x10m_decrement"] as const;
@@ -552,6 +566,101 @@ function comparisonValues(rows: NormEntry[]): Map<string, Map<string, number>> {
   return out;
 }
 
+function athleteDisplayName(firstName: string, lastName: string): string {
+  return `${firstName} ${lastName}`.trim() || "Athlete";
+}
+
+function closestMark(rows: NormEntry[], anchor: number | null): NormEntry {
+  if (anchor == null) {
+    return rows.reduce((best, row) => (row.created_at >= best.created_at ? row : best));
+  }
+  return rows.reduce((best, row) => {
+    const distance = Math.abs(row.created_at - anchor);
+    const bestDistance = Math.abs(best.created_at - anchor);
+    if (distance < bestDistance) return row;
+    if (distance === bestDistance && row.created_at >= best.created_at) return row;
+    return best;
+  });
+}
+
+/** Jump and contact from the same save as the best RSI, so the dot matches the standings color. */
+function pairJumpAndContact(rows: NormEntry[]): { jump: number; gct: number } | null {
+  const jumps = rows.filter((row) => row.metric_key === RSQ_JUMP_KEY);
+  const contacts = rows.filter((row) => row.metric_key === RSQ_CONTACT_KEY);
+  if (jumps.length === 0 || contacts.length === 0) return null;
+
+  let anchor: number | null = null;
+  let bestRsi = -Infinity;
+  for (const row of rows) {
+    if (row.metric_key !== "10-5_RSI") continue;
+    const laterTie = row.display_value === bestRsi && (anchor == null || row.created_at >= anchor);
+    if (row.display_value > bestRsi || laterTie) {
+      bestRsi = row.display_value;
+      anchor = row.created_at;
+    }
+  }
+
+  return {
+    jump: closestMark(jumps, anchor).display_value,
+    gct: closestMark(contacts, anchor).display_value,
+  };
+}
+
+function rsqFromEntries(
+  rows: NormEntry[],
+  athletes: { athlete_id: string; first_name: string; last_name: string }[]
+): BoardRsqPoint[] {
+  const byAthlete = new Map<string, NormEntry[]>();
+  for (const row of rows) {
+    if (row.metric_key !== RSQ_JUMP_KEY && row.metric_key !== RSQ_CONTACT_KEY && row.metric_key !== "10-5_RSI") {
+      continue;
+    }
+    const list = byAthlete.get(row.athlete_id);
+    if (list) list.push(row);
+    else byAthlete.set(row.athlete_id, [row]);
+  }
+
+  const points: BoardRsqPoint[] = [];
+  for (const athlete of athletes) {
+    const own = byAthlete.get(athlete.athlete_id);
+    if (!own) continue;
+    const pair = pairJumpAndContact(own);
+    if (!pair) continue;
+    points.push({
+      athlete_id: athlete.athlete_id,
+      name: athleteDisplayName(athlete.first_name, athlete.last_name),
+      jump_in: pair.jump,
+      gct_ms: pair.gct,
+    });
+  }
+  return points;
+}
+
+function rsqFromSampleMarks(
+  marks: BatteryMark[],
+  athletes: { athlete_id: string; first_name: string; last_name: string }[]
+): BoardRsqPoint[] {
+  const jump = new Map<string, number>();
+  const contact = new Map<string, number>();
+  for (const mark of marks) {
+    if (mark.key === RSQ_JUMP_KEY) jump.set(mark.athlete_id, mark.value);
+    else if (mark.key === RSQ_CONTACT_KEY) contact.set(mark.athlete_id, mark.value);
+  }
+  const points: BoardRsqPoint[] = [];
+  for (const athlete of athletes) {
+    const jumpIn = jump.get(athlete.athlete_id);
+    const gctMs = contact.get(athlete.athlete_id);
+    if (jumpIn == null || gctMs == null) continue;
+    points.push({
+      athlete_id: athlete.athlete_id,
+      name: athleteDisplayName(athlete.first_name, athlete.last_name),
+      jump_in: jumpIn,
+      gct_ms: gctMs,
+    });
+  }
+  return points;
+}
+
 function bestRsiQualifier(rows: NormEntry[]): Map<string, string | null> {
   const best = new Map<string, { value: number; qualifier: string | null }>();
   for (const row of rows) {
@@ -811,6 +920,7 @@ export async function loadBatteryBoard(
       ? samplePack.marks
       : [...higherMarks(scoringRows), ...sprintMarks(scoringRows), ...repeatMarks(scoringRows)]
   ).filter((mark) => {
+    if (RSQ_PLOT_KEYS.has(mark.key)) return false;
     if (options.view !== "meet") return focusKeys.has(mark.key);
     if (limitedMeetKeys != null) return limitedMeetKeys.has(mark.key);
     return true;
@@ -917,6 +1027,7 @@ export async function loadBatteryBoard(
     columns,
     athletes,
     untested_ids: untestedIds,
+    rsq: samplePack ? rsqFromSampleMarks(samplePack.marks, athletes) : rsqFromEntries(scoringRows, athletes),
     sample: samplePack != null,
   };
 }
