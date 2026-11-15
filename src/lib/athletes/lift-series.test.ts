@@ -40,4 +40,23 @@ describe("athleteLiftSeries", () => {
     ]);
     expect(series.map((s) => s.lift_id).sort()).toEqual(["hinge", "squat"]);
   });
+
+  it("keeps the conventional pull when a same-day hex projects lower", () => {
+    const series = athleteLiftSeries([
+      {
+        session_date: "2026-08-11",
+        movement_name: "BB RDL",
+        kind: "load_reps",
+        load: 180,
+      },
+      {
+        session_date: "2026-08-11",
+        movement_name: "Hex Deadlift",
+        kind: "load_reps",
+        load: 200,
+      },
+    ]);
+    const hinge = series.find((s) => s.lift_id === "hinge");
+    expect(hinge?.points).toEqual([{ date: "2026-08-11", value: 180 }]);
+  });
 });

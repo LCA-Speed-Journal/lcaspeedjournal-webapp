@@ -168,4 +168,39 @@ describe("aggregateLiftSeries", () => {
     const hinge = series.find((s) => s.lift_id === "hinge");
     expect(hinge?.label).toBe("BB RDL (3RM Test)");
   });
+
+  it("keeps the RDL title when hex athlete-days outnumber RDL", () => {
+    const series = aggregateLiftSeries([
+      {
+        athlete_id: "a1",
+        session_date: "2026-08-11",
+        movement_name: "BB RDL (3RM Test)",
+        kind: "load_reps",
+        load: 185,
+      },
+      {
+        athlete_id: "a2",
+        session_date: "2026-08-11",
+        movement_name: "Hex Deadlift",
+        kind: "load_reps",
+        load: 200,
+      },
+      {
+        athlete_id: "a3",
+        session_date: "2026-08-18",
+        movement_name: "Trap-Bar Deadlift",
+        kind: "load_reps",
+        load: 230,
+      },
+      {
+        athlete_id: "a4",
+        session_date: "2026-08-25",
+        movement_name: "Trap Bar Deadlift",
+        kind: "load_reps",
+        load: 240,
+      },
+    ]);
+    const hinge = series.find((s) => s.lift_id === "hinge");
+    expect(hinge?.label).toBe("BB RDL (3RM Test)");
+  });
 });
