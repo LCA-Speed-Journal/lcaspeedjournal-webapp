@@ -111,9 +111,11 @@ const COLUMN_ORDER = [
   "Standing-Broad",
   "Vertical Jump",
   "OH-MB_Throw",
+  "Bench-Press",
   "10x10m_best",
   "10x10m_mean",
   "10x10m_decrement",
+  "Hex-Deadlift",
   "10x10m",
 ] as const;
 
@@ -126,9 +128,11 @@ const COLUMN_META: Record<string, { label: string; direction: BoardDirection; un
   "Standing-Broad": { label: "Broad", direction: "higher", units: "ft" },
   "Vertical Jump": { label: "Vertical", direction: "higher", units: "in" },
   "OH-MB_Throw": { label: "Med Ball", direction: "higher", units: "ft" },
+  "Bench-Press": { label: "Bench", direction: "higher", units: "lb" },
   "10x10m_best": { label: "10x10 Best", direction: "lower", units: "s" },
   "10x10m_mean": { label: "10x10 Mean", direction: "lower", units: "s" },
   "10x10m_decrement": { label: "Decrement", direction: "lower", units: "%" },
+  "Hex-Deadlift": { label: "Hex DL", direction: "higher", units: "lb" },
   "10x10m": { label: "10x10", direction: "lower", units: "s" },
 };
 

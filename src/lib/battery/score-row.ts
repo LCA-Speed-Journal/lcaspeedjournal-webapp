@@ -39,7 +39,11 @@ const HIGHER_KEYS = new Set([
   "Vertical Jump",
   "OH-MB_Throw",
   "MaxVelocity",
+  "Bench-Press",
+  "Hex-Deadlift",
 ]);
+
+const DISPLAY_ONLY_KEYS = ["Bench-Press", "Hex-Deadlift"];
 
 const LOWER_KEYS = new Set([
   "20yd_Dash",
@@ -140,7 +144,9 @@ export function scoreBatteryRows(input: {
       cells[key] = cell;
       pointsByKey[key] = cell.points;
     }
-    const totals = batteryTotal(pointsByKey);
+    const scoredPoints = { ...pointsByKey };
+    for (const key of DISPLAY_ONLY_KEYS) delete scoredPoints[key];
+    const totals = batteryTotal(scoredPoints);
     const dri = teamBoxDri(athlete, input.teamBox);
     const driPeak = peakBox(athlete.dri_marks);
     return {

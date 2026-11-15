@@ -126,6 +126,10 @@ export function formatMark(value: number, units: string): string {
     const body = Math.abs(value) >= 10 ? value.toFixed(1) : value.toFixed(2);
     return `${body}mph`;
   }
+  if (units === "lb") {
+    const body = Math.abs(value) >= 10 ? value.toFixed(1) : value.toFixed(2);
+    return `${body}lb`;
+  }
   if (units === "RSI" || units === "DRI" || units === "") return value.toFixed(2);
   if (Math.abs(value) >= 100) return Math.round(value).toString();
   if (Math.abs(value) >= 10) return value.toFixed(1);
@@ -251,7 +255,7 @@ function MarkCell({
   const frame = cell ? podiumFrame(cell.rank) : "";
   const shown = cell ? formatMark(cell.value, column.units) : "";
   const suffix =
-    column.units === "s" || column.units === "mph" || column.units === "%"
+    column.units === "s" || column.units === "mph" || column.units === "%" || column.units === "lb"
       ? column.units
       : column.units === "in"
         ? "in."

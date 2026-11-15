@@ -75,4 +75,28 @@ describe("scoreBatteryRows", () => {
     expect(rows.map((row) => row.athlete_id)).toEqual(["b"]);
     expect(rows[0].cells["10-5_RSI"]).toMatchObject({ rank: 1, points: 1 });
   });
+
+  it("ranks a heavier bench without adding its points to the meet total", () => {
+    const athletes = [
+      { athlete_id: "a", first_name: "Ann", last_name: "A", dri_marks: [] },
+      { athlete_id: "b", first_name: "Bea", last_name: "B", dri_marks: [] },
+    ];
+    const marks = [
+      { athlete_id: "a", key: "10-5_RSI", value: 2 },
+      { athlete_id: "b", key: "10-5_RSI", value: 1 },
+      { athlete_id: "a", key: "Bench-Press", value: 200 },
+      { athlete_id: "b", key: "Bench-Press", value: 100 },
+      { athlete_id: "a", key: "Hex-Deadlift", value: 300 },
+      { athlete_id: "b", key: "Hex-Deadlift", value: 250 },
+    ];
+    const rows = scoreBatteryRows({ athletes, marks, teamBox: null });
+    const ann = rows.find((row) => row.athlete_id === "a")!;
+    const bea = rows.find((row) => row.athlete_id === "b")!;
+    expect(ann.cells["Bench-Press"].rank).toBe(1);
+    expect(bea.cells["Bench-Press"].rank).toBe(2);
+    expect(ann.cells["Hex-Deadlift"].rank).toBe(1);
+    expect(ann.total_points).toBe(ann.cells["10-5_RSI"].points);
+    expect(bea.total_points).toBe(bea.cells["10-5_RSI"].points);
+    expect(ann.slots_completed).toBe(1);
+  });
 });
