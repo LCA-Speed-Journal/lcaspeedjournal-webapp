@@ -38,6 +38,8 @@ import { isDropoffMetric } from "@/lib/dropoff/metrics";
 import { directionFromUnits, summarizeDropoff } from "@/lib/dropoff/summarize";
 import { LEGACY_SPEED_KEYS } from "@/lib/speed/windows";
 import { rsqQuadrant } from "@/lib/battery/rsq";
+import { BOYS_BASKETBALL_BASELINE } from "@/lib/battery/template";
+import { testingLiftMovement } from "@/lib/battery/testing-lifts";
 
 const SPEED_RUN_KEY = "SpeedRun";
 const REPEAT_REP_COUNT = 10;
@@ -469,10 +471,38 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const allOptions = metricOptions();
   const selectedSession = sessions.find((s) => s.id === effectiveSessionId);
   const sessionMetrics = selectedSession?.day_metrics;
-  const options =
+  const registryOptions =
     Array.isArray(sessionMetrics) && sessionMetrics.length > 0
       ? allOptions.filter((o) => sessionAllowsMetric(sessionMetrics, o.key))
       : allOptions;
+  const liftKeys = new Set<string>();
+  if (Array.isArray(sessionMetrics)) {
+    for (const key of sessionMetrics) {
+      if (testingLiftMovement(key)) liftKeys.add(key);
+    }
+  }
+  if (batterySession) {
+    const testingDay = BOYS_BASKETBALL_BASELINE.days.find(
+      (day) => day.session_date === selectedSession?.session_date
+    );
+    if (testingDay) {
+      for (const key of testingDay.metric_keys) {
+        if (testingLiftMovement(key)) liftKeys.add(key);
+      }
+    }
+  }
+  const options = [
+    ...registryOptions,
+    ...[...liftKeys]
+      .filter((key) => !registryOptions.some((option) => option.key === key))
+      .map((key) => ({
+        key,
+        label: testingLiftMovement(key) ?? key,
+        inputStructure: "single_interval",
+        inputUnits: "lb",
+        defaultSplits: [] as (number | string)[],
+      })),
+  ];
   const selectedMetric = options.find((o) => o.key === metricKey) ?? null;
 
   const namedFortyComponents =
@@ -739,6 +769,50 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setError("");
     setSuccess("");
     setLoading(true);
+    if (batterySession && testingLiftMovement(metricKey) != null) {
+      const load = Number(rawInput.trim());
+      if (!batteryId) {
+        setError("Battery is not linked to this session");
+        setLoading(false);
+        return;
+      }
+      if (!Number.isFinite(load) || load <= 0 || load > 1500) {
+        setError("Enter a load in pounds, greater than 0 and at most 1500");
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch(`/api/battery/${encodeURIComponent(batteryId)}/lifts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            athlete_id: athleteId,
+            movement: metricKey,
+            load,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          setError(json.error ?? "Failed to save entry");
+          return;
+        }
+        setSuccess("Saved 1 entry");
+        setRawInput("");
+        clearBatteryEntry();
+        void globalMutate(
+          (key) =>
+            typeof key === "string" &&
+            key.startsWith(`/api/battery/${batteryId}/board`),
+          undefined,
+          { revalidate: true }
+        );
+      } catch {
+        setError("Network error");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     if (batterySession && metricKey === "10-5_RSI") {
       const rsiRaw = rawInput.trim();
       const jumpRaw = rsiJumpInches.trim();

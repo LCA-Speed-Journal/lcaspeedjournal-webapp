@@ -16,6 +16,7 @@ import { applySampleOverrides } from "./sample-overrides";
 import { sampleMarksForRoster } from "./sample-marks";
 import { scoreBatteryRows, type BatteryMark, type ScoredCell } from "./score-row";
 import { boardFocusDay, type BoardView } from "./board-focus";
+import { testingLiftMovement } from "./testing-lifts";
 import { BOYS_BASKETBALL_BASELINE } from "./template";
 
 export type BoardDirection = "higher" | "lower";
@@ -163,6 +164,8 @@ type DayRow = {
   day_key: string;
   label: string;
   session_id: string | null;
+  session_date: string | Date | null;
+  linked_session_date: string | Date | null;
   sort_order: number | string;
   closed_at: string | Date | null;
   locked_dri_box: string | null;
@@ -271,6 +274,85 @@ function asText(raw: unknown): string {
 function testsForDay(dayKey: string): string[] {
   const match = BOYS_BASKETBALL_BASELINE.days.find((day) => day.day_key === dayKey);
   return match ? [...match.metric_keys] : [];
+}
+
+function calendarDate(raw: unknown): string | null {
+  if (raw == null || raw === "") return null;
+  if (raw instanceof Date) {
+    if (Number.isNaN(raw.getTime())) return null;
+    return raw.toISOString().slice(0, 10);
+  }
+  const text = String(raw).trim().slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
+}
+
+/** Days whose lifts belong on this board. Null means every day of the meet. */
+function liftDayKeys(
+  days: readonly { day_key: string; closed_at: unknown }[],
+  options: { view: BoardView; dayKey?: string; dayKeys?: readonly string[] }
+): Set<string> | null {
+  if (options.view === "meet") {
+    if (options.dayKeys != null && options.dayKeys.length > 0) return new Set(options.dayKeys);
+    return null;
+  }
+  const focus = boardFocusDay(days, options.view, options.dayKey);
+  return new Set(focus ? [focus.day_key] : []);
+}
+
+/** Heaviest load_reps for Bench Press or Hex Deadlift on each linked day's date. */
+async function loadTestingLiftMarks(
+  hugoGroup: string,
+  days: readonly { day_key: string; session_date: string | null }[],
+  dayKeys: Set<string> | null
+): Promise<BatteryMark[]> {
+  const wanted: { date: string; name: string; key: string }[] = [];
+  for (const day of days) {
+    if (dayKeys != null && !dayKeys.has(day.day_key)) continue;
+    if (!day.session_date) continue;
+    for (const key of testsForDay(day.day_key)) {
+      const name = testingLiftMovement(key);
+      if (!name) continue;
+      wanted.push({ date: day.session_date, name, key });
+    }
+  }
+  if (wanted.length === 0) return [];
+
+  const dates = [...new Set(wanted.map((row) => row.date))];
+  const names = [...new Set(wanted.map((row) => row.name))];
+  const { rows } = await sql`
+    SELECT
+      l.athlete_id,
+      l.session_date::text AS session_date,
+      m.name,
+      MAX(r.load) AS load
+    FROM set_results r
+    INNER JOIN session_logs l ON l.id = r.session_log_id
+    INNER JOIN workout_movements m ON m.id = r.movement_id
+    WHERE r.kind = ${"load_reps"}
+      AND l.hugo_group = ${hugoGroup}
+      AND m.name = ANY(${names as unknown as string}::text[])
+      AND l.session_date::text = ANY(${dates as unknown as string}::text[])
+      AND r.load IS NOT NULL
+    GROUP BY l.athlete_id, l.session_date, m.name
+  `;
+
+  const keyByDateName = new Map(wanted.map((row) => [`${row.date}|${row.name}`, row.key]));
+  const best = new Map<string, { athlete_id: string; key: string; value: number }>();
+  for (const row of rows as Record<string, unknown>[]) {
+    const date = calendarDate(row.session_date);
+    const name = String(row.name ?? "");
+    const key = date == null ? undefined : keyByDateName.get(`${date}|${name}`);
+    if (!key) continue;
+    const value = Number(row.load);
+    if (!Number.isFinite(value)) continue;
+    const athleteId = String(row.athlete_id);
+    const id = `${athleteId}|${key}`;
+    const current = best.get(id);
+    if (current == null || value > current.value) {
+      best.set(id, { athlete_id: athleteId, key, value });
+    }
+  }
+  return [...best.values()];
 }
 
 function columnFor(key: string, teamBox: string | null): BoardColumn {
@@ -751,10 +833,19 @@ export async function loadBatteryBoard(
 
   const [dayResult, bibResult, groupResult, memberResult, hugoAthletes] = await Promise.all([
     sql`
-      SELECT day_key, label, session_id, sort_order, closed_at, locked_dri_box
-      FROM testing_battery_days
-      WHERE battery_id = ${battery.id}
-      ORDER BY sort_order ASC, day_key ASC
+      SELECT
+        d.day_key,
+        d.label,
+        d.session_id,
+        d.session_date,
+        s.session_date AS linked_session_date,
+        d.sort_order,
+        d.closed_at,
+        d.locked_dri_box
+      FROM testing_battery_days d
+      LEFT JOIN sessions s ON s.id = d.session_id
+      WHERE d.battery_id = ${battery.id}
+      ORDER BY d.sort_order ASC, d.day_key ASC
     `,
     sql`
       SELECT b.athlete_id, b.bib, a.first_name, a.last_name
@@ -782,6 +873,7 @@ export async function loadBatteryBoard(
       day_key: String(day.day_key),
       label: asText(day.label).trim(),
       session_id: day.session_id == null ? null : String(day.session_id),
+      session_date: calendarDate(day.session_date) ?? calendarDate(day.linked_session_date),
       sort_order: Number(day.sort_order),
       closed_at: day.closed_at,
       locked_dri_box: day.locked_dri_box == null ? null : String(day.locked_dri_box),
@@ -789,6 +881,9 @@ export async function loadBatteryBoard(
     .toSorted((a, b) => a.sort_order - b.sort_order || a.day_key.localeCompare(b.day_key));
 
   const sampleOn = options.sample === true && process.env.NODE_ENV !== "production";
+  const liftMarksPromise = sampleOn
+    ? Promise.resolve([] as BatteryMark[])
+    : loadTestingLiftMarks(String(battery.hugo_group), days, liftDayKeys(days, options));
   const basketballSessionIds = days.flatMap((day) => (day.session_id ? [day.session_id] : []));
   const basketballSessions = new Set(basketballSessionIds);
   let comparisonSessionId =
@@ -915,10 +1010,16 @@ export async function loadBatteryBoard(
           [...meetDayKeys].flatMap((dayKey) => expandedDayKeys(testsForDay(dayKey)))
         )
       : null;
+  const liftMarks = await liftMarksPromise;
   const marks = (
     samplePack
       ? samplePack.marks
-      : [...higherMarks(scoringRows), ...sprintMarks(scoringRows), ...repeatMarks(scoringRows)]
+      : [
+          ...higherMarks(scoringRows),
+          ...sprintMarks(scoringRows),
+          ...repeatMarks(scoringRows),
+          ...liftMarks,
+        ]
   ).filter((mark) => {
     if (RSQ_PLOT_KEYS.has(mark.key)) return false;
     if (options.view !== "meet") return focusKeys.has(mark.key);
