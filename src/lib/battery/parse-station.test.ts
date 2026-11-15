@@ -28,4 +28,23 @@ describe("battery station parsing", () => {
   it("rejects a short DRI line", () => {
     expect(() => parseEntry("DRI", "1.2, 1.4")).toThrow();
   });
+
+  it("stores a single labeled DRI box", () => {
+    const rows = parseEntry("DRI", "6:1.25");
+    expect(rows).toEqual([
+      expect.objectContaining({ component: "6", display_value: 1.25 }),
+    ]);
+  });
+
+  it("stores only the labeled DRI boxes that were sent", () => {
+    const rows = parseEntry("DRI", "6:1.2, 18:2.0");
+    expect(rows.map((row) => [row.component, row.display_value])).toEqual([
+      ["6", 1.2],
+      ["18", 2.0],
+    ]);
+  });
+
+  it("rejects a DRI label outside the four boxes", () => {
+    expect(() => parseEntry("DRI", "9:1")).toThrow();
+  });
 });

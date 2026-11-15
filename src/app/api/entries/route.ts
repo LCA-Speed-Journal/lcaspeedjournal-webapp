@@ -265,6 +265,15 @@ export async function POST(request: NextRequest) {
     const qualifier = rsiQualifierForSave(metric_key, body.qualifier);
     const ids: string[] = [];
     for (const row of parsed) {
+      if (row.metric_key === "DRI" && row.component) {
+        await sql`
+          DELETE FROM entries
+          WHERE session_id = ${session_id}
+            AND athlete_id = ${athlete_id}
+            AND metric_key = ${"DRI"}
+            AND component = ${row.component}
+        `;
+      }
       const rowQualifier = row.metric_key === RSI_METRIC_KEY ? qualifier : null;
       const result = await insertStandardEntry(
         {

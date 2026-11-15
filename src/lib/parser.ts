@@ -640,28 +640,50 @@ function parseSidedOptional(metric: MetricDef, rawInput: string): ParsedEntry[] 
   );
 }
 
+function driBoxRow(metric: MetricDef, component: string, rawValue: string): ParsedEntry {
+  const value = parseFloat(rawValue);
+  if (!Number.isFinite(value)) {
+    throw new Error(`Cannot parse DRI value "${rawValue}"`);
+  }
+  return {
+    metric_key: metric.display_name,
+    interval_index: null,
+    component,
+    value,
+    display_value: value,
+    units: metric.display_units,
+  };
+}
+
 function parseDriBoxes(metric: MetricDef, rawInput: string): ParsedEntry[] {
   const labels = metric.default_splits.filter((split): split is string => typeof split === "string");
+  const allowed = new Set(labels);
   const parts = splitValues(rawInput);
-  if (parts.length !== labels.length) {
+  if (rawInput.trim() === "" || parts.length === 0) {
     throw new Error(
-      `DRI values (${parts.length}) do not match boxes (${labels.length}) for ${metric.display_name}`
+      `DRI values (0) do not match boxes (${labels.length}) for ${metric.display_name}`
     );
   }
 
-  return parts.map((part, index) => {
-    const value = parseFloat(part);
-    if (!Number.isFinite(value)) {
-      throw new Error(`Cannot parse DRI value "${part}"`);
+  if (!parts.some((part) => part.includes(":"))) {
+    if (parts.length !== labels.length) {
+      throw new Error(
+        `DRI values (${parts.length}) do not match boxes (${labels.length}) for ${metric.display_name}`
+      );
     }
-    return {
-      metric_key: metric.display_name,
-      interval_index: null,
-      component: labels[index],
-      value,
-      display_value: value,
-      units: metric.display_units,
-    };
+    return parts.map((part, index) => driBoxRow(metric, labels[index], part));
+  }
+
+  return parts.map((part) => {
+    const colon = part.indexOf(":");
+    const label = colon >= 0 ? part.slice(0, colon).trim() : "";
+    const rawValue = colon >= 0 ? part.slice(colon + 1).trim() : "";
+    if (!allowed.has(label)) {
+      throw new Error(
+        `DRI label "${label || part}" does not match boxes (${labels.join(", ")}) for ${metric.display_name}`
+      );
+    }
+    return driBoxRow(metric, label, rawValue);
   });
 }
 

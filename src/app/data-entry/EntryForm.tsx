@@ -724,9 +724,9 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       setError(bibInput.length === 3 ? "Unknown bib" : "Enter a 3-digit bib");
       return;
     }
-    if (batterySession && metricKey === "DRI" && driValues.some((value) => value.trim() === "")) {
+    if (batterySession && metricKey === "DRI" && driValues.every((value) => value.trim() === "")) {
       setSuccess("");
-      setError("Enter all four DRI boxes");
+      setError("Enter at least one DRI box");
       return;
     }
     if (
@@ -791,7 +791,10 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     }
     let rawToSend: string;
     if (batterySession && metricKey === "DRI") {
-      rawToSend = driValues.map((value) => value.trim()).join(", ");
+      rawToSend = DRI_BOX_LABELS.flatMap((label, i) => {
+        const value = (driValues[i] ?? "").trim();
+        return value === "" ? [] : [`${label}:${value}`];
+      }).join(", ");
     } else if (batterySession && metricKey === "10x10m") {
       rawToSend = repValues.map((value) => value.trim()).join(", ");
     } else if (showNamedFlies) {
@@ -885,9 +888,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     ? namedFortyComponents.length
     : splitCount;
   const speedPreview = metricKey === SPEED_RUN_KEY ? previewSpeedRun(speedDraft) : null;
-  const batteryDriReady =
-    driValues.length === DRI_BOX_LABELS.length &&
-    driValues.every((value) => value.trim() !== "");
+  const batteryDriReady = driValues.some((value) => value.trim() !== "");
   const batteryRepsReady =
     repValues.length === REPEAT_REP_COUNT && repValues.every((value) => value.trim() !== "");
   const hasValue =
