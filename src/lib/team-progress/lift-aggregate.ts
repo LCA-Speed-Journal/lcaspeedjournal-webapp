@@ -1,10 +1,21 @@
 import { classifyLiftName, LIFT_PATTERNS, type LiftId } from "./headlines";
 import {
+  isHexDeadliftName,
+  projectedConventionalDeadlift,
+} from "./hex-deadlift";
+import {
   firstLastEligible,
   median,
   metricDelta,
   type SeriesPoint,
 } from "./stats";
+
+/** Conventional-equivalent pounds. Hex pulls are stored as load / 1.15. */
+function seriesLoad(movementName: string, load: number): number {
+  return isHexDeadliftName(movementName)
+    ? projectedConventionalDeadlift(load)
+    : load;
+}
 
 export type LiftLogRow = {
   athlete_id: string;
@@ -58,10 +69,11 @@ export function aggregateLiftSeries(
     if (row.load == null || !Number.isFinite(row.load)) continue;
     const liftId = classifyLiftName(row.movement_name);
     if (!liftId) continue;
+    const load = seriesLoad(row.movement_name, row.load);
     const date = row.session_date;
     const key = `${liftId}\0${date}\0${row.athlete_id}`;
     const prev = bestLoad.get(key);
-    if (prev == null || row.load > prev) bestLoad.set(key, row.load);
+    if (prev == null || load > prev) bestLoad.set(key, load);
 
     const nameKey = `${date}\0${row.athlete_id}\0${row.movement_name}`;
     if (!seenAthleteDayName.has(nameKey)) {
@@ -122,10 +134,11 @@ export function athleteLiftDeltas(
   for (const row of rows) {
     if (row.kind !== "load_reps" || row.load == null) continue;
     if (classifyLiftName(row.movement_name) !== liftId) continue;
+    const load = seriesLoad(row.movement_name, row.load);
     const date = row.session_date;
     const days = byAthlete.get(row.athlete_id) ?? new Map();
     const prev = days.get(date);
-    if (prev == null || row.load > prev) days.set(date, row.load);
+    if (prev == null || load > prev) days.set(date, load);
     byAthlete.set(row.athlete_id, days);
   }
   const out = new Map<string, { first: number; last: number; delta: number }>();

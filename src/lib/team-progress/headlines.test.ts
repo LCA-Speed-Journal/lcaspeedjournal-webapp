@@ -46,14 +46,16 @@ describe("headlines registry", () => {
     ]);
   });
 
-  it("classifies squat / press / hinge aliases and ignores trap-bar", () => {
+  it("classifies squat / press / hinge aliases, including trap-bar and hex deadlift", () => {
     expect(classifyLiftName("Tempo Goblet Squat")).toBe("squat");
     expect(classifyLiftName("Front Squat")).toBe("squat");
     expect(classifyLiftName("DB Bench (3RM Test)")).toBe("press");
     expect(classifyLiftName("Overhead Press")).toBe("press");
     expect(classifyLiftName("BB RDL (3RM Test)")).toBe("hinge");
     expect(classifyLiftName("Romanian Deadlift")).toBe("hinge");
-    expect(classifyLiftName("Trap-Bar Deadlift")).toBeNull();
+    expect(classifyLiftName("Trap-Bar Deadlift")).toBe("hinge");
+    expect(classifyLiftName("Hex Deadlift")).toBe("hinge");
+    expect(classifyLiftName("Deadlift")).toBeNull();
     expect(LIFT_PATTERNS.map((p) => p.id)).toEqual(["squat", "press", "hinge"]);
   });
 

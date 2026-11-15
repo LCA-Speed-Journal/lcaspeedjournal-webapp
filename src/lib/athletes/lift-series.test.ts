@@ -34,6 +34,10 @@ describe("athleteLiftSeries", () => {
       { date: "2026-08-11", value: 55 },
       { date: "2026-08-18", value: 65 },
     ]);
-    expect(series.find((s) => s.lift_id === "hinge")).toBeUndefined();
+    const hinge = series.find((s) => s.lift_id === "hinge");
+    expect(hinge?.points).toEqual([
+      { date: "2026-08-11", value: 200 / 1.15 },
+    ]);
+    expect(series.map((s) => s.lift_id).sort()).toEqual(["hinge", "squat"]);
   });
 });

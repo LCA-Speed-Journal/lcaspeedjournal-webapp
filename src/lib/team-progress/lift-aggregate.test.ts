@@ -72,10 +72,17 @@ const rows: LiftLogRow[] = [
     kind: "load_reps",
     load: 315,
   },
+  {
+    athlete_id: "a4",
+    session_date: "2026-09-01",
+    movement_name: "Hex Deadlift",
+    kind: "load_reps",
+    load: 200,
+  },
 ];
 
 describe("aggregateLiftSeries", () => {
-  it("builds daily medians for squat/press/hinge and ignores trap-bar", () => {
+  it("builds daily medians for squat/press/hinge and projects hex pulls onto hinge", () => {
     const series = aggregateLiftSeries(rows, 2);
     const squat = series.find((s) => s.lift_id === "squat")!;
     expect(squat.points.length).toBe(2);
@@ -90,7 +97,17 @@ describe("aggregateLiftSeries", () => {
     expect(press.points[0]!.n).toBe(2);
 
     const hinge = series.find((s) => s.lift_id === "hinge")!;
-    expect(hinge.points[0]!.median).toBe(185);
-    expect(series.every((s) => s.lift_id !== ("trap" as never))).toBe(true);
+    const aug11 = hinge.points.find((p) => p.date === "2026-08-11");
+    expect(aug11?.median).toBeCloseTo((185 + 315 / 1.15) / 2, 5);
+
+    const hexDay = hinge.points.find((p) => p.date === "2026-09-01");
+    expect(hexDay?.median).toBeCloseTo(200 / 1.15, 5);
+    expect(hexDay?.median).not.toBe(200);
+
+    expect(series.map((s) => s.lift_id).sort()).toEqual([
+      "hinge",
+      "press",
+      "squat",
+    ]);
   });
 });

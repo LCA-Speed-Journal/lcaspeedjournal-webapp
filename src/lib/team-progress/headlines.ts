@@ -1,5 +1,6 @@
 import type { HugoGroup } from "@/lib/weight-room/constants";
 import { getMaxVelocityKey } from "@/lib/velocity-metrics";
+import { isHexDeadliftName } from "./hex-deadlift";
 
 export const CORE_TEST_KEYS = [
   "40yd_Dash",
@@ -78,10 +79,10 @@ export const LIFT_PATTERNS: readonly LiftPattern[] = [
   },
 ];
 
-/** Trap-bar and unrelated names return null. */
+/** Hex and trap-bar count as hinge. Unrelated names return null. */
 export function classifyLiftName(name: string): LiftId | null {
+  if (isHexDeadliftName(name)) return "hinge";
   const lower = name.toLowerCase();
-  if (/trap[\s-]?bar|hex[\s-]?bar/.test(lower)) return null;
   for (const pattern of LIFT_PATTERNS) {
     for (const alias of pattern.aliases) {
       if (lower.includes(alias)) return pattern.id;

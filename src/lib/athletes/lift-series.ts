@@ -3,6 +3,10 @@ import {
   LIFT_PATTERNS,
   type LiftId,
 } from "@/lib/team-progress/headlines";
+import {
+  isHexDeadliftName,
+  projectedConventionalDeadlift,
+} from "@/lib/team-progress/hex-deadlift";
 
 export type AthleteLiftLogRow = {
   session_date: string;
@@ -30,9 +34,12 @@ export function athleteLiftSeries(
     if (row.load == null || !Number.isFinite(row.load)) continue;
     const liftId = classifyLiftName(row.movement_name);
     if (!liftId) continue;
+    const load = isHexDeadliftName(row.movement_name)
+      ? projectedConventionalDeadlift(row.load)
+      : row.load;
     const key = `${liftId}\0${row.session_date}`;
     const prev = best.get(key);
-    if (prev == null || row.load > prev) best.set(key, row.load);
+    if (prev == null || load > prev) best.set(key, load);
   }
 
   const out: AthleteLiftSeries[] = [];
