@@ -7,12 +7,14 @@ import {
 } from "@/lib/weight-room/constants";
 import { insertHugoMembership } from "@/lib/weight-room/hugo-memberships";
 import { isUuid } from "@/lib/weight-room/insert-template";
+import { gradeToGraduatingClass } from "@/lib/quick-athlete";
 
 type CommitRow = {
   first_name: string;
   last_name: string;
   athlete_id?: string;
   create?: boolean;
+  grade: number | null;
 };
 
 type CommitRowError = {
@@ -24,6 +26,20 @@ type CommitRowError = {
 function rowErrorMessage(err: unknown): string {
   if (err instanceof Error && err.message.trim()) return err.message;
   return "Failed to commit row";
+}
+
+function parseOptionalGrade(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const token =
+    typeof value === "number"
+      ? String(value)
+      : typeof value === "string"
+        ? value.trim()
+        : "";
+  if (token === "9" || token === "10" || token === "11" || token === "12") {
+    return Number(token);
+  }
+  return null;
 }
 
 function parseCommitRows(
@@ -61,6 +77,7 @@ function parseCommitRows(
       last_name,
       athlete_id: athleteId,
       create: athleteId ? undefined : create,
+      grade: parseOptionalGrade(rec.grade),
     });
   }
   return { ok: true, rows };
@@ -100,12 +117,13 @@ export async function POST(request: NextRequest) {
     let added = 0;
     let created = 0;
     const errors: CommitRowError[] = [];
-    const graduatingClass = new Date().getFullYear() + 2;
 
     for (let index = 0; index < parsed.rows.length; index++) {
       const row = parsed.rows[index];
       let athleteId = row.athlete_id;
       let createdThisRow = false;
+      const graduatingClass =
+        row.grade == null ? null : gradeToGraduatingClass(row.grade);
       try {
         if (!athleteId && row.create) {
           const gender = defaultGenderForHugoGroup(rec.hugo_group);
@@ -141,6 +159,14 @@ export async function POST(request: NextRequest) {
               athlete_id: athleteId,
             });
             continue;
+          }
+          if (graduatingClass != null) {
+            await sql`
+              UPDATE athletes
+              SET graduating_class = ${graduatingClass}
+              WHERE id = ${athleteId}
+                AND graduating_class IS NULL
+            `;
           }
         }
 

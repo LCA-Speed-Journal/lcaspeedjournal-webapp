@@ -27,6 +27,7 @@ type PreviewRow = {
   raw: string;
   first_name: string;
   last_name: string;
+  grade?: number | null;
   error?: string;
   exact_matches: ExactMatch[];
 };
@@ -37,6 +38,7 @@ type ReviewRow = {
   raw: string;
   first_name: string;
   last_name: string;
+  grade: number | null;
   parseError?: string;
   exact_matches: ExactMatch[];
   action: ReviewAction;
@@ -62,13 +64,20 @@ function jsonError(json: { error?: unknown }, fallback: string): string {
     : fallback;
 }
 
+function reviewGrade(grade: number | null | undefined): number | null {
+  if (grade === 9 || grade === 10 || grade === 11 || grade === 12) return grade;
+  return null;
+}
+
 function toReviewRow(row: PreviewRow): ReviewRow {
   const matches = row.exact_matches ?? [];
+  const grade = reviewGrade(row.grade);
   if (row.error) {
     return {
       raw: row.raw,
       first_name: row.first_name,
       last_name: row.last_name,
+      grade,
       parseError: row.error,
       exact_matches: matches,
       action: "create",
@@ -80,6 +89,7 @@ function toReviewRow(row: PreviewRow): ReviewRow {
       raw: row.raw,
       first_name: row.first_name,
       last_name: row.last_name,
+      grade,
       exact_matches: matches,
       action: "link",
       athleteId: matches[0].id,
@@ -90,6 +100,7 @@ function toReviewRow(row: PreviewRow): ReviewRow {
       raw: row.raw,
       first_name: row.first_name,
       last_name: row.last_name,
+      grade,
       exact_matches: matches,
       action: "link",
       athleteId: "",
@@ -99,6 +110,7 @@ function toReviewRow(row: PreviewRow): ReviewRow {
     raw: row.raw,
     first_name: row.first_name,
     last_name: row.last_name,
+    grade,
     exact_matches: matches,
     action: "create",
     athleteId: "",
@@ -231,11 +243,13 @@ export function RostersClient() {
           ? {
               first_name: row.first_name,
               last_name: row.last_name,
+              grade: row.grade,
               create: true,
             }
           : {
               first_name: row.first_name,
               last_name: row.last_name,
+              grade: row.grade,
               athlete_id: row.athleteId,
             }
       );
@@ -561,7 +575,7 @@ export function RostersClient() {
               onChange={(e) => setPasteText(e.target.value)}
               rows={8}
               className="mt-1 block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground"
-              placeholder={"Last, First\nFirst Last"}
+              placeholder={"Last, First\nLast, First, 12\nFirst Last"}
             />
           </label>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -634,6 +648,7 @@ export function RostersClient() {
                       <th className="py-2 pr-3 font-medium">Raw</th>
                       <th className="py-2 pr-3 font-medium">First</th>
                       <th className="py-2 pr-3 font-medium">Last</th>
+                      <th className="py-2 pr-3 font-medium">Grade</th>
                       <th className="py-2 pr-3 font-medium">Action</th>
                       <th className="py-2 font-medium">Athlete</th>
                     </tr>
@@ -664,6 +679,12 @@ export function RostersClient() {
                     <p className="text-foreground-muted">{row.raw}</p>
                     <p className="mt-1 text-foreground">
                       {row.first_name || "—"} {row.last_name || "—"}
+                      {row.grade != null ? (
+                        <span className="text-foreground-muted">
+                          {" "}
+                          · Grade {row.grade}
+                        </span>
+                      ) : null}
                     </p>
                     {row.parseError ? (
                       <p className="mt-2 text-danger">{row.parseError}</p>
@@ -761,6 +782,7 @@ function ReviewTableRow({
       <td className="break-words py-2 pr-3 text-foreground-muted">{row.raw}</td>
       <td className="py-2 pr-3 text-foreground">{row.first_name || "—"}</td>
       <td className="py-2 pr-3 text-foreground">{row.last_name || "—"}</td>
+      <td className="py-2 pr-3 text-foreground">{row.grade ?? "—"}</td>
       <td className="py-2 pr-3" colSpan={row.parseError ? 2 : 1}>
         {row.parseError ? (
           <p className="text-danger">{row.parseError}</p>

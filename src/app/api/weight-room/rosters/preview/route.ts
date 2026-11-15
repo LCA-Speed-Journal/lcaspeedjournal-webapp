@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
           raw: line.raw,
           first_name: line.first_name,
           last_name: line.last_name,
+          grade: line.grade,
           error: line.error,
           exact_matches: [] as ExactMatch[],
         };
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
         raw: line.raw,
         first_name: line.first_name,
         last_name: line.last_name,
+        grade: line.grade,
         exact_matches,
       };
     });
