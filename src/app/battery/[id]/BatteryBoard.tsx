@@ -532,6 +532,7 @@ export function BatteryBoard({
   const [dayKey, setDayKey] = useState("");
   const [group, setGroup] = useState("overall");
   const [paused, setPaused] = useState(false);
+  const [reviewList, setReviewList] = useState(false);
   const [rsqDetail, setRsqDetail] = useState(false);
   const onRsqDetail = useCallback((open: boolean) => {
     setRsqDetail(open);
@@ -560,7 +561,8 @@ export function BatteryBoard({
   const fetched = data?.url === url ? data.data : undefined;
   const payload = !isLoading && fetched?.view === view ? fetched : undefined;
   const ordered = payload ? orderBoard(payload.athletes, payload.untested_ids) : [];
-  const paging = !narrow && ordered.length > ATHLETES_PER_PAGE;
+  const paging = !narrow && !reviewList && ordered.length > ATHLETES_PER_PAGE;
+  const listMode = narrow || reviewList;
   const pageCount = paging ? boardPageCount(ordered.length) : 1;
   const safePage = Math.min(page, pageCount - 1);
   if (pageScope !== scope) {
@@ -575,9 +577,9 @@ export function BatteryBoard({
   const refreshFailed = Boolean(payload && error);
   const rowListRef = useRef<HTMLDivElement>(null);
   const nameCellRef = useRef<HTMLSpanElement>(null);
-  const items = paging
-    ? pageItems(ordered, safePage, lineAfter)
-    : pageItems(ordered, 0, lineAfter, Math.max(ordered.length, 1));
+  const items = listMode
+    ? pageItems(ordered, 0, lineAfter, Math.max(ordered.length, 1))
+    : pageItems(ordered, safePage, lineAfter);
   const nameLabels = items.flatMap((item) =>
     item.kind === "row"
       ? [
@@ -670,7 +672,7 @@ export function BatteryBoard({
         canvas.font = `${weight} ${size}px ${family}`;
         return canvas.measureText(text).width;
       };
-      if (narrow) {
+      if (listMode) {
         root.style.removeProperty("--mark-size");
         const size = Number.parseFloat(nameStyles.fontSize) || 16;
         let widest = 0;
@@ -717,7 +719,7 @@ export function BatteryBoard({
     observer.observe(root);
     if (row) observer.observe(row);
     return () => observer.disconnect();
-  }, [fitKey, narrow]);
+  }, [fitKey, narrow, reviewList]);
 
   useEffect(() => {
     if (!paging || paused || rsqDetail || !isVisible) return;
@@ -757,7 +759,7 @@ export function BatteryBoard({
     return { ...point, rsi: cell?.value ?? null, rank: cell?.rank ?? null };
   });
   const template = columnTemplate(columns.length, narrow);
-  const markFont = narrow ? "1.05rem" : "var(--mark-size, 1.5rem)";
+  const markFont = listMode ? "1.05rem" : "var(--mark-size, 1.5rem)";
   const dayLabel = payload.day_label.trim() || (payload.view === "meet" ? "Meet" : "Today");
   const showGroups = teamMode;
 
@@ -899,17 +901,30 @@ export function BatteryBoard({
             >
               {statusLabel}
             </button>
+            {narrow ? null : (
+              <button
+                type="button"
+                aria-pressed={reviewList}
+                onClick={() => {
+                  setReviewList((current) => !current);
+                  setPage(0);
+                }}
+                className="rounded-full border border-border bg-surface px-3 py-1 font-mono text-sm uppercase tracking-wider text-foreground hover:border-accent/50"
+              >
+                {reviewList ? "List" : "Pages"}
+              </button>
+            )}
           </div>
         </div>
       </header>
 
       <div
-        className={`min-h-0 min-w-0 flex-1 overscroll-contain ${narrow ? "overflow-auto" : "overflow-hidden"}`}
+        className={`min-h-0 min-w-0 flex-1 overscroll-contain ${listMode ? "overflow-auto" : "overflow-hidden"}`}
         data-row-count={dataRowCount}
-        data-board-scroll={narrow ? "full" : "pages"}
+        data-board-scroll={listMode ? "full" : "pages"}
         ref={rowListRef}
       >
-        <div className={`flex min-w-full flex-col ${narrow ? "w-max" : "h-full w-full"}`}>
+        <div className={`flex min-w-full flex-col ${narrow ? "w-max" : listMode ? "w-full" : "h-full w-full"}`}>
           <div
             className="grid w-full shrink-0 border-b border-border text-[11px] font-semibold uppercase tracking-wide text-foreground-muted"
             style={{ gridTemplateColumns: template }}
@@ -966,7 +981,7 @@ export function BatteryBoard({
                   columns={columns}
                   template={template}
                   markFont={markFont}
-                  scroll={narrow}
+                  scroll={listMode}
                   nameLabel={
                     narrow
                       ? shortName(item.row.athlete.first_name, item.row.athlete.last_name)
