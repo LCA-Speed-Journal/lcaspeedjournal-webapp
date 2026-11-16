@@ -157,6 +157,18 @@ describe("gym board order", () => {
     expect(packed.nameWidth).toBe(Math.ceil(name));
   });
 
+  it("caps the name column at 30% of the board when no marks are entered", () => {
+    const widthOf = (label: string, size: number) => label.length * size * 0.6;
+    const nameAt = (size: number) => widthOf("Christopher Williamson", size) + 18;
+    const board = 1600;
+    const empty = fitSharedSize(board, 400, 4, 80, 0, nameAt, () => 0);
+    expect(empty.nameWidth).toBeLessThanOrEqual(board * 0.3);
+    expect(empty.nameWidth).toBeGreaterThan(48);
+    const marked = fitSharedSize(board, 80, 4, 80, 16, nameAt, (size) => widthOf("19.2mph", size));
+    expect(marked.nameWidth).toBeLessThanOrEqual(board * 0.3);
+    expect(marked.nameWidth).toBe(Math.ceil(nameAt(marked.size)));
+  });
+
   it("grows a name until the widest label or the bib line stops it", () => {
     const widthOf = (label: string, size: number) => label.length * size * 0.5;
     expect(fitLabelSize(["Al", "Christopher"], 80, 100, widthOf)).toBeCloseTo(14.5, 0);

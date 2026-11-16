@@ -152,19 +152,21 @@ export function fitSharedSize(
   const floor = 11;
   const cellPad = 8;
   const minCol = 36;
+  const nameLimit = boardWidth * 0.3;
   const heightCap = rowHeight - subtextHeight - 8;
   const upper = Math.max(1, heightCap);
   const clampName = (size: number) => {
     const remain = boardWidth - fixedWidth;
     const markCol = markAt(size) + cellPad;
     const fair = remain - columns * Math.max(markCol, minCol);
-    return Math.max(48, Math.min(nameAt(size), Math.max(48, fair)));
+    return Math.max(48, Math.min(nameAt(size), nameLimit, Math.max(48, fair)));
   };
   if (upper <= floor || columns <= 0 || boardWidth <= fixedWidth) {
     const size = Math.min(floor, upper);
     return { size, nameWidth: clampName(size) };
   }
   const fits = (size: number) => {
+    if (nameAt(size) > nameLimit) return false;
     const remain = boardWidth - fixedWidth - nameAt(size);
     if (remain <= 0) return false;
     const col = remain / columns;
@@ -179,7 +181,7 @@ export function fitSharedSize(
     else hi = mid;
   }
   const size = Math.round(Math.min(lo, upper) * 10) / 10;
-  return { size, nameWidth: Math.ceil(nameAt(size)) };
+  return { size, nameWidth: Math.min(Math.ceil(nameAt(size)), Math.floor(nameLimit)) };
 }
 
 export function pageItems(
