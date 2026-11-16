@@ -15,6 +15,7 @@ import {
   normalizeAthleteGender,
 } from "@/lib/quick-athlete";
 import type { Athlete } from "@/types";
+import { TestingTeamsSection } from "./TestingTeamsSection";
 
 const fetcher = (url: string) =>
   fetch(url).then((r) =>
@@ -559,6 +560,8 @@ export function RostersClient() {
             <p className="mt-2 text-sm text-danger">{enrollmentError}</p>
           ) : null}
         </section>
+
+        <TestingTeamsSection hugoGroup={hugoGroup} members={members} />
 
         <section className="mt-4 rounded-2xl border border-border bg-surface-elevated p-4">
           <h2 className="text-sm font-medium uppercase tracking-wider text-foreground-muted">
