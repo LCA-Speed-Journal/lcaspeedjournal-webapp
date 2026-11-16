@@ -10,7 +10,26 @@ import type { RsqDot } from "./RsqPlot";
 
 export { orderBoard };
 
-const PAGE_SIZE = 11;
+const ATHLETES_PER_PAGE = 10;
+
+export function boardPageCount(athleteCount: number): number {
+  if (athleteCount <= 0) return 1;
+  return Math.ceil(athleteCount / ATHLETES_PER_PAGE);
+}
+
+export function boardPageSpan(athleteCount: number, page: number): { start: number; size: number } {
+  const pages = boardPageCount(athleteCount);
+  const safePage = Math.min(Math.max(page, 0), pages - 1);
+  if (athleteCount <= 0) return { start: 0, size: 0 };
+  const base = Math.floor(athleteCount / pages);
+  const extra = athleteCount % pages;
+  let start = 0;
+  for (let index = 0; index < safePage; index++) {
+    start += base + (index < extra ? 1 : 0);
+  }
+  return { start, size: base + (safePage < extra ? 1 : 0) };
+}
+
 const ADVANCE_MS = 10000;
 const REFRESH_MS = 5000;
 
@@ -167,10 +186,13 @@ export function pageItems(
   rows: BoardRow[],
   page: number,
   cutoffAfter: number | null,
-  pageSize = PAGE_SIZE
+  pageSize?: number
 ): PageItem[] {
-  const start = page * pageSize;
-  const slice = rows.slice(start, start + pageSize);
+  const span =
+    pageSize == null
+      ? boardPageSpan(rows.length, page)
+      : { start: page * pageSize, size: pageSize };
+  const slice = rows.slice(span.start, span.start + span.size);
   const items: PageItem[] = [];
   let inUntested = false;
   slice.forEach((row, index) => {
@@ -179,7 +201,7 @@ export function pageItems(
       inUntested = true;
     }
     items.push({ kind: "row", row });
-    if (cutoffAfter != null && start + index === cutoffAfter) {
+    if (cutoffAfter != null && span.start + index === cutoffAfter) {
       items.push({ kind: "cutoff" });
     }
   });
@@ -538,8 +560,8 @@ export function BatteryBoard({
   const fetched = data?.url === url ? data.data : undefined;
   const payload = !isLoading && fetched?.view === view ? fetched : undefined;
   const ordered = payload ? orderBoard(payload.athletes, payload.untested_ids) : [];
-  const paging = !narrow && ordered.length > PAGE_SIZE;
-  const pageCount = paging ? Math.ceil(ordered.length / PAGE_SIZE) : 1;
+  const paging = !narrow && ordered.length > ATHLETES_PER_PAGE;
+  const pageCount = paging ? boardPageCount(ordered.length) : 1;
   const safePage = Math.min(page, pageCount - 1);
   if (pageScope !== scope) {
     setPageScope(scope);
@@ -699,7 +721,7 @@ export function BatteryBoard({
 
   useEffect(() => {
     if (!paging || paused || rsqDetail || !isVisible) return;
-    const count = Math.max(1, Math.ceil(ordered.length / PAGE_SIZE));
+    const count = boardPageCount(ordered.length);
     const timer = window.setInterval(() => {
       setPage((current) => (current + 1) % count);
     }, ADVANCE_MS);

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  boardPageCount,
+  boardPageSpan,
   cutoffAfterIndex,
   fitLabelSize,
   fitSharedSize,
@@ -36,22 +38,40 @@ describe("gym board order", () => {
     expect(line).toBe(17);
     const secondPage = pageItems(rows, 1, line);
     const kinds = secondPage.map((item) => (item.kind === "row" ? item.row.place : item.kind));
-    expect(kinds).toEqual([12, 13, 14, 15, 16, 17, 18, "cutoff", 19, 20]);
+    expect(kinds).toEqual([11, 12, 13, 14, 15, 16, 17, 18, "cutoff", 19, 20]);
   });
 
-  it("keeps 11 athletes on a live page in Top 18 and in Teams", () => {
+  it("splits a roster into balanced pages of about ten", () => {
+    expect(boardPageCount(0)).toBe(1);
+    expect(boardPageSpan(0, 0)).toEqual({ start: 0, size: 0 });
+    expect(boardPageCount(10)).toBe(1);
+    expect(boardPageSpan(10, 0)).toEqual({ start: 0, size: 10 });
+    expect(boardPageSpan(11, 0)).toEqual({ start: 0, size: 6 });
+    expect(boardPageSpan(11, 1)).toEqual({ start: 6, size: 5 });
+    expect(boardPageSpan(20, 1)).toEqual({ start: 10, size: 10 });
+    expect(boardPageSpan(22, 0)).toEqual({ start: 0, size: 8 });
+    expect(boardPageSpan(22, 1)).toEqual({ start: 8, size: 7 });
+    expect(boardPageSpan(22, 2)).toEqual({ start: 15, size: 7 });
+    expect(boardPageSpan(23, 0).size).toBe(8);
+    expect(boardPageSpan(23, 1).size).toBe(8);
+    expect(boardPageSpan(23, 2).size).toBe(7);
+    expect(boardPageCount(40)).toBe(4);
+    expect(boardPageSpan(40, 3)).toEqual({ start: 30, size: 10 });
+  });
+
+  it("keeps Top 18 and Teams on the same balanced pages", () => {
     const athletes = Array.from({ length: 22 }, (_, index) => athlete(index + 1, 100 - index));
     const rows = orderBoard(athletes, []);
     const line = cutoffAfterIndex(rows, 18);
     const top18 = pageItems(rows, 0, line);
     const teams = pageItems(rows, 0, null);
-    expect(top18.filter((item) => item.kind === "row")).toHaveLength(11);
+    expect(top18.filter((item) => item.kind === "row")).toHaveLength(8);
     expect(top18.some((item) => item.kind === "cutoff")).toBe(false);
-    expect(teams.filter((item) => item.kind === "row")).toHaveLength(11);
+    expect(teams.filter((item) => item.kind === "row")).toHaveLength(8);
     expect(teams.some((item) => item.kind === "cutoff")).toBe(false);
-    const top18Next = pageItems(rows, 1, line);
-    expect(top18Next.filter((item) => item.kind === "row")).toHaveLength(11);
-    expect(top18Next.some((item) => item.kind === "cutoff")).toBe(true);
+    const last = pageItems(rows, 2, line);
+    expect(last.filter((item) => item.kind === "row")).toHaveLength(7);
+    expect(last.some((item) => item.kind === "cutoff")).toBe(true);
   });
 
   it("shares a place when tied athletes are not adjacent in the payload", () => {
@@ -72,7 +92,7 @@ describe("gym board order", () => {
     );
     const secondPage = pageItems(rows, 1, null);
     expect(secondPage[0]?.kind).toBe("untested");
-    expect(secondPage.filter((item) => item.kind === "row")).toHaveLength(4);
+    expect(secondPage.filter((item) => item.kind === "row")).toHaveLength(7);
   });
 
   it("keeps a tie on the cutoff above the line and skips the next place", () => {
