@@ -379,11 +379,13 @@ function MarkCell({
   cell,
   qualifier,
   markFont,
+  scroll,
 }: {
   column: BoardColumn;
   cell: BoardCell | undefined;
   qualifier: string | null;
   markFont: string;
+  scroll: boolean;
 }) {
   const place = cell ? (cell.tied ? `T${cell.rank}` : String(cell.rank)) : "";
   const rsi = cell && column.key === "10-5_RSI" ? qualifierMark(qualifier) : null;
@@ -401,10 +403,14 @@ function MarkCell({
     <div
       data-mark-cell
       className="relative flex h-full min-h-0 min-w-0 items-center justify-center self-stretch overflow-hidden px-0.5 text-center"
-      style={{ fontSize: markFont }}
+      style={{ fontSize: markFont, minHeight: scroll ? "4rem" : undefined }}
     >
-      {frame ? <div className={`pointer-events-none absolute inset-x-0.5 inset-y-[5%] ${frame}`} /> : null}
-      <div className="flex max-h-full min-w-0 max-w-full flex-col items-center justify-center gap-0.5 leading-none">
+      {frame ? (
+        <div
+          className={`pointer-events-none absolute inset-x-0.5 ${scroll ? "inset-y-1" : "inset-y-[5%]"} ${frame}`}
+        />
+      ) : null}
+      <div className="relative flex max-h-full min-w-0 max-w-full flex-col items-center justify-center gap-0.5 leading-none">
         {cell ? (
           <div className="flex max-w-full items-center justify-center gap-[0.15em] leading-none">
             {rsi ? <QualifierIcon kind={rsi.key} className="h-[0.55em] w-[0.55em]" /> : null}
@@ -508,6 +514,7 @@ function AthleteRow({
           cell={athlete.cells[column.key]}
           qualifier={athlete.qualifier}
           markFont={markFont}
+          scroll={scroll}
         />
       ))}
       <span className="pr-1 text-center font-mono text-[13px] font-semibold tabular-nums md:text-sm">
