@@ -39,6 +39,21 @@ describe("gym board order", () => {
     expect(kinds).toEqual([12, 13, 14, 15, 16, 17, 18, "cutoff", 19, 20]);
   });
 
+  it("keeps 11 athletes on a live page in Top 18 and in Teams", () => {
+    const athletes = Array.from({ length: 22 }, (_, index) => athlete(index + 1, 100 - index));
+    const rows = orderBoard(athletes, []);
+    const line = cutoffAfterIndex(rows, 18);
+    const top18 = pageItems(rows, 0, line);
+    const teams = pageItems(rows, 0, null);
+    expect(top18.filter((item) => item.kind === "row")).toHaveLength(11);
+    expect(top18.some((item) => item.kind === "cutoff")).toBe(false);
+    expect(teams.filter((item) => item.kind === "row")).toHaveLength(11);
+    expect(teams.some((item) => item.kind === "cutoff")).toBe(false);
+    const top18Next = pageItems(rows, 1, line);
+    expect(top18Next.filter((item) => item.kind === "row")).toHaveLength(11);
+    expect(top18Next.some((item) => item.kind === "cutoff")).toBe(true);
+  });
+
   it("shares a place when tied athletes are not adjacent in the payload", () => {
     const rows = orderBoard(
       [athlete(3, 10, 2), athlete(2, 4, 2), athlete(1, 10, 2)],
