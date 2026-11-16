@@ -10,6 +10,7 @@ import {
 } from "@/lib/norms/testing-day-derived";
 import { sameSpeedMark } from "@/lib/speed/windows";
 import { compareMark, SHARED_SOCCER_KEYS } from "./compare";
+import { orderDayColumnKeys } from "./day-columns";
 import { bestDriPerAthleteBox, pickTeamDriBox } from "./dri";
 import { latestRepeatSeriesTimes, scoreRepeatSprint } from "./repeat-sprint";
 import { applySampleOverrides } from "./sample-overrides";
@@ -109,7 +110,7 @@ const HIGHER_METRIC_KEYS = [
   "OH-MB_Throw",
 ] as const;
 
-/** Read with the session, plotted on Day A and the Meet, never ranked. */
+/** Read with the session and drawn from the RSI header, never ranked. */
 const RSQ_JUMP_KEY = "10-5_JH";
 const RSQ_CONTACT_KEY = "10-5_GCT";
 const RSQ_PLOT_KEYS = new Set<string>([RSQ_JUMP_KEY, RSQ_CONTACT_KEY]);
@@ -1092,7 +1093,7 @@ export async function loadBatteryBoard(
     options.view === "meet"
       ? meetColumnKeys(present, present.has("40yd_Dash") || hasFortyEntry(scoringRows))
       : focusDay
-        ? expandedDayKeys(testsForDay(focusDay.day_key))
+        ? orderDayColumnKeys(focusDay.day_key, expandedDayKeys(testsForDay(focusDay.day_key)))
         : [];
   const columns = columnKeys.map((key) => columnFor(key, teamBox));
   const viewKeys = new Set(columns.map((column) => column.key));

@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { cutoffAfterIndex, formatDelta, formatDeltaLine, formatMark, orderBoard, pageItems, shortName } from "./BatteryBoard";
+import {
+  cutoffAfterIndex,
+  fitLabelSize,
+  fitSharedSize,
+  formatDelta,
+  formatDeltaLine,
+  formatMark,
+  orderBoard,
+  pageItems,
+  shortName,
+} from "./BatteryBoard";
 import type { BoardAthlete } from "@/lib/battery/load";
 
 function athlete(index: number, points: number, slots = 1): BoardAthlete {
@@ -26,7 +36,7 @@ describe("gym board order", () => {
     expect(line).toBe(17);
     const secondPage = pageItems(rows, 1, line);
     const kinds = secondPage.map((item) => (item.kind === "row" ? item.row.place : item.kind));
-    expect(kinds).toEqual([13, 14, 15, 16, 17, 18, "cutoff", 19, 20]);
+    expect(kinds).toEqual([12, 13, 14, 15, 16, 17, 18, "cutoff", 19, 20]);
   });
 
   it("shares a place when tied athletes are not adjacent in the payload", () => {
@@ -47,7 +57,7 @@ describe("gym board order", () => {
     );
     const secondPage = pageItems(rows, 1, null);
     expect(secondPage[0]?.kind).toBe("untested");
-    expect(secondPage.filter((item) => item.kind === "row")).toHaveLength(3);
+    expect(secondPage.filter((item) => item.kind === "row")).toHaveLength(4);
   });
 
   it("keeps a tie on the cutoff above the line and skips the next place", () => {
@@ -95,6 +105,28 @@ describe("gym board order", () => {
     expect(formatMark(7.5, "ft")).toBe("7'6\"");
     expect(formatMark(33.7, "in")).toBe("33.7in.");
     expect(formatMark(11.15, "%")).toBe("11.2%");
+  });
+
+  it("keeps one mark size inside the row and inside every column", () => {
+    const widthOf = (label: string, size: number) => label.length * size * 0.5;
+    const nameAt = (size: number) => widthOf("Jacob Schlict", size) + 18;
+    const markAt = (size: number) => widthOf("19.2mph", size) + size * 0.9;
+    const fitted = fitSharedSize(2000, 50, 5, 80, 20, nameAt, markAt);
+    expect(fitted.size + 20 + 8).toBeLessThanOrEqual(50.5);
+    const open = fitSharedSize(2000, 50, 5, 80, 0, nameAt, markAt);
+    expect(open.size).toBeGreaterThan(fitted.size);
+    const packed = fitSharedSize(1000, 80, 5, 80, 16, nameAt, markAt);
+    const name = nameAt(packed.size);
+    const column = (1000 - 80 - name) / 5;
+    expect(markAt(packed.size) + 8).toBeLessThanOrEqual(column + 0.5);
+    expect(packed.nameWidth).toBe(Math.ceil(name));
+  });
+
+  it("grows a name until the widest label or the bib line stops it", () => {
+    const widthOf = (label: string, size: number) => label.length * size * 0.5;
+    expect(fitLabelSize(["Al", "Christopher"], 80, 100, widthOf)).toBeCloseTo(14.5, 0);
+    expect(fitLabelSize(["Al"], 400, 80, widthOf)).toBe(64);
+    expect(fitLabelSize(["Christopher"], 20, 80, widthOf)).toBe(14);
   });
 
   it("shortens a phone name to the first name and last initial", () => {
