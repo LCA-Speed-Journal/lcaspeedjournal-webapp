@@ -680,7 +680,8 @@ export function BatteryBoard({
           widest = Math.max(widest, measure(text, size, "600", nameFamily));
         }
         const rootPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-        const next = Math.min(Math.ceil(widest + 17), Math.round(9.5 * rootPx));
+        const nameCap = narrow ? 9.5 * rootPx : 18 * rootPx;
+        const next = Math.min(Math.ceil(widest + 17), Math.round(nameCap));
         root.style.setProperty("--name-col", `${Math.max(next, 1)}px`);
         return;
       }
