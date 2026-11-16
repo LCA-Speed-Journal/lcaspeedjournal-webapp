@@ -10,6 +10,19 @@
 
 **Product source:** `docs/plans/2026-11-04-basketball-baseline-design.md`.
 
+## Repo check (2026-11-15)
+
+Tasks 1–16 are on `main` through `ab64c44`. Do not re-run them from the snippets below. Those snippets still describe the original three-day board. The repo has moved, and these facts win:
+
+- Four days: A Monday 2026-11-16, B Tuesday 2026-11-17, C Thursday 2026-11-19, D Friday 2026-11-20. The template still starts at `grouping_mode: "cutoff"` and `cutoff_n: 18`.
+- Board views are `today`, `day`, and `meet`. Page size is 11. Pages advance every 10 seconds. A phone is one scrolling list.
+- Group chips appear only when `grouping_mode` is `subteam`. A team chip passes that team's athlete ids as `poolIds` and re-ranks inside the team. Overall is the full roster. The top-18 line is drawn only in cutoff mode.
+- Friday lanes freeze from days A–C.
+- Bench and hex show a place and stay out of the 9-slot total.
+- `src/lib/battery/group-store.ts` and `src/lib/battery/testing-groups.ts` are on `main` because the lift route imports `athleteOnRoster`.
+
+The follow-up is `docs/plans/2026-11-15-testing-teams.md`. It adds an optional Varsity, JV, or C-team choice on the weight-room roster and leaves the gym-board layout alone. Top 18 keeps 11 athletes per page and the 10-second live cycle. A phone stays one scrolling list.
+
 ---
 
 ## Rules the implementer must not break
