@@ -740,7 +740,7 @@ export function BatteryBoard({
   const showGroups = teamMode;
 
   async function onGroupingMode(next: "cutoff" | "subteam") {
-    if (payload.battery.grouping_mode === next || modeBusy) return;
+    if (!payload || payload.battery.grouping_mode === next || modeBusy) return;
     setModeBusy(true);
     setModeError("");
     try {

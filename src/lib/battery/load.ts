@@ -788,7 +788,7 @@ function singleGroupKey(groupsByAthlete: Map<string, Set<string>>, athleteId: st
   return [...keys][0] ?? null;
 }
 
-function lockedDriBox(days: DayRow[]): string | null {
+function lockedDriBox(days: readonly { day_key: string; locked_dri_box: string | null }[]): string | null {
   const dayA = days.find((day) => day.day_key === "A");
   if (dayA?.locked_dri_box == null) return null;
   const trimmed = String(dayA.locked_dri_box).trim();
