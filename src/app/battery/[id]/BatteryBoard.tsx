@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
 import { orderBoard, type BoardRow } from "@/lib/battery/board-order";
+import { DRI_BOXES } from "@/lib/battery/dri";
 import type { BoardCell, BoardColumn, BoardPayload } from "@/lib/battery/load";
 import { RsiChart } from "./RsiChart";
 import type { RsqDot } from "./RsqPlot";
@@ -942,7 +943,34 @@ export function BatteryBoard({
       setModeBusy(false);
     }
   }
+
+  async function onDriBox(next: string) {
+    if (!payload || modeBusy) return;
+    const current = payload.battery.team_dri_box ?? "12";
+    if (next === current) return;
+    setModeBusy(true);
+    setModeError("");
+    try {
+      const response = await fetch(`/api/battery/${encodeURIComponent(batteryId)}/dri-box`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ box: next }),
+      });
+      const json = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setModeError(typeof json.error === "string" ? json.error : "Network error — try again");
+        return;
+      }
+      await mutate();
+    } catch {
+      setModeError("Network error — try again");
+    } finally {
+      setModeBusy(false);
+    }
+  }
+
   const dataRowCount = items.filter((item) => item.kind === "row").length;
+  const showDriBox = columns.some((column) => column.key === "DRI");
 
   return (
     <BoardFrame>
@@ -1006,24 +1034,44 @@ export function BatteryBoard({
               </button>
             </div>
             {coach ? (
-              <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Grouping">
-                <button
-                  type="button"
-                  disabled={modeBusy}
-                  className={chipClass(!teamMode)}
-                  onClick={() => void onGroupingMode("cutoff")}
-                >
-                  Top 18
-                </button>
-                <button
-                  type="button"
-                  disabled={modeBusy}
-                  className={chipClass(teamMode)}
-                  onClick={() => void onGroupingMode("subteam")}
-                >
-                  Teams
-                </button>
-              </div>
+              <>
+                <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Grouping">
+                  <button
+                    type="button"
+                    disabled={modeBusy}
+                    className={chipClass(!teamMode)}
+                    onClick={() => void onGroupingMode("cutoff")}
+                  >
+                    Top 18
+                  </button>
+                  <button
+                    type="button"
+                    disabled={modeBusy}
+                    className={chipClass(teamMode)}
+                    onClick={() => void onGroupingMode("subteam")}
+                  >
+                    Teams
+                  </button>
+                </div>
+                {showDriBox ? (
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-foreground-muted">
+                    DRI
+                    <select
+                      aria-label="Scored DRI height"
+                      value={payload.battery.team_dri_box ?? "12"}
+                      disabled={modeBusy}
+                      onChange={(event) => void onDriBox(event.target.value)}
+                      className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-foreground focus:border-accent disabled:opacity-60"
+                    >
+                      {DRI_BOXES.map((box) => (
+                        <option key={box} value={box}>
+                          {box} in
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </>
             ) : null}
             {modeError ? <p className="text-sm text-danger">{modeError}</p> : null}
             {showGroups ? (
