@@ -1071,6 +1071,14 @@ export function BatteryBoard({
                     </select>
                   </label>
                 ) : null}
+                {payload.day_key ? (
+                  <a
+                    href={`/api/battery/${encodeURIComponent(batteryId)}/door-sheet?day=${encodeURIComponent(payload.day_key)}&group=${encodeURIComponent(group)}`}
+                    className={chipClass(false)}
+                  >
+                    Print day
+                  </a>
+                ) : null}
               </>
             ) : null}
             {modeError ? <p className="text-sm text-danger">{modeError}</p> : null}
