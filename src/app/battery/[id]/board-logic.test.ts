@@ -10,6 +10,8 @@ import {
   formatMark,
   orderBoard,
   pageItems,
+  phoneColumnTemplate,
+  phoneGridWidth,
   shortName,
 } from "./BatteryBoard";
 import type { BoardAthlete } from "@/lib/battery/load";
@@ -180,5 +182,12 @@ describe("gym board order", () => {
     expect(shortName("Jax", "Triana")).toBe("Jax T.");
     expect(shortName("Jimmy", "Youtsey")).toBe("Jimmy Y.");
     expect(shortName("  ", "")).toBe("Athlete");
+  });
+
+  it("gives a phone board a fixed name and real metric columns", () => {
+    expect(phoneColumnTemplate(5)).toBe(
+      "2.25rem 6rem repeat(5, 4.75rem) 2.75rem"
+    );
+    expect(phoneGridWidth(5)).toBe("34.75rem");
   });
 });

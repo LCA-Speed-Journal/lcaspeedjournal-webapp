@@ -291,10 +291,22 @@ function chipClass(active: boolean): string {
 
 const PLACE_COL = "2.25rem";
 const POINTS_COL = "2.75rem";
+const PHONE_NAME_COL = "6rem";
+const PHONE_METRIC_COL = "4.75rem";
+
+export function phoneColumnTemplate(count: number): string {
+  return `${PLACE_COL} ${PHONE_NAME_COL} repeat(${count}, ${PHONE_METRIC_COL}) ${POINTS_COL}`;
+}
+
+export function phoneGridWidth(count: number): string {
+  const rem = 2.25 + 6 + count * 4.75 + 2.75;
+  return `${rem}rem`;
+}
 
 function columnTemplate(count: number, narrow: boolean): string {
+  if (narrow) return phoneColumnTemplate(count);
   const name = "var(--name-col, 8rem)";
-  const metric = narrow ? "minmax(4.75rem, 1fr)" : "minmax(0, 1fr)";
+  const metric = "minmax(0, 1fr)";
   return `${PLACE_COL} ${name} repeat(${count}, ${metric}) ${POINTS_COL}`;
 }
 
@@ -460,6 +472,7 @@ function AthleteRow({
   nameLabel,
   scroll,
   nameRef,
+  fullWidth,
 }: {
   row: BoardRow;
   columns: BoardColumn[];
@@ -468,6 +481,7 @@ function AthleteRow({
   nameLabel: string;
   scroll: boolean;
   nameRef?: Ref<HTMLSpanElement>;
+  fullWidth?: boolean;
 }) {
   const { athlete, place, untested } = row;
   const name = `${athlete.first_name} ${athlete.last_name}`.trim() || "Athlete";
@@ -476,9 +490,11 @@ function AthleteRow({
     : "bg-[color-mix(in_srgb,var(--surface)_25%,var(--background))]";
   return (
     <div
-      className={`grid w-full min-h-0 items-center border-b border-border/70 ${
-        scroll ? "shrink-0 py-1.5" : "flex-1"
-      } ${untested ? "bg-surface/40 text-foreground-muted" : "bg-surface/25"}`}
+      className={`grid min-h-0 items-center border-b border-border/70 ${
+        fullWidth !== false ? "w-full" : ""
+      } ${scroll ? "shrink-0 py-1.5" : "flex-1"} ${
+        untested ? "bg-surface/40 text-foreground-muted" : "bg-surface/25"
+      }`}
       style={{ gridTemplateColumns: template }}
       data-board-row
       data-place={place ?? ""}
@@ -683,6 +699,10 @@ export function BatteryBoard({
       };
       if (listMode) {
         root.style.removeProperty("--mark-size");
+        if (narrow) {
+          root.style.removeProperty("--name-col");
+          return;
+        }
         const size = Number.parseFloat(nameStyles.fontSize) || 16;
         let widest = 0;
         for (const text of fitRef.current.names) {
@@ -934,9 +954,14 @@ export function BatteryBoard({
         data-board-scroll={listMode ? "full" : "pages"}
         ref={rowListRef}
       >
-        <div className={`flex min-w-full flex-col ${narrow ? "w-max" : listMode ? "w-full" : "h-full w-full"}`}>
+        <div
+          className={`flex min-w-full flex-col ${narrow ? "" : listMode ? "w-full" : "h-full w-full"}`}
+          style={narrow ? { width: phoneGridWidth(columns.length) } : undefined}
+        >
           <div
-            className="grid w-full shrink-0 border-b border-border text-[11px] font-semibold uppercase tracking-wide text-foreground-muted"
+            className={`grid shrink-0 border-b border-border text-[11px] font-semibold uppercase tracking-wide text-foreground-muted ${
+              narrow ? "" : "w-full"
+            }`}
             style={{ gridTemplateColumns: template }}
           >
             <span className={`${PIN_PLACE} bg-background py-1 text-center`}>#</span>
@@ -992,6 +1017,7 @@ export function BatteryBoard({
                   template={template}
                   markFont={markFont}
                   scroll={listMode}
+                  fullWidth={!narrow}
                   nameLabel={
                     narrow
                       ? shortName(item.row.athlete.first_name, item.row.athlete.last_name)
