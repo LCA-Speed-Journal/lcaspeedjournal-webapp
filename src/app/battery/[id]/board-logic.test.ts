@@ -11,6 +11,7 @@ import {
   formatMark,
   orderBoard,
   pageItems,
+  ranksByStrengthPounds,
   phoneColumnTemplate,
   phoneGridWidth,
   podiumBox,
@@ -35,6 +36,14 @@ function athlete(index: number, points: number, slots = 1): BoardAthlete {
 }
 
 describe("gym board order", () => {
+  it("ranks today and a lift day by pounds and keeps the meet on points", () => {
+    const lifts = ["Bench-Press", "Hex-Deadlift"];
+    expect(ranksByStrengthPounds("today", lifts)).toBe(true);
+    expect(ranksByStrengthPounds("day", lifts)).toBe(true);
+    expect(ranksByStrengthPounds("meet", lifts)).toBe(false);
+    expect(ranksByStrengthPounds("today", ["OH-MB_Throw", "Bench-Press"])).toBe(false);
+  });
+
   it("puts the cutoff between 18 and 19 when 20 athletes have marks", () => {
     const athletes = Array.from({ length: 20 }, (_, index) => athlete(index + 1, 100 - index));
     const rows = orderBoard(athletes, []);

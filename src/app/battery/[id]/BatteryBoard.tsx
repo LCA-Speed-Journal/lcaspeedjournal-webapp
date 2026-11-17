@@ -18,6 +18,10 @@ import type { RsqDot } from "./RsqPlot";
 
 export { orderBoard };
 
+export function ranksByStrengthPounds(view: string, columnKeys: readonly string[]): boolean {
+  return view !== "meet" && isStrengthPoundDay(columnKeys);
+}
+
 const ATHLETES_PER_PAGE = 10;
 
 export function boardPageCount(athleteCount: number): number {
@@ -654,7 +658,9 @@ export function BatteryBoard({
   });
   const fetched = data?.url === url ? data.data : undefined;
   const payload = !isLoading && fetched?.view === view ? fetched : undefined;
-  const strengthDay = payload ? isStrengthPoundDay(payload.columns.map((column) => column.key)) : false;
+  const strengthDay =
+    payload != null &&
+    ranksByStrengthPounds(payload.view, payload.columns.map((column) => column.key));
   const ordered = !payload
     ? []
     : strengthDay
