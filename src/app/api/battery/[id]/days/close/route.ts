@@ -6,42 +6,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { isBatterySchemaMissing } from "@/lib/battery/load";
-import { bestDriPerAthleteBox, pickTeamDriBox } from "@/lib/battery/dri";
+import { resolveScoredDriBox } from "@/lib/battery/dri";
 
 const MIGRATION_ERROR = "Run scripts/migrate-testing-battery.sql";
-
-function finiteNumber(raw: unknown): number | null {
-  if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
-  if (typeof raw === "string" && raw.trim() !== "") {
-    const value = Number(raw);
-    return Number.isFinite(value) ? value : null;
-  }
-  return null;
-}
-
-async function driMarks(
-  sessionId: string | null
-): Promise<{ athlete_id: string; box: string; value: number }[]> {
-  if (!sessionId) return [];
-  const { rows } = await sql`
-    SELECT athlete_id, component, display_value
-    FROM entries
-    WHERE session_id = ${sessionId}
-      AND metric_key = ${"DRI"}
-  `;
-  const marks: { athlete_id: string; box: string; value: number }[] = [];
-  for (const row of rows as {
-    athlete_id: string;
-    component: string | null;
-    display_value: unknown;
-  }[]) {
-    if (row.component == null || String(row.component).trim() === "") continue;
-    const value = finiteNumber(row.display_value);
-    if (value == null) continue;
-    marks.push({ athlete_id: String(row.athlete_id), box: String(row.component), value });
-  }
-  return marks;
-}
 
 export async function POST(
   request: NextRequest,
@@ -63,7 +30,7 @@ export async function POST(
     const [batteryResult, dayResult] = await Promise.all([
       sql`SELECT id FROM testing_batteries WHERE id = ${id} LIMIT 1`,
       sql`
-        SELECT id, session_id
+        SELECT id, locked_dri_box
         FROM testing_battery_days
         WHERE battery_id = ${id} AND day_key = ${dayKey}
         LIMIT 1
@@ -76,11 +43,12 @@ export async function POST(
       return NextResponse.json({ error: "Day not found" }, { status: 404 });
     }
 
-    const day = dayResult.rows[0] as { id: string; session_id: string | null };
+    const day = dayResult.rows[0] as { id: string; locked_dri_box: string | null };
     let lockedDriBox: string | null = null;
     if (dayKey === "A") {
-      const trials = await driMarks(day.session_id == null ? null : String(day.session_id));
-      lockedDriBox = pickTeamDriBox([...bestDriPerAthleteBox(trials).values()].flat());
+      lockedDriBox = resolveScoredDriBox(
+        day.locked_dri_box == null ? null : String(day.locked_dri_box)
+      );
       await sql`
         UPDATE testing_battery_days
         SET closed_at = NOW(), locked_dri_box = ${lockedDriBox}

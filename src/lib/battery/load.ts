@@ -11,7 +11,7 @@ import {
 import { sameSpeedMark } from "@/lib/speed/windows";
 import { compareMark, SHARED_SOCCER_KEYS } from "./compare";
 import { orderDayColumnKeys } from "./day-columns";
-import { bestDriPerAthleteBox, pickTeamDriBox } from "./dri";
+import { bestDriPerAthleteBox, resolveScoredDriBox } from "./dri";
 import { latestRepeatSeriesTimes, scoreRepeatSprint } from "./repeat-sprint";
 import { applySampleOverrides } from "./sample-overrides";
 import { sampleMarksForRoster } from "./sample-marks";
@@ -1101,7 +1101,7 @@ export async function loadBatteryBoard(
     : null;
   const lockedBox = lockedDriBox(days);
   const scoredDri = samplePack ? (scoreDri ? samplePack.dri : new Map()) : dayADri;
-  const teamBox = lockedBox ?? pickTeamDriBox([...scoredDri.values()].flat());
+  const teamBox = resolveScoredDriBox(lockedBox);
   // Today only scores that day's tests. A vertical saved on Monday must not
   // add points or pull the athlete out of untested.
   const limitedMeetKeys =

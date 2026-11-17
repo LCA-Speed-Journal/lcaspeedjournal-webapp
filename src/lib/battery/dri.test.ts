@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bestDriPerAthleteBox, driBand, higherBoxFlag, pickTeamDriBox } from "./dri";
+import { bestDriPerAthleteBox, driBand, higherBoxFlag, pickTeamDriBox, resolveScoredDriBox } from "./dri";
 
 describe("driBand", () => {
   it("puts boundary marks in the higher band, and 3.0 stays Bouncy", () => {
@@ -68,5 +68,15 @@ describe("higherBoxFlag", () => {
     expect(higherBoxFlag("24", "12")).toBe(true);
     expect(higherBoxFlag("12", "12")).toBe(false);
     expect(higherBoxFlag("6", "12")).toBe(false);
+  });
+});
+
+describe("resolveScoredDriBox", () => {
+  it("uses a saved box and otherwise scores 12 inches", () => {
+    expect(resolveScoredDriBox("18")).toBe("18");
+    expect(resolveScoredDriBox("12")).toBe("12");
+    expect(resolveScoredDriBox(null)).toBe("12");
+    expect(resolveScoredDriBox("")).toBe("12");
+    expect(resolveScoredDriBox("30")).toBe("12");
   });
 });

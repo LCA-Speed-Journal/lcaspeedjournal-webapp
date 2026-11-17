@@ -45,6 +45,12 @@ export function bestDriPerAthleteBox(
   return byAthlete;
 }
 
+export function resolveScoredDriBox(locked: string | null): DriBox {
+  const trimmed = locked?.trim() ?? "";
+  if ((DRI_BOXES as readonly string[]).includes(trimmed)) return trimmed as DriBox;
+  return "12";
+}
+
 export function pickTeamDriBox(
   marks: { box: string; value: number }[]
 ): DriBox | null {
