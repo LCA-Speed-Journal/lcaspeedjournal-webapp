@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cumulativeTimesForDraft } from "./SpeedRunFields";
+import { cumulativeTimesForDraft, EMPTY_SPEED_RUN_DRAFT, previewSpeedRun } from "./SpeedRunFields";
 
 describe("cumulativeTimesForDraft", () => {
   it("adds segment times before the run is expanded", () => {
@@ -22,5 +22,17 @@ describe("cumulativeTimesForDraft", () => {
     expect(() => cumulativeTimesForDraft("1.70||1.05", "segment")).toThrow(
       /segment/i
     );
+  });
+});
+
+describe("previewSpeedRun", () => {
+  it("returns an error for a trailing pipe in segment mode instead of throwing", () => {
+    const result = previewSpeedRun({
+      ...EMPTY_SPEED_RUN_DRAFT,
+      gatesText: "10, 20",
+      timesText: "1.70|",
+      timeMode: "segment",
+    });
+    expect(result).toEqual({ ok: false, error: expect.stringMatching(/segment/i) });
   });
 });

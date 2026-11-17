@@ -43,7 +43,9 @@ export function cumulativeTimesForDraft(timesText: string, mode: SpeedTimeMode):
   const source =
     mode === "segment" ? segmentInputToCumulativeInput(timesText) : timesText.trim();
   if (source == null || source === "") {
-    throw new Error("Enter a number for each segment");
+    throw new Error(
+      mode === "segment" ? "Enter a number for each segment" : "Enter a time for each gate"
+    );
   }
   return splitList(source, "|");
 }
@@ -88,8 +90,8 @@ export function previewSpeedRun(
 ):
   | { ok: true; rows: SpeedRunRow[]; payload: SpeedRunInput }
   | { ok: false; error: string } {
-  const payload = speedRunPayload(draft);
   try {
+    const payload = speedRunPayload(draft);
     return { ok: true, rows: expandSpeedRun(payload), payload };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid speed run";
