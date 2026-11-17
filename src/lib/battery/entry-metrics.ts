@@ -1,5 +1,8 @@
+import { LEGACY_SPEED_KEYS } from "@/lib/speed/windows";
 import { testingLiftMovement } from "./testing-lifts";
 import { BOYS_BASKETBALL_BASELINE } from "./template";
+
+const SPEED_RUN_KEY = "SpeedRun";
 
 export function batteryEntryKeys(input: {
   batterySession: boolean;
@@ -17,6 +20,10 @@ export function batteryEntryKeys(input: {
     const registry = new Set(input.registryKeys);
     const keys: string[] = [];
     for (const key of day.metric_keys) {
+      if (LEGACY_SPEED_KEYS.has(key)) {
+        if (!keys.includes(SPEED_RUN_KEY)) keys.push(SPEED_RUN_KEY);
+        continue;
+      }
       if (testingLiftMovement(key) || registry.has(key)) keys.push(key);
     }
     return keys;

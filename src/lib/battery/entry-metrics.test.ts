@@ -24,6 +24,17 @@ describe("batteryEntryKeys", () => {
     ).toEqual(["10x10m", "OH-MB_Throw"]);
   });
 
+  it("offers Speed run once in place of a legacy dash key", () => {
+    expect(
+      batteryEntryKeys({
+        batterySession: true,
+        sessionDate: "2026-11-16",
+        dayMetrics: ["OH-MB_Throw"],
+        registryKeys: ["10-5_RSI", "SpeedRun", "DRI"],
+      })
+    ).toEqual(["10-5_RSI", "SpeedRun", "DRI"]);
+  });
+
   it("keeps the session metric list when the session is not a battery day", () => {
     expect(
       batteryEntryKeys({

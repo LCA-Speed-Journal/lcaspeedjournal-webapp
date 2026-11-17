@@ -501,6 +501,19 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       defaultSplits: [] as (number | string)[],
     })),
   ];
+  const optionKeys = options.map((option) => option.key).join("|");
+  useEffect(() => {
+    if (!metricKey || optionKeys.split("|").includes(metricKey)) return;
+    setMetricKey("");
+    setRawInput("");
+    setSpeedDraft(EMPTY_SPEED_RUN_DRAFT);
+    setSplitValues([]);
+    setSplitEntryMode("cumulative");
+    setRsiJumpInches("");
+    setRsiGctMs("");
+    setDriValues(["", "", "", ""]);
+    setRepValues(emptyReps());
+  }, [optionKeys, metricKey, batterySession]);
   const selectedMetric = options.find((o) => o.key === metricKey) ?? null;
 
   const namedFortyComponents =
