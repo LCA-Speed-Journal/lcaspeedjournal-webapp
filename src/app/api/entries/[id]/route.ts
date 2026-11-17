@@ -6,9 +6,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql, withTransaction } from "@/lib/db";
 import { parseEntry, getMetricsRegistry } from "@/lib/parser";
-import { parseSpeedRunRaw } from "@/lib/speed/raw-run";
+import { decideSpeedRunRawPatch } from "@/lib/speed/raw-run";
 import { rowsForSpeedRun } from "@/lib/speed/save-rows";
-import { ACCELERATION_KEY, BUILD_IN_KEY } from "@/lib/speed/windows";
 
 type EntryRow = {
   id: string;
@@ -90,8 +89,21 @@ export async function PATCH(
       }
       const entry = entryRows[0] as EntryRow;
 
-      const speedInput = parseSpeedRunRaw(rawInputStr);
-      if (speedInput) {
+      const patchDecision = decideSpeedRunRawPatch(
+        entry.raw_input,
+        entry.metric_key,
+        rawInputStr
+      );
+
+      if (patchDecision.kind === "error") {
+        return NextResponse.json(
+          { error: patchDecision.message },
+          { status: 400 }
+        );
+      }
+
+      if (patchDecision.kind === "rebuild") {
+        const speedInput = patchDecision.input;
         let windowRows;
         try {
           windowRows = rowsForSpeedRun(speedInput);
@@ -100,7 +112,7 @@ export async function PATCH(
           return NextResponse.json({ error: msg }, { status: 400 });
         }
 
-        const originalRawInput = entry.raw_input;
+        const originalRawInput = entry.raw_input.trim();
         const contextHugoGroup = entry.context_hugo_group;
         const newRawInput = JSON.stringify(speedInput);
 
@@ -144,16 +156,6 @@ export async function PATCH(
         });
 
         return NextResponse.json({ data: { count } });
-      }
-
-      if (
-        entry.metric_key === ACCELERATION_KEY ||
-        entry.metric_key === BUILD_IN_KEY
-      ) {
-        return NextResponse.json(
-          { error: "Speed run raw input must be the saved JSON" },
-          { status: 400 }
-        );
       }
 
       const registry = getMetricsRegistry();
