@@ -4,15 +4,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { sql } from "@/lib/db";
+import { sql, withTransaction } from "@/lib/db";
 import { parseEntry, getMetricsRegistry } from "@/lib/parser";
+import { parseSpeedRunRaw } from "@/lib/speed/raw-run";
+import { rowsForSpeedRun } from "@/lib/speed/save-rows";
+import { ACCELERATION_KEY, BUILD_IN_KEY } from "@/lib/speed/windows";
 
 type EntryRow = {
   id: string;
   session_id: string;
+  athlete_id: string;
   metric_key: string;
   interval_index: number | null;
   component: string | null;
+  raw_input: string;
+  context_hugo_group: string | null;
 };
 
 type SessionRow = {
@@ -73,7 +79,8 @@ export async function PATCH(
     if (raw_input != null && String(raw_input).trim() !== "") {
       const rawInputStr = String(raw_input).trim();
       const { rows: entryRows } = await sql`
-        SELECT id, session_id, metric_key, interval_index, component
+        SELECT id, session_id, athlete_id, metric_key, interval_index, component,
+               raw_input, context_hugo_group
         FROM entries
         WHERE id = ${id}
         LIMIT 1
@@ -82,6 +89,72 @@ export async function PATCH(
         return NextResponse.json({ error: "Entry not found" }, { status: 404 });
       }
       const entry = entryRows[0] as EntryRow;
+
+      const speedInput = parseSpeedRunRaw(rawInputStr);
+      if (speedInput) {
+        let windowRows;
+        try {
+          windowRows = rowsForSpeedRun(speedInput);
+        } catch (err) {
+          const msg = (err as Error)?.message ?? "Invalid speed run";
+          return NextResponse.json({ error: msg }, { status: 400 });
+        }
+
+        const originalRawInput = entry.raw_input;
+        const contextHugoGroup = entry.context_hugo_group;
+        const newRawInput = JSON.stringify(speedInput);
+
+        const count = await withTransaction(async (tx) => {
+          await tx`
+            DELETE FROM entries
+            WHERE session_id = ${entry.session_id}
+              AND athlete_id = ${entry.athlete_id}
+              AND raw_input = ${originalRawInput}
+          `;
+          for (const row of windowRows) {
+            await tx`
+              INSERT INTO entries (
+                session_id, athlete_id, metric_key,
+                interval_index, component,
+                value, display_value, units, raw_input,
+                context_hugo_group,
+                distance_unit, start_distance, end_distance,
+                legacy_metric_key, legacy_component
+              )
+              VALUES (
+                ${entry.session_id},
+                ${entry.athlete_id},
+                ${row.metric_key},
+                ${row.interval_index},
+                ${row.component},
+                ${row.value},
+                ${row.display_value},
+                ${row.units},
+                ${newRawInput},
+                ${contextHugoGroup},
+                ${row.distance_unit},
+                ${row.start_distance},
+                ${row.end_distance},
+                ${row.legacy_metric_key},
+                ${row.legacy_component}
+              )
+            `;
+          }
+          return windowRows.length;
+        });
+
+        return NextResponse.json({ data: { count } });
+      }
+
+      if (
+        entry.metric_key === ACCELERATION_KEY ||
+        entry.metric_key === BUILD_IN_KEY
+      ) {
+        return NextResponse.json(
+          { error: "Speed run raw input must be the saved JSON" },
+          { status: 400 }
+        );
+      }
 
       const registry = getMetricsRegistry();
       if (!registry[entry.metric_key]) {
