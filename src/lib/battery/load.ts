@@ -18,6 +18,7 @@ import { sampleMarksForRoster } from "./sample-marks";
 import { scoreBatteryRows, type BatteryMark, type ScoredCell } from "./score-row";
 import { boardFocusDay, type BoardView } from "./board-focus";
 import { testingLiftMovement } from "./testing-lifts";
+import { pickComparisonSession } from "./comparison-session";
 import { BOYS_BASKETBALL_BASELINE } from "./template";
 
 export type BoardDirection = "higher" | "lower";
@@ -813,6 +814,81 @@ async function sampleComparisonSessionId(): Promise<string | null> {
   return id == null ? null : String(id);
 }
 
+async function comparisonSessionFallbackQuery(
+  comparisonDate: string
+): Promise<ReturnType<typeof pickComparisonSession>> {
+  const fortyYd = "40yd_Dash";
+  const { rows } = await sql`
+    SELECT s.id,
+      COUNT(*) FILTER (WHERE e.metric_key = ${fortyYd}) AS forty_count
+    FROM sessions s
+    INNER JOIN entries e ON e.session_id = s.id
+    WHERE s.session_date = ${comparisonDate}::date
+    GROUP BY s.id
+  `;
+  return pickComparisonSession(
+    (rows as { id: unknown; forty_count: unknown }[]).map((row) => ({
+      id: String(row.id),
+      fortyCount: Number(row.forty_count),
+      soccerTagged: false,
+    }))
+  );
+}
+
+async function attachComparisonSessionIfMissing(batteryId: string): Promise<string | null> {
+  const comparisonDate = BOYS_BASKETBALL_BASELINE.comparison_date;
+  const fortyYd = "40yd_Dash";
+  const soccer = "soccer";
+
+  const persistPicked = async (picked: string): Promise<string | null> => {
+    const { rows } = await sql`
+      UPDATE testing_batteries
+      SET comparison_session_id = ${picked}
+      WHERE id = ${batteryId} AND comparison_session_id IS NULL
+      RETURNING comparison_session_id
+    `;
+    const stored = (rows[0] as { comparison_session_id?: unknown } | undefined)?.comparison_session_id;
+    if (stored != null) return String(stored);
+    const refetch = await sql`
+      SELECT comparison_session_id FROM testing_batteries WHERE id = ${batteryId}
+    `;
+    const existing = (refetch.rows[0] as { comparison_session_id?: unknown } | undefined)
+      ?.comparison_session_id;
+    return existing == null ? null : String(existing);
+  };
+
+  let picked: string | null;
+  try {
+    const { rows } = await sql`
+      SELECT s.id,
+        COUNT(*) FILTER (
+          WHERE e.metric_key = ${fortyYd} OR e.legacy_metric_key = ${fortyYd}
+        ) AS forty_count,
+        BOOL_OR(e.context_hugo_group = ${soccer}) AS soccer_tagged
+      FROM sessions s
+      INNER JOIN entries e ON e.session_id = s.id
+      WHERE s.session_date = ${comparisonDate}::date
+      GROUP BY s.id
+    `;
+    picked = pickComparisonSession(
+      (rows as { id: unknown; forty_count: unknown; soccer_tagged: unknown }[]).map((row) => ({
+        id: String(row.id),
+        fortyCount: Number(row.forty_count),
+        soccerTagged: Boolean(row.soccer_tagged),
+      }))
+    );
+  } catch (err) {
+    if (!isUndefinedColumn(err)) throw err;
+    const { message } = readPgError(err);
+    const msg = message.toLowerCase();
+    if (!msg.includes("context_hugo_group") && !msg.includes("legacy_metric_key")) throw err;
+    picked = await comparisonSessionFallbackQuery(comparisonDate);
+  }
+
+  if (picked == null) return null;
+  return persistPicked(picked);
+}
+
 export async function loadBatteryBoard(
   batteryId: string,
   options: {
@@ -893,6 +969,8 @@ export async function loadBatteryBoard(
   // stored a comparison session. The lookup is read-only.
   if (sampleOn && comparisonSessionId == null) {
     comparisonSessionId = await sampleComparisonSessionId();
+  } else if (comparisonSessionId == null) {
+    comparisonSessionId = await attachComparisonSessionIfMissing(String(battery.id));
   }
   const sessionIds = [...new Set([...basketballSessionIds, ...(comparisonSessionId ? [comparisonSessionId] : [])])];
   const entries = await loadEntries(sessionIds);
