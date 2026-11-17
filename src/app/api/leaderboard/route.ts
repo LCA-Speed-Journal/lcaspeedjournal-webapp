@@ -23,6 +23,7 @@ import type {
   AttachZonesMembership,
   AttachZonesPopulation,
 } from "@/lib/norms/attach-zones";
+import { liveMetricDef } from "@/lib/speed/live-metric";
 import type { LeaderboardRow, LeaderboardTrend } from "@/types";
 
 const TIME_NEUTRAL_BAND = 0.8;
@@ -266,7 +267,7 @@ export async function GET(request: NextRequest) {
     }
 
     const registry = getMetricsRegistry();
-    const metricDef = registry[metric];
+    const metricDef = liveMetricDef(metric, registry);
     if (!metricDef) {
       return NextResponse.json(
         { error: `Unknown metric: ${metric}` },

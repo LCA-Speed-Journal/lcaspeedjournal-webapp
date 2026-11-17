@@ -29,6 +29,7 @@ import { fortyYardLiveReadout, isFortyYardMphPrimary } from "@/lib/norms/forty-y
 import { useIsMobile } from "@/hooks/useMediaQuery";
 import { computeLeaderboardTriggers } from "./leaderboardDiff";
 import { getLeaderboardSections } from "@/lib/leaderboard-sections";
+import { leaderboardErrorMessage } from "@/lib/speed/live-metric";
 import {
   applyTopNToSections,
   buildGenderColumnsFromSections,
@@ -39,6 +40,18 @@ import {
 type SessionItem = { id: string; session_date: string; phase?: string; phase_week?: number };
 
 const fetcher = (url: string) => fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText))));
+
+async function leaderboardFetcher(url: string) {
+  const r = await fetch(url);
+  if (r.ok) return r.json();
+  let body: unknown = null;
+  try {
+    body = await r.json();
+  } catch {
+    // empty or non-JSON body
+  }
+  throw new Error(leaderboardErrorMessage(body, r.statusText));
+}
 
 function rankClass(rank: number): string {
   if (rank === 1) return "bg-gold/20 text-gold border border-gold/50";
@@ -396,7 +409,7 @@ function ComponentLeaderboard({
       populations?: NormPopulationOption[];
       selected_population_id?: string | null;
     };
-  }>(url, fetcher, {
+  }>(url, leaderboardFetcher, {
     refreshInterval: isVisible ? LIVE_LEADERBOARD_REFRESH_MS : 0,
   });
 
@@ -476,7 +489,11 @@ function ComponentLeaderboard({
       </h3>
       {error && (
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm text-danger">Failed to load leaderboard.</p>
+          <p className="text-sm text-danger">
+            {error instanceof Error && error.message
+              ? error.message
+              : "Failed to load leaderboard."}
+          </p>
           <button
             type="button"
             onClick={() => mutate()}
