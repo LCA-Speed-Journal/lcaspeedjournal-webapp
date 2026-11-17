@@ -17,6 +17,7 @@ import { applySampleOverrides } from "./sample-overrides";
 import { sampleMarksForRoster } from "./sample-marks";
 import { scoreBatteryRows, type BatteryMark, type ScoredCell } from "./score-row";
 import { boardFocusDay, type BoardView } from "./board-focus";
+import { bestTenYardMarks, TEN_YD_KEY } from "./ten-yard";
 import { testingLiftMovement } from "./testing-lifts";
 import { pickComparisonSession } from "./comparison-session";
 import { BOYS_BASKETBALL_BASELINE } from "./template";
@@ -565,6 +566,7 @@ function sprintMarks(rows: NormEntry[]): BatteryMark[] {
   for (const [athleteId, value] of forty) {
     marks.push({ athlete_id: athleteId, key: "40yd_Dash", value });
   }
+  marks.push(...bestTenYardMarks(derived));
   return marks;
 }
 
@@ -1120,6 +1122,10 @@ export async function loadBatteryBoard(
         ]
   ).filter((mark) => {
     if (RSQ_PLOT_KEYS.has(mark.key)) return false;
+    if (mark.key === TEN_YD_KEY) {
+      if (options.view === "meet") return meetDayKeys == null || meetDayKeys.has("A");
+      return focusDay?.day_key === "A";
+    }
     if (options.view !== "meet") return focusKeys.has(mark.key);
     if (limitedMeetKeys != null) return limitedMeetKeys.has(mark.key);
     return true;
