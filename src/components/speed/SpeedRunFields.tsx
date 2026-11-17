@@ -1,6 +1,7 @@
 "use client";
 
 import { overallAttemptsFor, type DropoffEntry } from "@/lib/dropoff/attempts";
+import { segmentInputToCumulativeInput } from "@/lib/parser";
 import { formatDropoffCaption } from "@/lib/dropoff/format";
 import { directionFromUnits, summarizeDropoff } from "@/lib/dropoff/summarize";
 import {
@@ -14,11 +15,14 @@ import {
 const INPUT_CLASS =
   "min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent";
 
+export type SpeedTimeMode = "segment" | "cumulative";
+
 export type SpeedRunDraft = {
   distanceUnit: DistanceUnit;
   untimedBuild: string;
   gatesText: string;
   timesText: string;
+  timeMode: SpeedTimeMode;
 };
 
 export const EMPTY_SPEED_RUN_DRAFT: SpeedRunDraft = {
@@ -26,7 +30,23 @@ export const EMPTY_SPEED_RUN_DRAFT: SpeedRunDraft = {
   untimedBuild: "0",
   gatesText: "",
   timesText: "",
+  timeMode: "segment",
 };
+
+export function cumulativeTimesForDraft(timesText: string, mode: SpeedTimeMode): string[] {
+  if (mode === "segment") {
+    const rawParts = timesText.split("|");
+    if (rawParts.some((p) => p.trim() === "")) {
+      throw new Error("Enter a number for each segment");
+    }
+  }
+  const source =
+    mode === "segment" ? segmentInputToCumulativeInput(timesText) : timesText.trim();
+  if (source == null || source === "") {
+    throw new Error("Enter a number for each segment");
+  }
+  return splitList(source, "|");
+}
 
 type Preset = {
   label: string;
@@ -59,7 +79,7 @@ export function speedRunPayload(draft: SpeedRunDraft): SpeedRunInput {
     distanceUnit: draft.distanceUnit,
     untimedBuild: draft.untimedBuild.trim(),
     gates: splitList(draft.gatesText, ","),
-    cumulativeTimes: splitList(draft.timesText, "|"),
+    cumulativeTimes: cumulativeTimesForDraft(draft.timesText, draft.timeMode),
   };
 }
 
@@ -113,10 +133,15 @@ export function SpeedRunFields({ draft, onChange, entries, athleteId }: SpeedRun
   const preview = previewSpeedRun(draft);
   const coachEnteredMark = draft.gatesText.trim() !== "" || draft.timesText.trim() !== "";
   const gateCount = splitList(draft.gatesText, ",").length;
+  const timesLabel = draft.timeMode === "segment" ? "Segment times" : "Cumulative times";
   const timesPlaceholder =
-    gateCount > 0
-      ? `${gateCount} cumulative ${gateCount === 1 ? "time" : "times"}, pipe-separated (s)`
-      : "One cumulative time per gate, pipe-separated (s)";
+    draft.timeMode === "segment"
+      ? gateCount > 0
+        ? `${gateCount} segment ${gateCount === 1 ? "time" : "times"}, pipe-separated (s)`
+        : "One segment time per gate, pipe-separated (s)"
+      : gateCount > 0
+        ? `${gateCount} cumulative ${gateCount === 1 ? "time" : "times"}, pipe-separated (s)`
+        : "One cumulative time per gate, pipe-separated (s)";
   const captions = preview.ok ? shortWindowCaptions(preview.rows, entries, athleteId) : [];
 
   function applyPreset(preset: Preset) {
@@ -167,6 +192,27 @@ export function SpeedRunFields({ draft, onChange, entries, athleteId }: SpeedRun
         </div>
       </fieldset>
 
+      <fieldset>
+        <legend className="mb-1 block text-sm font-medium text-foreground">Time entry</legend>
+        <div className="flex gap-1 rounded border border-border bg-surface-elevated p-1">
+          {(["segment", "cumulative"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              aria-pressed={draft.timeMode === mode}
+              onClick={() => onChange({ ...draft, timeMode: mode })}
+              className={`min-h-[44px] flex-1 rounded px-3 py-2 text-base capitalize ${
+                draft.timeMode === mode
+                  ? "bg-accent text-background"
+                  : "text-foreground hover:bg-surface"
+              }`}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
       <div>
         <label htmlFor="speed_build" className="mb-1 block text-sm font-medium text-foreground">
           Untimed build
@@ -200,7 +246,7 @@ export function SpeedRunFields({ draft, onChange, entries, athleteId }: SpeedRun
 
       <div>
         <label htmlFor="speed_times" className="mb-1 block text-sm font-medium text-foreground">
-          Cumulative times
+          {timesLabel}
         </label>
         <input
           id="speed_times"

@@ -900,7 +900,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         }
         const count = json.data?.count ?? 1;
         setSuccess(`Saved ${count} ${count === 1 ? "entry" : "entries"}`);
-        setSpeedDraft(EMPTY_SPEED_RUN_DRAFT);
+        setSpeedDraft((current) => ({ ...current, timesText: "" }));
         clearBatteryEntry();
         void globalMutate(
           (key) => typeof key === "string" && key.startsWith("/api/leaderboard"),
