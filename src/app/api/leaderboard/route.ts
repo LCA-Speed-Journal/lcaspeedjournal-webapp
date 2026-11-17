@@ -5,6 +5,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { databaseErrorBody, rememberRead } from "@/lib/db-guard";
 import { attachDropoff, type DropoffAttempt } from "@/lib/dropoff/attach";
 import { isOverallDropoffView } from "@/lib/dropoff/attempts";
 import { directionFromUnits } from "@/lib/dropoff/summarize";
@@ -239,7 +240,7 @@ function athleteIdFilter(athleteIds: string[]): SqlPiece[] {
   ];
 }
 
-export async function GET(request: NextRequest) {
+async function respondToLeaderboard(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const session_id = searchParams.get("session_id");
@@ -688,10 +689,39 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(payload);
   } catch (err) {
+    const quota = databaseErrorBody(err);
+    if (quota) return NextResponse.json({ error: quota.error }, { status: quota.status });
     console.error("GET /api/leaderboard:", err);
     return NextResponse.json(
       { error: "Failed to fetch leaderboard" },
       { status: 500 }
     );
+  }
+}
+
+class LeaderboardHttp extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: unknown
+  ) {
+    super("leaderboard-http");
+  }
+}
+
+export async function GET(request: NextRequest) {
+  const key = `leaderboard:${request.nextUrl.searchParams.toString()}`;
+  try {
+    const body = await rememberRead(key, async () => {
+      const response = await respondToLeaderboard(request);
+      const payload: unknown = await response.json();
+      if (!response.ok) throw new LeaderboardHttp(response.status, payload);
+      return payload;
+    });
+    return NextResponse.json(body);
+  } catch (err) {
+    if (err instanceof LeaderboardHttp) {
+      return NextResponse.json(err.body, { status: err.status });
+    }
+    throw err;
   }
 }

@@ -4,7 +4,12 @@ import { useState } from "react";
 import useSWR from "swr";
 import { AthleteNotesPanel } from "./AthleteNotesPanel";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+async function fetcher(url: string): Promise<{ data: Athlete[] }> {
+  const response = await fetch(url);
+  const body = (await response.json()) as { data?: Athlete[]; error?: string };
+  if (!response.ok) throw new Error(body.error || "Failed to fetch athletes");
+  return { data: body.data ?? [] };
+}
 
 type Athlete = {
   id: string;
@@ -30,7 +35,7 @@ type AthleteRosterProps = {
 };
 
 export function AthleteRoster({ selectedAthleteId, onAthleteSelect }: AthleteRosterProps = {}) {
-  const { data, mutate } = useSWR<{ data: Athlete[] }>("/api/athletes", fetcher);
+  const { data, error: loadError, mutate } = useSWR<{ data: Athlete[] }>("/api/athletes", fetcher);
   const retryRoster = () => void mutate();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -143,8 +148,8 @@ export function AthleteRoster({ selectedAthleteId, onAthleteSelect }: AthleteRos
 
   if (athletes.length === 0) {
     return (
-      <p className="text-sm text-foreground-muted">
-        No athletes yet. Add one above.
+      <p className={loadError ? "text-sm text-danger" : "text-sm text-foreground-muted"}>
+        {loadError instanceof Error ? loadError.message : "No athletes yet. Add one above."}
       </p>
     );
   }

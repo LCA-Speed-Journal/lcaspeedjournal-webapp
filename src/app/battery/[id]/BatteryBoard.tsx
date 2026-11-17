@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import useSWR from "swr";
+import { FreshnessStamp, useQuietRefresh } from "@/app/components/FreshnessStamp";
 import { PageBackground } from "@/app/components/PageBackground";
 import { orderBoard, type BoardRow } from "@/lib/battery/board-order";
 import { DRI_BOXES } from "@/lib/battery/dri";
@@ -32,7 +33,6 @@ export function boardPageSpan(athleteCount: number, page: number): { start: numb
 }
 
 const ADVANCE_MS = 10000;
-const REFRESH_MS = 5000;
 
 const QUALIFIERS = [
   { key: "reactive", label: "Reactive", shape: "text-blue-600" },
@@ -639,8 +639,10 @@ export function BatteryBoard({
   const isVisible = usePageVisible();
   const dayQuery = view === "day" && dayKey ? `&day=${encodeURIComponent(dayKey)}` : "";
   const url = `/api/battery/${encodeURIComponent(batteryId)}/board?view=${view}&group=${encodeURIComponent(group)}${dayQuery}${SAMPLE_ALLOWED && sample ? "&sample=1" : ""}`;
+  const [boardSignature, setBoardSignature] = useState<string | null>(null);
+  const quiet = useQuietRefresh(boardSignature);
   const { data, error, isLoading, mutate } = useSWR<BoardResponse>(url, fetchBoard, {
-    refreshInterval: isVisible ? (sample ? 1000 : REFRESH_MS) : 0,
+    refreshInterval: isVisible ? quiet.refreshInterval : 0,
   });
   const fetched = data?.url === url ? data.data : undefined;
   const payload = !isLoading && fetched?.view === view ? fetched : undefined;
@@ -726,6 +728,8 @@ export function BatteryBoard({
       return `${row.athlete.athlete_id}:${row.place ?? ""}:${cells}`;
     })
     .join("|");
+  const nextSignature = payload ? `${scope}|${motionKey}` : null;
+  if (nextSignature !== boardSignature) setBoardSignature(nextSignature);
 
   useLayoutEffect(() => {
     const root = rowListRef.current;
@@ -972,8 +976,16 @@ export function BatteryBoard({
   const dataRowCount = items.filter((item) => item.kind === "row").length;
   const showDriBox = columns.some((column) => column.key === "DRI");
 
+  function onRefresh() {
+    quiet.resume();
+    void mutate();
+  }
+
   return (
     <BoardFrame>
+      <div className="absolute right-3 top-14 z-20 md:top-3">
+        <FreshnessStamp updatedAt={quiet.updatedAt} polling={quiet.polling} onRefresh={onRefresh} />
+      </div>
       <header className="mb-1 shrink-0">
         <div className="mb-1 h-0.5 w-10 rounded-full bg-accent" />
         <div className="flex flex-wrap items-end justify-between gap-2 md:pr-[19rem]">

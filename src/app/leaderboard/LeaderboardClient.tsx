@@ -1,10 +1,17 @@
 "use client";
 
-import { useState, useTransition, useRef, useEffect } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, useTransition, useRef, useEffect } from "react";
 import useSWR from "swr";
+import { FreshnessStamp, useQuietRefresh } from "@/app/components/FreshnessStamp";
+import { LIVE_REFRESH_MS } from "@/lib/quiet-refresh";
 
-/** Polling interval in ms when page is visible; 0 disables polling. */
-const LIVE_LEADERBOARD_REFRESH_MS = 10000;
+type QuietBoard = {
+  polling: boolean;
+  refreshToken: number;
+  report: (key: string, signature: string | null) => void;
+};
+
+const QuietContext = createContext<QuietBoard | null>(null);
 
 function usePageVisible(): boolean {
   const [visible, setVisible] = useState(true);
@@ -39,7 +46,17 @@ import {
 
 type SessionItem = { id: string; session_date: string; phase?: string; phase_week?: number };
 
-const fetcher = (url: string) => fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText))));
+const fetcher = async (url: string): Promise<never> => {
+  const response = await fetch(url);
+  let body: unknown = null;
+  try {
+    body = await response.json();
+  } catch {
+    body = null;
+  }
+  if (!response.ok) throw new Error(leaderboardErrorMessage(body, response.statusText));
+  return body as never;
+};
 
 async function leaderboardFetcher(url: string) {
   const r = await fetch(url);
@@ -100,8 +117,27 @@ export function LeaderboardClient() {
   const [populationId, setPopulationId] = useState("");
   const [isPending, startTransition] = useTransition();
   const isVisible = usePageVisible();
+  const [boardParts, setBoardParts] = useState<Record<string, string>>({});
+  const reportBoard = useCallback((key: string, signature: string | null) => {
+    setBoardParts((current) => {
+      if (signature == null) {
+        if (!(key in current)) return current;
+        const next = { ...current };
+        delete next[key];
+        return next;
+      }
+      if (current[key] === signature) return current;
+      return { ...current, [key]: signature };
+    });
+  }, []);
+  const [refreshToken, setRefreshToken] = useState(0);
+  const [liveSignature, setLiveSignature] = useState<string | null>(null);
+  const quiet = useQuietRefresh(liveSignature);
 
-  const { data: sessionsData } = useSWR<{ data: SessionItem[] }>("/api/sessions", fetcher);
+  const { data: sessionsData, error: sessionsError } = useSWR<{ data: SessionItem[] }>(
+    "/api/sessions",
+    fetcher
+  );
   const sessions = sessionsData?.data ?? [];
   const { data: populationsData } = useSWR<{ data: NormPopulationOption[] }>(
     "/api/norms/populations",
@@ -111,14 +147,22 @@ export function LeaderboardClient() {
 
   const sessionMetricsUrl =
     sessionId ? `/api/leaderboard/session-metrics?session_id=${encodeURIComponent(sessionId)}` : null;
-  const { data: sessionMetricsData } = useSWR<{ data: { metrics: SessionMetric[] } }>(
+  const { data: sessionMetricsData, mutate: reloadMetrics } = useSWR<{ data: { metrics: SessionMetric[] } }>(
     sessionMetricsUrl,
     fetcher,
     {
-      refreshInterval: sessionId && isVisible ? LIVE_LEADERBOARD_REFRESH_MS : 0,
+      refreshInterval: sessionId && isVisible ? quiet.refreshInterval : 0,
     }
   );
   const metrics = sessionMetricsData?.data?.metrics ?? [];
+  const boardSignature = Object.keys(boardParts)
+    .sort()
+    .map((key) => `${key}=${boardParts[key]}`)
+    .join("&");
+  const nextSignature = sessionId
+    ? `${sessionId}|${metrics.map((metric) => metric.metric_id).join(",")}|${boardSignature}`
+    : null;
+  if (nextSignature !== liveSignature) setLiveSignature(nextSignature);
 
   const toggleMetric = (metricId: string, metric?: SessionMetric) => {
     startTransition(() => {
@@ -152,7 +196,19 @@ export function LeaderboardClient() {
     });
   };
 
+  const quietBoard = useMemo<QuietBoard>(
+    () => ({ polling: quiet.polling, refreshToken, report: reportBoard }),
+    [quiet.polling, refreshToken, reportBoard]
+  );
+
+  function onRefresh() {
+    quiet.resume();
+    setRefreshToken((current) => current + 1);
+    void reloadMetrics();
+  }
+
   return (
+    <QuietContext.Provider value={quietBoard}>
     <div className="relative min-h-screen overflow-hidden bg-background px-6 py-8 md:px-8 md:py-10">
       <PageBackground />
       <div className={`relative z-10 ${wideMode || splitGenderColumns ? "max-w-none" : "mx-auto max-w-4xl"}`}>
@@ -164,12 +220,17 @@ export function LeaderboardClient() {
                 Live leaderboard
               </h1>
             </div>
-            <Link
-              href="/"
-              className="rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
-            >
-              Home
-            </Link>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              {sessionId ? (
+                <FreshnessStamp updatedAt={quiet.updatedAt} polling={quiet.polling} onRefresh={onRefresh} />
+              ) : null}
+              <Link
+                href="/"
+                className="rounded-xl border border-border bg-surface-elevated px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:border-accent/50 hover:bg-surface hover:shadow-md"
+              >
+                Home
+              </Link>
+            </div>
           </header>
 
           <section className="mb-6 flex flex-wrap items-end gap-4">
@@ -188,6 +249,9 @@ export function LeaderboardClient() {
               </option>
             ))}
           </select>
+          {sessionsError instanceof Error ? (
+            <p className="text-sm text-danger">{sessionsError.message}</p>
+          ) : null}
         </label>
         <label className="flex items-center gap-2">
           <input
@@ -365,6 +429,7 @@ export function LeaderboardClient() {
         </div>
       </div>
     </div>
+    </QuietContext.Provider>
   );
 }
 
@@ -399,6 +464,8 @@ function ComponentLeaderboard({
     populationId
   );
   const isVisible = usePageVisible();
+  const quiet = useContext(QuietContext);
+  const seenRefresh = useRef(0);
   const { data, error, isLoading, mutate } = useSWR<{
     data: {
       rows: LeaderboardRow[];
@@ -410,8 +477,28 @@ function ComponentLeaderboard({
       selected_population_id?: string | null;
     };
   }>(url, leaderboardFetcher, {
-    refreshInterval: isVisible ? LIVE_LEADERBOARD_REFRESH_MS : 0,
+    refreshInterval: isVisible && (quiet?.polling ?? false) ? LIVE_REFRESH_MS : 0,
   });
+
+  useEffect(() => {
+    const rows = data?.data?.rows;
+    if (!rows || !quiet) return;
+    const signature = rows
+      .map((row) => `${row.athlete_id}:${row.rank}:${row.display_value}:${row.trend ?? ""}`)
+      .join("|");
+    quiet.report(url, signature);
+  }, [data, quiet, url]);
+
+  const report = quiet?.report;
+  useEffect(() => {
+    return () => report?.(url, null);
+  }, [report, url]);
+
+  useEffect(() => {
+    if (!quiet || quiet.refreshToken === seenRefresh.current) return;
+    seenRefresh.current = quiet.refreshToken;
+    void mutate();
+  }, [mutate, quiet]);
 
   const prevDataRef = useRef<{
     rows: LeaderboardRow[];

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { databaseErrorBody, rememberRead } from "@/lib/db-guard";
 import { isBatterySchemaMissing, readPgError } from "@/lib/battery/load";
 import { BOYS_BASKETBALL_BASELINE } from "@/lib/battery/template";
 
@@ -208,9 +209,8 @@ function asDateText(raw: unknown): string | null {
   return text.length >= 10 ? text.slice(0, 10) : text;
 }
 
-async function listBatteries() {
-  try {
-    const { rows } = await sql`
+async function queryBatteries(): Promise<BatteryListItem[]> {
+  const { rows } = await sql`
       SELECT
         b.id,
         b.title,
@@ -254,9 +254,17 @@ async function listBatteries() {
         sort_order: Number(row.sort_order ?? 0),
       });
     }
-    return NextResponse.json({ data: [...byId.values()] });
+    return [...byId.values()];
+}
+
+async function listBatteries() {
+  try {
+    const data = await rememberRead("batteries:list", queryBatteries);
+    return NextResponse.json({ data });
   } catch (err) {
     if (isBatterySchemaMissing(err)) return schemaResponse();
+    const quota = databaseErrorBody(err);
+    if (quota) return NextResponse.json({ error: quota.error }, { status: quota.status });
     console.error("GET /api/battery:", err);
     return NextResponse.json({ error: "Failed to list batteries" }, { status: 500 });
   }

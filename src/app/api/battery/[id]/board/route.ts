@@ -3,6 +3,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { isBatterySchemaMissing, loadBatteryBoard, readPgError } from "@/lib/battery/load";
+import { databaseErrorBody, rememberRead } from "@/lib/db-guard";
 
 const MIGRATION_ERROR = "Run scripts/migrate-testing-battery.sql";
 
@@ -24,12 +25,16 @@ export async function GET(
     const groupParam = searchParams.get("group");
     const group = groupParam == null || groupParam.trim() === "" ? "overall" : groupParam.trim();
     const sample = searchParams.get("sample") === "1" && process.env.NODE_ENV !== "production";
-    const data = await loadBatteryBoard(id, {
-      view: viewParam,
-      group,
-      dayKey: dayParam,
-      sample,
-    });
+    const data = await rememberRead(
+      `board:${id}:${viewParam}:${dayParam}:${group}:${sample ? "1" : "0"}`,
+      () =>
+        loadBatteryBoard(id, {
+          view: viewParam,
+          group,
+          dayKey: dayParam,
+          sample,
+        })
+    );
     if (!data) {
       return NextResponse.json({ error: "Battery not found" }, { status: 404 });
     }
@@ -44,6 +49,8 @@ export async function GET(
     if (isBatterySchemaMissing(err)) {
       return NextResponse.json({ error: MIGRATION_ERROR }, { status: 503 });
     }
+    const quota = databaseErrorBody(err);
+    if (quota) return NextResponse.json({ error: quota.error }, { status: quota.status });
     console.error("GET /api/battery/[id]/board:", err);
     return NextResponse.json({ error: "Failed to load battery board" }, { status: 500 });
   }

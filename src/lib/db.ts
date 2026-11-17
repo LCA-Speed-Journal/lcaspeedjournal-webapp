@@ -5,6 +5,12 @@
  * Never concatenate user input into SQL—use parameterized queries.
  */
 import { createClient, createPool, type VercelPoolClient } from "@vercel/postgres";
+import {
+  DatabaseQuotaError,
+  assertDatabaseOpen,
+  looksLikeQuota,
+  tripDatabaseQuota,
+} from "@/lib/db-guard";
 
 /**
  * Tagged SQL the rest of the app uses. Each call may use a different connection,
@@ -20,15 +26,44 @@ type TxClient = {
 let sqlExport: DbSql;
 let checkout: () => Promise<TxClient>;
 
+function guardCall<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    assertDatabaseOpen();
+  } catch (err) {
+    return Promise.reject(err);
+  }
+  return run().catch((err: unknown) => {
+    if (looksLikeQuota(err)) {
+      tripDatabaseQuota();
+      throw new DatabaseQuotaError();
+    }
+    throw err;
+  });
+}
+
+function guardSql(raw: DbSql): DbSql {
+  return ((strings: TemplateStringsArray, ...values: never[]) =>
+    guardCall(() => raw(strings, ...values))) as DbSql;
+}
+
 try {
   const pool = createPool();
-  sqlExport = pool.sql.bind(pool);
+  sqlExport = guardSql(pool.sql.bind(pool));
   checkout = async () => {
-    const client = await pool.connect();
-    return {
-      sql: client.sql.bind(client),
-      release: (err) => client.release(err),
-    };
+    assertDatabaseOpen();
+    try {
+      const client = await pool.connect();
+      return {
+        sql: guardSql(client.sql.bind(client)),
+        release: (err) => client.release(err),
+      };
+    } catch (err) {
+      if (looksLikeQuota(err)) {
+        tripDatabaseQuota();
+        throw new DatabaseQuotaError();
+      }
+      throw err;
+    }
   };
 } catch (err) {
   const e = err as { code?: string; message?: string };
@@ -43,12 +78,21 @@ try {
     );
     const connectionString = process.env.POSTGRES_URL;
     const client = createClient({ connectionString });
-    sqlExport = client.sql.bind(client);
+    sqlExport = guardSql(client.sql.bind(client));
     checkout = async () => {
+      assertDatabaseOpen();
       const txClient = createClient({ connectionString });
-      await txClient.connect();
+      try {
+        await txClient.connect();
+      } catch (connectErr) {
+        if (looksLikeQuota(connectErr)) {
+          tripDatabaseQuota();
+          throw new DatabaseQuotaError();
+        }
+        throw connectErr;
+      }
       return {
-        sql: txClient.sql.bind(txClient),
+        sql: guardSql(txClient.sql.bind(txClient)),
         release: () => {
           void txClient.end().catch((endErr) => {
             console.error("[db] failed to close transaction client", endErr);

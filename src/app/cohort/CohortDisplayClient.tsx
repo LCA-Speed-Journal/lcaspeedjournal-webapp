@@ -1,8 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 import type { PublicCohortPayload } from "@/lib/cohort";
+
+function usePageVisible(): boolean {
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const handler = () => setVisible(document.visibilityState === "visible");
+    handler();
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, []);
+  return visible;
+}
 
 const fetcher = (url: string) =>
   fetch(url).then((r) => (r.ok ? r.json() : Promise.reject(new Error(r.statusText))));
@@ -31,8 +42,10 @@ export function CohortDisplayClient() {
     };
   }, []);
 
+  const isVisible = usePageVisible();
   const { data, error } = useSWR<{ data: PublicCohortPayload }>("/api/cohort", fetcher, {
-    refreshInterval: 2000,
+    refreshInterval: isVisible ? 2000 : 0,
+    refreshWhenHidden: false,
   });
   const payload = data?.data;
 

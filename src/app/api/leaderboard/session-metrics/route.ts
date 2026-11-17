@@ -4,6 +4,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { databaseErrorBody, rememberRead } from "@/lib/db-guard";
 import { sessionHasOverallChip } from "@/lib/metric-utils";
 import { getMetricsRegistry } from "@/lib/parser";
 
@@ -33,15 +34,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const metrics = await rememberRead(`session-metrics:${session_id}`, async () => {
     const sessionRows = await sql`
       SELECT id FROM sessions WHERE id = ${session_id} LIMIT 1
     `;
-    if (!sessionRows.rows.length) {
-      return NextResponse.json(
-        { error: "Session not found" },
-        { status: 404 }
-      );
-    }
+    if (!sessionRows.rows.length) return null;
 
     const { rows } = await sql`
       SELECT DISTINCT metric_key, units, interval_index, component
@@ -122,8 +119,18 @@ export async function GET(request: NextRequest) {
       return a.units.localeCompare(b.units);
     });
 
+    return metrics;
+    });
+    if (!metrics) {
+      return NextResponse.json(
+        { error: "Session not found" },
+        { status: 404 }
+      );
+    }
     return NextResponse.json({ data: { metrics } });
   } catch (err) {
+    const quota = databaseErrorBody(err);
+    if (quota) return NextResponse.json({ error: quota.error }, { status: quota.status });
     console.error("GET /api/leaderboard/session-metrics:", err);
     return NextResponse.json(
       { error: "Failed to fetch session metrics" },

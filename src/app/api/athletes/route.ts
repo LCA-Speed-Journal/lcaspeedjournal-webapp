@@ -6,18 +6,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { databaseErrorBody, rememberRead } from "@/lib/db-guard";
 import { resolveGraduatingClass } from "@/lib/quick-athlete";
 import { attachHugoGroupsFromDb } from "@/lib/weight-room/hugo-memberships";
 
-export async function GET(request: NextRequest) {
+async function queryAthletes(activeOnly: boolean) {
   try {
-    // Support ?active=true filter for team overview
-    const { searchParams } = new URL(request.url);
-    const activeFilter = searchParams.get('active');
-    
-    try {
       let query;
-      if (activeFilter === 'true') {
+      if (activeOnly) {
         query = sql`
           SELECT id, first_name, last_name, gender, graduating_class, athlete_type, active, created_at, hugo_group
           FROM athletes
@@ -32,10 +28,9 @@ export async function GET(request: NextRequest) {
         `;
       }
       const { rows } = await query;
-      const withGroups = await attachHugoGroupsFromDb(
+      return attachHugoGroupsFromDb(
         rows as Array<Record<string, unknown> & { id: string }>
       );
-      return NextResponse.json({ data: withGroups });
     } catch (legacyErr) {
       const msg = String((legacyErr as Error)?.message ?? "");
       if (
@@ -54,8 +49,7 @@ export async function GET(request: NextRequest) {
             ...r,
             active: true,
           }));
-          const withGroups = await attachHugoGroupsFromDb(withActive);
-          return NextResponse.json({ data: withGroups });
+          return attachHugoGroupsFromDb(withActive);
         } catch (noActiveErr) {
           const innerMsg = String((noActiveErr as Error)?.message ?? "");
           if (
@@ -73,15 +67,26 @@ export async function GET(request: NextRequest) {
               athlete_type: "athlete",
               active: true,
             }));
-            const withGroups = await attachHugoGroupsFromDb(withDefaults);
-            return NextResponse.json({ data: withGroups });
+            return attachHugoGroupsFromDb(withDefaults);
           }
           throw noActiveErr;
         }
       }
       throw legacyErr;
     }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const activeOnly = new URL(request.url).searchParams.get("active") === "true";
+    const data = await rememberRead(
+      activeOnly ? "athletes:active" : "athletes:all",
+      () => queryAthletes(activeOnly)
+    );
+    return NextResponse.json({ data });
   } catch (err) {
+    const quota = databaseErrorBody(err);
+    if (quota) return NextResponse.json({ error: quota.error }, { status: quota.status });
     console.error("GET /api/athletes:", err);
     return NextResponse.json(
       { error: "Failed to fetch athletes" },

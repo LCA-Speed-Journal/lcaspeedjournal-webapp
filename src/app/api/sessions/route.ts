@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { databaseErrorBody, rememberRead } from "@/lib/db-guard";
 import {
   sanitizeDayComponents,
   sanitizeDaySplits,
@@ -29,15 +30,19 @@ function serializeSessionRow(row: Record<string, unknown>) {
 
 export async function GET() {
   try {
-    const { rows } = await sql`
-      SELECT id, session_date, phase, phase_week, day_metrics, day_splits, day_components, session_notes, created_at
-      FROM sessions
-      ORDER BY session_date DESC, created_at DESC
-      LIMIT 100
-    `;
-    const data = (rows as Record<string, unknown>[]).map(serializeSessionRow);
+    const data = await rememberRead("sessions:list", async () => {
+      const { rows } = await sql`
+        SELECT id, session_date, phase, phase_week, day_metrics, day_splits, day_components, session_notes, created_at
+        FROM sessions
+        ORDER BY session_date DESC, created_at DESC
+        LIMIT 100
+      `;
+      return (rows as Record<string, unknown>[]).map(serializeSessionRow);
+    });
     return NextResponse.json({ data });
   } catch (err) {
+    const quota = databaseErrorBody(err);
+    if (quota) return NextResponse.json({ error: quota.error }, { status: quota.status });
     console.error("GET /api/sessions:", err);
     return NextResponse.json(
       { error: "Failed to fetch sessions" },
