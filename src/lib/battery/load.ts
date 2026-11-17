@@ -814,6 +814,9 @@ async function sampleComparisonSessionId(): Promise<string | null> {
   return id == null ? null : String(id);
 }
 
+const COMPARISON_MISS_TTL_MS = 5 * 60 * 1000;
+const comparisonMissUntil = new Map<string, number>();
+
 async function comparisonSessionFallbackQuery(
   comparisonDate: string
 ): Promise<ReturnType<typeof pickComparisonSession>> {
@@ -836,9 +839,19 @@ async function comparisonSessionFallbackQuery(
 }
 
 async function attachComparisonSessionIfMissing(batteryId: string): Promise<string | null> {
+  const missUntil = comparisonMissUntil.get(batteryId);
+  if (missUntil != null) {
+    if (Date.now() < missUntil) return null;
+    comparisonMissUntil.delete(batteryId);
+  }
+
   const comparisonDate = BOYS_BASKETBALL_BASELINE.comparison_date;
+  const comparisonHugoGroup = BOYS_BASKETBALL_BASELINE.comparison_hugo_group;
   const fortyYd = "40yd_Dash";
-  const soccer = "soccer";
+
+  const rememberMiss = () => {
+    comparisonMissUntil.set(batteryId, Date.now() + COMPARISON_MISS_TTL_MS);
+  };
 
   const persistPicked = async (picked: string): Promise<string | null> => {
     const { rows } = await sql`
@@ -864,7 +877,10 @@ async function attachComparisonSessionIfMissing(batteryId: string): Promise<stri
         COUNT(*) FILTER (
           WHERE e.metric_key = ${fortyYd} OR e.legacy_metric_key = ${fortyYd}
         ) AS forty_count,
-        BOOL_OR(e.context_hugo_group = ${soccer}) AS soccer_tagged
+        BOOL_OR(
+          (e.metric_key = ${fortyYd} OR e.legacy_metric_key = ${fortyYd})
+          AND e.context_hugo_group = ${comparisonHugoGroup}
+        ) AS soccer_tagged
       FROM sessions s
       INNER JOIN entries e ON e.session_id = s.id
       WHERE s.session_date = ${comparisonDate}::date
@@ -885,7 +901,10 @@ async function attachComparisonSessionIfMissing(batteryId: string): Promise<stri
     picked = await comparisonSessionFallbackQuery(comparisonDate);
   }
 
-  if (picked == null) return null;
+  if (picked == null) {
+    rememberMiss();
+    return null;
+  }
   return persistPicked(picked);
 }
 
