@@ -9,7 +9,7 @@ type DataEntryLayoutProps = {
 };
 
 const cardClass =
-  "rounded-2xl border-2 border-border/80 bg-surface/90 shadow-2xl shadow-black/30 backdrop-blur-sm ring-1 ring-white/5 md:p-8";
+  "rounded-2xl border-2 border-border/80 bg-surface/90 shadow-2xl shadow-black/30 backdrop-blur-sm ring-1 ring-white/5";
 const cardStyle = {
   boxShadow:
     "0 0 15px 2px rgba(255,255,255,0.04), 0 25px 50px -12px rgba(0,0,0,0.3)",
@@ -77,7 +77,7 @@ export function DataEntryLayout({ sidebar, main }: DataEntryLayoutProps) {
       </div>
 
       {/* Main content: background shows through; center card matches Athletes */}
-      <div className="flex-1 overflow-y-auto px-6 py-8 md:px-8 md:py-10">
+      <div className="flex-1 overflow-y-auto px-6 py-8">
         {!isDesktop && (
           <button
             type="button"

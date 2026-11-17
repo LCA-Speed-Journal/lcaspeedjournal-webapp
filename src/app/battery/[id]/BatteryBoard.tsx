@@ -111,6 +111,25 @@ export function cutoffAfterIndex(rows: BoardRow[], cutoff: number | null): numbe
 
 const BIB_LINE = 16;
 
+/**
+ * One size for every line under a mark. It stays at 11px until the widest line
+ * would clip, then shrinks so that line still fits `width`.
+ */
+export function fitSubtextSize(
+  labels: string[],
+  width: number,
+  measure: (label: string, size: number) => number
+): number {
+  const ceiling = 11;
+  const usable = labels.map((label) => label.trim()).filter((label) => label.length > 0);
+  if (width <= 0 || usable.length === 0) return ceiling;
+  const widest = usable.reduce((best, label) => (measure(label, ceiling) > measure(best, ceiling) ? label : best));
+  if (measure(widest, ceiling) <= width) return ceiling;
+  let size = ceiling;
+  while (size > 6 && measure(widest, size) > width) size -= 0.5;
+  return Math.round(size * 10) / 10;
+}
+
 /** Largest font size whose widest label fits `width` and still leaves a line for the bib. */
 export function fitLabelSize(
   labels: string[],
@@ -266,7 +285,7 @@ function formatPoints(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-/** Phone column: "Jax T." The wide board still shows the full name. */
+/** List column: "Jax T." The paged board still shows the full name. */
 export function shortName(first: string, last: string): string {
   const firstName = first.trim();
   const initial = last.trim().charAt(0).toUpperCase();
@@ -338,6 +357,22 @@ function qualifierMark(qualifier: string | null): QualifierMark | null {
   return QUALIFIERS.find((item) => item.key === key) ?? null;
 }
 
+/**
+ * One outline for every podium cell. Width is the column minus a fixed gutter.
+ * Height is the tallest mark stack plus a fixed clearance, and the cell is
+ * locked to that height so the stroke stays around the subtext.
+ */
+export function podiumBox(
+  columnWidth: number,
+  contentHeight: number
+): { width: number; height: number; cellHeight: number } {
+  const gutter = 6;
+  const clearance = 8;
+  const height = Math.ceil(Math.max(0, contentHeight) + clearance * 2);
+  const width = Math.max(0, Math.floor(columnWidth - gutter * 2));
+  return { width, height, cellHeight: height + gutter * 2 };
+}
+
 function podiumFrame(rank: number): string {
   if (rank === 1) return "rounded-md border border-gold/70 bg-gold/15";
   if (rank === 2) return "rounded-md border border-silver/70 bg-silver/15";
@@ -394,12 +429,14 @@ function MarkCell({
   qualifier,
   markFont,
   scroll,
+  lockFrame = false,
 }: {
   column: BoardColumn;
   cell: BoardCell | undefined;
   qualifier: string | null;
   markFont: string;
   scroll: boolean;
+  lockFrame?: boolean;
 }) {
   const place = cell ? (cell.tied ? `T${cell.rank}` : String(cell.rank)) : "";
   const rsi = cell && column.key === "10-5_RSI" ? qualifierMark(qualifier) : null;
@@ -417,14 +454,31 @@ function MarkCell({
     <div
       data-mark-cell
       className="relative flex h-full min-h-0 min-w-0 items-center justify-center self-stretch overflow-hidden px-0.5 text-center"
-      style={{ fontSize: markFont, minHeight: scroll ? "4rem" : undefined }}
+      style={{
+        fontSize: markFont,
+        minHeight: lockFrame
+          ? "var(--podium-cell)"
+          : scroll && markFont === "1.05rem"
+            ? "4rem"
+            : undefined,
+      }}
     >
       {frame ? (
         <div
-          className={`pointer-events-none absolute inset-x-0.5 ${scroll ? "inset-y-1" : "inset-y-[5%]"} ${frame}`}
+          className={`pointer-events-none absolute ${
+            lockFrame ? "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" : `inset-x-0.5 ${scroll ? "inset-y-1" : "inset-y-[5%]"}`
+          } ${frame}`}
+          style={
+            lockFrame
+              ? { width: "var(--podium-w)", height: "var(--podium-h)" }
+              : undefined
+          }
         />
       ) : null}
-      <div className="relative flex max-h-full min-w-0 max-w-full flex-col items-center justify-center gap-0.5 leading-none">
+      <div
+        data-mark-stack
+        className="relative flex max-h-full min-w-0 max-w-full flex-col items-center justify-center gap-0.5 leading-none"
+      >
         {cell ? (
           <div className="flex max-w-full items-center justify-center gap-[0.15em] leading-none">
             {rsi ? <QualifierIcon kind={rsi.key} className="h-[0.55em] w-[0.55em]" /> : null}
@@ -441,18 +495,22 @@ function MarkCell({
           <div className="flex w-full min-w-0 flex-col items-center gap-0.5 leading-none">
             {cell?.delta ? (
               <p
-                className={`max-w-full truncate font-mono text-[11px] tabular-nums leading-none ${
+                className={`max-w-full whitespace-nowrap font-mono tabular-nums leading-none ${
                   cell.delta.improved ? "text-success" : "text-foreground-muted"
                 }`}
+                style={{ fontSize: "var(--subtext-size, 11px)" }}
                 data-delta={column.key}
+                data-subtext
               >
                 {formatDeltaLine(cell.delta.change, cell.delta.previous)}
               </p>
             ) : null}
             {cell && column.key === "DRI" && cell.band ? (
               <p
-                className={`max-w-full truncate text-[11px] font-medium leading-none ${DRI_BAND_TEXT[cell.band] ?? "text-foreground-muted"}`}
+                className={`max-w-full whitespace-nowrap font-medium leading-none ${DRI_BAND_TEXT[cell.band] ?? "text-foreground-muted"}`}
+                style={{ fontSize: "var(--subtext-size, 11px)" }}
                 title={cell.band}
+                data-subtext
               >
                 {cell.band}
               </p>
@@ -473,6 +531,7 @@ function AthleteRow({
   scroll,
   nameRef,
   fullWidth,
+  lockFrame = false,
 }: {
   row: BoardRow;
   columns: BoardColumn[];
@@ -482,6 +541,7 @@ function AthleteRow({
   scroll: boolean;
   nameRef?: Ref<HTMLSpanElement>;
   fullWidth?: boolean;
+  lockFrame?: boolean;
 }) {
   const { athlete, place, untested } = row;
   const name = `${athlete.first_name} ${athlete.last_name}`.trim() || "Athlete";
@@ -519,8 +579,10 @@ function AthleteRow({
           {nameLabel}
         </span>
         <span
-          className="shrink-0 truncate font-mono text-[11px] font-medium tabular-nums leading-none text-foreground-muted"
+          className="shrink-0 whitespace-nowrap font-mono font-medium tabular-nums leading-none text-foreground-muted"
+          style={{ fontSize: "var(--subtext-size, 11px)" }}
           data-athlete-bib
+          data-subtext
         >
           {athlete.bib ?? "—"}
         </span>
@@ -533,6 +595,7 @@ function AthleteRow({
           qualifier={athlete.qualifier}
           markFont={markFont}
           scroll={scroll}
+          lockFrame={lockFrame}
         />
       ))}
       <span className="pr-1 text-center font-mono text-[13px] font-semibold tabular-nums md:text-sm">
@@ -608,7 +671,7 @@ export function BatteryBoard({
   const nameLabels = items.flatMap((item) =>
     item.kind === "row"
       ? [
-          narrow
+          listMode
             ? shortName(item.row.athlete.first_name, item.row.athlete.last_name)
             : `${item.row.athlete.first_name} ${item.row.athlete.last_name}`.trim() || "Athlete",
         ]
@@ -630,9 +693,33 @@ export function BatteryBoard({
       markFits.push({ text: formatMark(cell.value, column.units), extraEm: 0.85 + icon });
     }
   }
-  const fitRef = useRef({ names: nameLabels, marks: markFits, lines: subtextLines, columns: fitColumns.length });
-  fitRef.current = { names: nameLabels, marks: markFits, lines: subtextLines, columns: fitColumns.length };
-  const fitKey = `${nameKey}|${subtextLines}|${fitColumns.length}|${markFits.map((mark) => mark.text).join(",")}`;
+  const subtextLabels: string[] = [];
+  for (const item of items) {
+    if (item.kind !== "row") continue;
+    const bib = item.row.athlete.bib?.trim();
+    if (bib) subtextLabels.push(bib);
+    for (const column of fitColumns) {
+      const cell = item.row.athlete.cells[column.key];
+      if (!cell) continue;
+      if (cell.delta) subtextLabels.push(formatDeltaLine(cell.delta.change, cell.delta.previous));
+      if (column.key === "DRI" && cell.band) subtextLabels.push(cell.band);
+    }
+  }
+  const fitRef = useRef({
+    names: nameLabels,
+    marks: markFits,
+    lines: subtextLines,
+    columns: fitColumns.length,
+    subtexts: subtextLabels,
+  });
+  fitRef.current = {
+    names: nameLabels,
+    marks: markFits,
+    lines: subtextLines,
+    columns: fitColumns.length,
+    subtexts: subtextLabels,
+  };
+  const fitKey = `${nameKey}|${subtextLines}|${fitColumns.length}|${markFits.map((mark) => mark.text).join(",")}|${subtextLabels.join(",")}`;
   const rowTops = useRef(new Map<string, number>());
   const markText = useRef(new Map<string, string>());
   const motionKey = ordered
@@ -697,29 +784,73 @@ export function BatteryBoard({
         canvas.font = `${weight} ${size}px ${family}`;
         return canvas.measureText(text).width;
       };
-      if (listMode) {
-        root.style.removeProperty("--mark-size");
-        if (narrow) {
-          root.style.removeProperty("--name-col");
-          return;
-        }
-        const size = Number.parseFloat(nameStyles.fontSize) || 16;
-        let widest = 0;
-        for (const text of fitRef.current.names) {
-          widest = Math.max(widest, measure(text, size, "600", nameFamily));
-        }
-        const rootPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-        const nameCap = narrow ? 9.5 * rootPx : 18 * rootPx;
-        const next = Math.min(Math.ceil(widest + 17), Math.round(nameCap));
-        root.style.setProperty("--name-col", `${Math.max(next, 1)}px`);
-        return;
-      }
-      const rowHeight = row?.clientHeight ?? 0;
+      const rootPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
       const boardWidth = root.clientWidth;
-      if (rowHeight < 8 || boardWidth < 8) return;
       const markEl = root.querySelector("[data-mark]");
       const markFamily = markEl ? getComputedStyle(markEl).fontFamily : "ui-monospace, monospace";
-      const rootPx = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      if (narrow) {
+        const column = 4.75 * rootPx - 8;
+        const subtext = fitSubtextSize(fitRef.current.subtexts, column, (text, size) =>
+          Math.max(
+            measure(text, size, "500", nameFamily),
+            measure(text, size, "500", "ui-monospace, monospace")
+          )
+        );
+        root.style.setProperty("--subtext-size", `${subtext}px`);
+      } else {
+        root.style.removeProperty("--subtext-size");
+      }
+      if (listMode) {
+        if (narrow) {
+          root.style.removeProperty("--mark-size");
+          root.style.removeProperty("--name-col");
+          root.style.removeProperty("--podium-w");
+          root.style.removeProperty("--podium-h");
+          root.style.removeProperty("--podium-cell");
+          return;
+        }
+        const spec = fitRef.current;
+        const fitted = fitSharedSize(
+          boardWidth - 4,
+          56,
+          spec.columns,
+          (2.25 + 2.75) * rootPx,
+          spec.lines <= 0 ? 0 : 2 + spec.lines * 11 + Math.max(0, spec.lines - 1) * 2,
+          (size) => {
+            let widest = 0;
+            for (const text of spec.names) widest = Math.max(widest, measure(text, size, "600", nameFamily));
+            return widest + 18;
+          },
+          (size) => {
+            let widest = 0;
+            for (const mark of spec.marks) {
+              widest = Math.max(widest, measure(mark.text, size, "700", markFamily) + size * mark.extraEm);
+            }
+            return widest;
+          }
+        );
+        root.style.setProperty("--name-col", `${Math.ceil(fitted.nameWidth)}px`);
+        root.style.setProperty("--mark-size", `${fitted.size}px`);
+        let contentHeight = 0;
+        let columnWidth = Number.POSITIVE_INFINITY;
+        root.querySelectorAll<HTMLElement>("[data-mark-stack]").forEach((stack) => {
+          contentHeight = Math.max(contentHeight, stack.getBoundingClientRect().height);
+          const cell = stack.closest("[data-mark-cell]");
+          if (cell) columnWidth = Math.min(columnWidth, cell.getBoundingClientRect().width);
+        });
+        if (contentHeight > 0 && Number.isFinite(columnWidth)) {
+          const box = podiumBox(columnWidth, contentHeight);
+          root.style.setProperty("--podium-w", `${box.width}px`);
+          root.style.setProperty("--podium-h", `${box.height}px`);
+          root.style.setProperty("--podium-cell", `${box.cellHeight}px`);
+        }
+        return;
+      }
+      root.style.removeProperty("--podium-w");
+      root.style.removeProperty("--podium-h");
+      root.style.removeProperty("--podium-cell");
+      const rowHeight = row?.clientHeight ?? 0;
+      if (rowHeight < 8 || boardWidth < 8) return;
       const spec = fitRef.current;
       const subtext = spec.lines <= 0 ? 0 : 2 + spec.lines * 11 + Math.max(0, spec.lines - 1) * 2;
       const fitted = fitSharedSize(
@@ -789,7 +920,7 @@ export function BatteryBoard({
     return { ...point, rsi: cell?.value ?? null, rank: cell?.rank ?? null };
   });
   const template = columnTemplate(columns.length, narrow);
-  const markFont = listMode ? "1.05rem" : "var(--mark-size, 1.5rem)";
+  const markFont = narrow ? "1.05rem" : "var(--mark-size, 1.5rem)";
   const dayLabel = payload.day_label.trim() || (payload.view === "meet" ? "Meet" : "Today");
   const showGroups = teamMode;
 
@@ -1017,9 +1148,10 @@ export function BatteryBoard({
                   template={template}
                   markFont={markFont}
                   scroll={listMode}
+                  lockFrame={listMode && !narrow}
                   fullWidth={!narrow}
                   nameLabel={
-                    narrow
+                    listMode
                       ? shortName(item.row.athlete.first_name, item.row.athlete.last_name)
                       : `${item.row.athlete.first_name} ${item.row.athlete.last_name}`.trim() || "Athlete"
                   }

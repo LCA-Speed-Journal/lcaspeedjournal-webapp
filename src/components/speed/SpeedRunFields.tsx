@@ -173,26 +173,58 @@ export function SpeedRunFields({ draft, onChange, entries, athleteId }: SpeedRun
         </div>
       </div>
 
-      <fieldset>
-        <legend className="mb-1 block text-sm font-medium text-foreground">Unit</legend>
-        <div className="flex gap-1 rounded border border-border bg-surface-elevated p-1">
-          {(["m", "yd"] as const).map((unit) => (
-            <button
-              key={unit}
-              type="button"
-              aria-pressed={draft.distanceUnit === unit}
-              onClick={() => onChange({ ...draft, distanceUnit: unit })}
-              className={`min-h-[44px] flex-1 rounded px-3 py-2 text-base ${
-                draft.distanceUnit === unit
-                  ? "bg-accent text-background"
-                  : "text-foreground hover:bg-surface"
-              }`}
-            >
-              {unit}
-            </button>
-          ))}
+      <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-end gap-1.5">
+        <div>
+          <label htmlFor="speed_build" className="mb-1 block text-sm font-medium text-foreground">
+            Build
+          </label>
+          <input
+            id="speed_build"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            title="Untimed build"
+            value={draft.untimedBuild}
+            onChange={(e) => onChange({ ...draft, untimedBuild: e.target.value })}
+            className={`${INPUT_CLASS} px-2 text-center`}
+          />
         </div>
-      </fieldset>
+        <div className="min-w-0">
+          <label htmlFor="speed_gates" className="mb-1 block text-sm font-medium text-foreground">
+            Gates
+          </label>
+          <input
+            id="speed_gates"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            value={draft.gatesText}
+            onChange={(e) => onChange({ ...draft, gatesText: e.target.value })}
+            placeholder="10, 20, 40"
+            className={`${INPUT_CLASS} px-2`}
+          />
+        </div>
+        <fieldset>
+          <legend className="mb-1 block text-sm font-medium text-foreground">Unit</legend>
+          <div className="flex gap-0.5 rounded border border-border bg-surface-elevated p-0.5">
+            {(["m", "yd"] as const).map((unit) => (
+              <button
+                key={unit}
+                type="button"
+                aria-pressed={draft.distanceUnit === unit}
+                onClick={() => onChange({ ...draft, distanceUnit: unit })}
+                className={`min-h-[44px] w-10 rounded px-0 text-base ${
+                  draft.distanceUnit === unit
+                    ? "bg-accent text-background"
+                    : "text-foreground hover:bg-surface"
+                }`}
+              >
+                {unit}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      </div>
 
       <fieldset>
         <legend className="mb-1 block text-sm font-medium text-foreground">Time entry</legend>
@@ -214,37 +246,6 @@ export function SpeedRunFields({ draft, onChange, entries, athleteId }: SpeedRun
           ))}
         </div>
       </fieldset>
-
-      <div>
-        <label htmlFor="speed_build" className="mb-1 block text-sm font-medium text-foreground">
-          Untimed build
-        </label>
-        <input
-          id="speed_build"
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          value={draft.untimedBuild}
-          onChange={(e) => onChange({ ...draft, untimedBuild: e.target.value })}
-          className={INPUT_CLASS}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="speed_gates" className="mb-1 block text-sm font-medium text-foreground">
-          Gates
-        </label>
-        <input
-          id="speed_gates"
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          value={draft.gatesText}
-          onChange={(e) => onChange({ ...draft, gatesText: e.target.value })}
-          placeholder="Distances from the true start, comma-separated"
-          className={INPUT_CLASS}
-        />
-      </div>
 
       <div>
         <label htmlFor="speed_times" className="mb-1 block text-sm font-medium text-foreground">

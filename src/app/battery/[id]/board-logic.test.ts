@@ -4,6 +4,7 @@ import {
   boardPageSpan,
   cutoffAfterIndex,
   fitLabelSize,
+  fitSubtextSize,
   fitSharedSize,
   formatDelta,
   formatDeltaLine,
@@ -12,6 +13,7 @@ import {
   pageItems,
   phoneColumnTemplate,
   phoneGridWidth,
+  podiumBox,
   shortName,
 } from "./BatteryBoard";
 import type { BoardAthlete } from "@/lib/battery/load";
@@ -176,6 +178,26 @@ describe("gym board order", () => {
     expect(fitLabelSize(["Al", "Christopher"], 80, 100, widthOf)).toBeCloseTo(14.5, 0);
     expect(fitLabelSize(["Al"], 400, 80, widthOf)).toBe(64);
     expect(fitLabelSize(["Christopher"], 20, 80, widthOf)).toBe(14);
+  });
+
+  it("uses one smaller subtext size when the widest line would clip", () => {
+    const widthOf = (label: string, size: number) => label.length * size * 0.5;
+    expect(fitSubtextSize(["-0.1"], 80, widthOf)).toBe(11);
+    expect(fitSubtextSize(["Pretty Springy", "-0.2"], 52, widthOf)).toBeLessThan(11);
+    expect(fitSubtextSize(["Pretty Springy", "Elite"], 52, widthOf)).toBe(
+      fitSubtextSize(["Pretty Springy"], 52, widthOf)
+    );
+    const size = fitSubtextSize(["Pretty Springy"], 52, widthOf);
+    expect(widthOf("Pretty Springy", size)).toBeLessThanOrEqual(52);
+  });
+
+  it("locks every podium outline to the column width and the tallest stack", () => {
+    const box = podiumBox(196, 50);
+    expect(box.width).toBe(184);
+    expect(box.height).toBe(66);
+    expect(box.cellHeight).toBe(box.height + 12);
+    expect(podiumBox(196, 37)).not.toEqual(box);
+    expect(podiumBox(196, 50).width).toBe(podiumBox(196, 20).width);
   });
 
   it("shortens a phone name to the first name and last initial", () => {

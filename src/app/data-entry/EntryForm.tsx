@@ -1040,7 +1040,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   return (
     <form
       onSubmit={handleSubmit}
-      className="max-w-xl space-y-4 rounded-lg border border-border bg-surface p-4 shadow-lg shadow-black/20 md:p-6"
+      className="w-full space-y-4 rounded-lg border border-border bg-surface p-4 shadow-lg shadow-black/20"
     >
       {!sessionIdProp && (
         <div>
@@ -1148,34 +1148,6 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         </div>
       ) : null}
 
-      {batterySession ? (
-        <div>
-          <label htmlFor="entry_bib" className="mb-1 block text-sm font-medium text-foreground">
-            Bib
-          </label>
-          <input
-            id="entry_bib"
-            ref={bibInputRef}
-            type="text"
-            inputMode="numeric"
-            autoComplete="off"
-            maxLength={3}
-            value={bibInput}
-            onChange={(e) => onBibChange(e.target.value)}
-            placeholder="000"
-            className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-2xl tracking-widest text-foreground placeholder:text-foreground-muted focus:border-accent"
-          />
-          {matchedBib ? (
-            <p
-              id="entry_bib_name"
-              className="mt-2 text-4xl font-semibold leading-tight text-foreground"
-            >
-              {matchedBib.first_name} {matchedBib.last_name}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-
       <div>
         <label className="mb-2 flex cursor-pointer items-center gap-2">
           <input
@@ -1210,6 +1182,33 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             </option>
           ))}
         </select>
+        <div
+          className={
+            batterySession
+              ? "grid grid-cols-[5.5rem_minmax(0,1fr)] items-end gap-2"
+              : undefined
+          }
+        >
+          {batterySession ? (
+            <div>
+              <label htmlFor="entry_bib" className="mb-1 block text-sm font-medium text-foreground">
+                Bib
+              </label>
+              <input
+                id="entry_bib"
+                ref={bibInputRef}
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={3}
+                value={bibInput}
+                onChange={(e) => onBibChange(e.target.value)}
+                placeholder="000"
+                className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-2 py-2 text-lg tracking-widest text-foreground placeholder:text-foreground-muted focus:border-accent"
+              />
+            </div>
+          ) : null}
+          <div className="min-w-0">
         <label htmlFor="entry_athlete" className="mb-1 block text-sm font-medium text-foreground">
           Athlete
         </label>
@@ -1272,7 +1271,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             }}
             placeholder={
               batterySession
-                ? "Or search by name…"
+                ? "Search name…"
                 : sportFilter
                   ? `Search ${HUGO_GROUP_META[sportFilter].label} athletes…`
                   : "Search or select athlete…"
@@ -1389,6 +1388,16 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
               ) : null}
             </ul>
           )}
+        </div>
+          </div>
+          {matchedBib ? (
+            <p
+              id="entry_bib_name"
+              className="col-span-2 text-2xl font-semibold leading-tight text-foreground"
+            >
+              {matchedBib.first_name} {matchedBib.last_name}
+            </p>
+          ) : null}
         </div>
         {quickCreateOpen ? (
           <div

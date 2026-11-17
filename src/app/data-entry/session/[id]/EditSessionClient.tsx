@@ -332,7 +332,7 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
         <h2 className="mb-3 text-lg font-bold text-foreground">Edit session</h2>
         <form
           onSubmit={handleSessionSubmit}
-          className="max-w-xl space-y-4 rounded-lg border border-border bg-surface p-4 shadow-lg shadow-black/20"
+          className="w-full space-y-4 rounded-lg border border-border bg-surface p-4 shadow-lg shadow-black/20"
         >
           <div>
             <label htmlFor="edit_session_date" className="mb-1 block text-sm font-medium text-foreground">
