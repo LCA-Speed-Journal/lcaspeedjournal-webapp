@@ -54,6 +54,8 @@ export type BoardAthlete = {
   last_name: string;
   group_key: string | null;
   total_points: number;
+  /** Hidden ordering value. The points column keeps showing total_points. */
+  rank_points: number;
   slots_completed: number;
   qualifier: string | null;
   higher_box: boolean;
@@ -1184,6 +1186,7 @@ export async function loadBatteryBoard(
       last_name: row.last_name,
       group_key: singleGroupKey(groupsByAthlete, row.athlete_id),
       total_points: row.total_points,
+      rank_points: row.rank_points,
       slots_completed: row.slots_completed,
       qualifier: qualifierByAthlete.get(row.athlete_id) ?? null,
       higher_box: row.higher_box,

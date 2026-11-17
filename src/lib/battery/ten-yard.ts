@@ -1,4 +1,4 @@
-import { FORTY_YD_DASH } from "@/lib/norms/editor-metrics";
+import { FORTY_YD_DASH, TWENTY_YD_DASH } from "@/lib/norms/editor-metrics";
 import { sameSpeedMark } from "@/lib/speed/windows";
 
 export const TEN_YD_KEY = "10yd_Split";
@@ -17,7 +17,10 @@ export function bestTenYardMarks(
 ): { athlete_id: string; key: typeof TEN_YD_KEY; value: number }[] {
   const best = new Map<string, number>();
   for (const row of rows) {
-    if (!sameSpeedMark(row, FORTY_YD_DASH, "0-10yd")) continue;
+    const tenYard =
+      sameSpeedMark(row, FORTY_YD_DASH, "0-10yd") ||
+      sameSpeedMark(row, TWENTY_YD_DASH, "0-10yd");
+    if (!tenYard) continue;
     const current = best.get(row.athlete_id);
     if (current == null || row.display_value < current) best.set(row.athlete_id, row.display_value);
   }

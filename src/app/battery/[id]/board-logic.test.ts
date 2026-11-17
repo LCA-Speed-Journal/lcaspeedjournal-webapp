@@ -26,6 +26,7 @@ function athlete(index: number, points: number, slots = 1): BoardAthlete {
     last_name: String(index).padStart(2, "0"),
     group_key: null,
     total_points: points,
+    rank_points: 0,
     slots_completed: slots,
     qualifier: null,
     higher_box: false,
@@ -76,6 +77,26 @@ describe("gym board order", () => {
     const last = pageItems(rows, 2, line);
     expect(last.filter((item) => item.kind === "row")).toHaveLength(7);
     expect(last.some((item) => item.kind === "cutoff")).toBe(true);
+  });
+
+  it("keeps athletes with the same shown points tied", () => {
+    const levi = athlete(1, 23, 5);
+    levi.rank_points = 0.07;
+    const sawyer = athlete(2, 23, 5);
+    sawyer.rank_points = 0.03;
+    const rows = orderBoard([sawyer, levi], []);
+    expect(rows.map((row) => row.place)).toEqual([1, 1]);
+  });
+
+  it("orders athletes who show zero by their hidden ranking points", () => {
+    const ninth = athlete(2, 0, 2);
+    ninth.rank_points = 0.5;
+    const twelfth = athlete(1, 0, 2);
+    twelfth.rank_points = 1 / 16;
+    const rows = orderBoard([twelfth, ninth], []);
+    expect(rows.map((row) => row.athlete.athlete_id)).toEqual(["a2", "a1"]);
+    expect(rows.map((row) => row.place)).toEqual([1, 2]);
+    expect(rows.every((row) => row.athlete.total_points === 0)).toBe(true);
   });
 
   it("shares a place when tied athletes are not adjacent in the payload", () => {

@@ -1,7 +1,36 @@
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { createElement, type ReactNode } from "react";
-import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import {
+  Circle,
+  Document,
+  Font,
+  Image,
+  Page,
+  Polygon,
+  Rect,
+  StyleSheet,
+  Svg,
+  Text,
+  View,
+  renderToBuffer,
+} from "@react-pdf/renderer";
 import { orderBoard } from "./board-order";
 import type { BoardAthlete } from "./load";
+
+const regularFont = path.join(process.cwd(), "public/fonts/Montserrat-Regular.ttf");
+const boldFont = path.join(process.cwd(), "public/fonts/Montserrat-Bold.ttf");
+const logoPath = path.join(process.cwd(), "public/branding/Logo_LCA_and_Pearson-Performance.png");
+if (existsSync(regularFont) && existsSync(boldFont)) {
+  Font.register({
+    family: "Montserrat",
+    fonts: [
+      { src: regularFont, fontWeight: 400 },
+      { src: boldFont, fontWeight: 700 },
+    ],
+  });
+  Font.registerHyphenationCallback((word) => [word]);
+}
 
 export const DAY_A_DOOR_COLUMNS = [
   "10yd_Split",
@@ -12,9 +41,77 @@ export const DAY_A_DOOR_COLUMNS = [
   "DRI",
 ] as const;
 
+const DAY_A_LABELS: Record<string, { label: string; units: string }> = {
+  "10yd_Split": { label: "0-10", units: "s" },
+  "20yd_Dash": { label: "0-20", units: "s" },
+  "40yd_Dash": { label: "0-40", units: "s" },
+  MaxVelocity: { label: "Max V", units: "mph" },
+  "10-5_RSI": { label: "RSI", units: "RSI" },
+  DRI: { label: "DRI", units: "DRI" },
+};
+
+const UNSCORED_KEYS = new Set(["10yd_Split", "Bench-Press", "Hex-Deadlift"]);
+
+export type DoorSheetColumn = {
+  key: string;
+  label: string;
+  units: string;
+  scored: boolean;
+};
+
 export function doorSheetColumnKeys(dayKey: string, boardColumnKeys: readonly string[]): string[] {
   if (dayKey === "A") return [...DAY_A_DOOR_COLUMNS];
   return [...boardColumnKeys];
+}
+
+export function doorSheetColumns(
+  dayKey: string,
+  boardColumns: readonly { key: string; label: string; units: string }[],
+  driBox: string | null
+): DoorSheetColumn[] {
+  const byKey = new Map(boardColumns.map((column) => [column.key, column]));
+  return doorSheetColumnKeys(
+    dayKey,
+    boardColumns.map((column) => column.key)
+  ).map((key) => {
+    const fixed = dayKey === "A" ? DAY_A_LABELS[key] : undefined;
+    const board = byKey.get(key);
+    const box = driBox?.trim() ?? "";
+    const scored = !UNSCORED_KEYS.has(key);
+    const base = key === "DRI" && box !== "" ? `DRI-${box}` : (fixed?.label ?? board?.label ?? key);
+    return {
+      key,
+      label: scored ? base : `${base}*`,
+      units: fixed?.units ?? board?.units ?? "",
+      scored,
+    };
+  });
+}
+
+export function doorSheetAthleteName(athlete: {
+  first_name: string;
+  last_name: string;
+  bib: string | null;
+}): string {
+  const name = `${athlete.last_name}, ${athlete.first_name}`.trim();
+  if (!athlete.bib) return name || "Athlete";
+  return `${name} (${athlete.bib})`;
+}
+
+export function doorSheetRankLabel(
+  cell: { rank: number; tied: boolean; points: number },
+  scored: boolean
+): string {
+  const rank = cell.tied ? `T${cell.rank}` : String(cell.rank);
+  if (!scored || cell.rank >= 9) return rank;
+  const points = Number.isInteger(cell.points) ? String(cell.points) : cell.points.toFixed(1);
+  return `${rank} - ${points}pts`;
+}
+
+export const DOOR_SHEET_TITLE = "Liberty Boys Basketball: Baseline Testing Assessment";
+
+export function doorSheetDayHeading(dayKey: string, dayLabel: string): string {
+  return `Day ${dayKey}: ${dayLabel.trim()}`;
 }
 
 export function doorSheetAthletes(athletes: BoardAthlete[], columnKeys: readonly string[]) {
@@ -29,8 +126,7 @@ type DoorSheetCell = BoardAthlete["cells"][string];
 export type DoorSheetData = {
   title: string;
   dayLabel: string;
-  driBox: string | null;
-  columns: { key: string; label: string; units: string }[];
+  columns: DoorSheetColumn[];
   rows: ReturnType<typeof doorSheetAthletes>;
 };
 
@@ -69,11 +165,26 @@ function formatPoints(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-const PODIUM: Record<number, { backgroundColor: string; borderColor: string }> = {
-  1: { backgroundColor: "#fef3c7", borderColor: "#c9a227" },
-  2: { backgroundColor: "#f3f4f6", borderColor: "#6b7280" },
-  3: { backgroundColor: "#ffedd5", borderColor: "#b45309" },
+const PODIUM_STROKE: Record<number, string> = {
+  1: "#c9a227",
+  2: "#6b7280",
+  3: "#b45309",
 };
+
+const RSQ = {
+  reactive: { label: "Reactive", color: "#2563eb" },
+  compliant: { label: "Compliant", color: "#dc2626" },
+  stiff: { label: "Stiff", color: "#16a34a" },
+  developing: { label: "Developing", color: "#f97316" },
+} as const;
+
+type RsqKey = keyof typeof RSQ;
+
+function rsqKey(qualifier: string | null): RsqKey | null {
+  if (!qualifier) return null;
+  const key = qualifier.trim().toLowerCase();
+  return key in RSQ ? (key as RsqKey) : null;
+}
 
 const styles = StyleSheet.create({
   page: {
@@ -81,23 +192,34 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     paddingHorizontal: 24,
     fontSize: 8,
-    fontFamily: "Helvetica",
+    fontFamily: "Montserrat",
     color: "#111111",
     backgroundColor: "#ffffff",
   },
+  header: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  titles: {
+    width: 390,
+  },
+  logo: {
+    width: 156,
+    height: 39,
+    marginTop: 1,
+  },
   h1: {
-    fontSize: 14,
-    fontFamily: "Helvetica-Bold",
+    fontSize: 16,
+    fontFamily: "Montserrat",
+    fontWeight: 700,
     marginBottom: 2,
   },
   day: {
-    fontSize: 11,
+    fontSize: 13,
+    fontFamily: "Montserrat",
+    fontWeight: 700,
     marginBottom: 2,
-  },
-  dri: {
-    fontSize: 9,
-    marginBottom: 8,
-    color: "#333333",
   },
   empty: {
     marginTop: 10,
@@ -123,25 +245,28 @@ const styles = StyleSheet.create({
   place: {
     width: 26,
     justifyContent: "center",
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   placeText: {
-    fontFamily: "Helvetica-Bold",
+    fontFamily: "Montserrat",
+    fontWeight: 700,
     fontSize: 8,
     textAlign: "center",
   },
   name: {
-    width: 132,
+    width: 156,
     justifyContent: "center",
-    paddingVertical: 3,
+    paddingVertical: 4,
     paddingRight: 4,
   },
   nameText: {
-    fontFamily: "Helvetica-Bold",
+    fontFamily: "Montserrat",
+    fontWeight: 700,
     fontSize: 8,
   },
   headerLabel: {
-    fontFamily: "Helvetica-Bold",
+    fontFamily: "Montserrat",
+    fontWeight: 700,
     fontSize: 7,
     textAlign: "center",
   },
@@ -156,7 +281,7 @@ const styles = StyleSheet.create({
     flexBasis: 0,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 2,
+    paddingVertical: 3,
     paddingHorizontal: 1,
     marginHorizontal: 1,
   },
@@ -164,43 +289,91 @@ const styles = StyleSheet.create({
     fontSize: 8,
     textAlign: "center",
   },
+  markRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   rank: {
-    fontSize: 7,
+    fontSize: 6.5,
     textAlign: "center",
-    color: "#333333",
+    color: "#111111",
     marginTop: 1,
+  },
+  legend: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+    marginBottom: 6,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  legendText: {
+    fontSize: 7,
+    marginLeft: 3,
   },
   points: {
     width: 32,
     justifyContent: "center",
-    paddingVertical: 3,
+    paddingVertical: 4,
   },
   pointsText: {
-    fontFamily: "Helvetica-Bold",
+    fontFamily: "Montserrat",
+    fontWeight: 700,
     fontSize: 8,
     textAlign: "right",
   },
 });
 
-function rankLabel(cell: DoorSheetCell): string {
-  return cell.tied ? `T${cell.rank}` : String(cell.rank);
+function rsqShape(kind: RsqKey): ReactNode {
+  const color = RSQ[kind].color;
+  if (kind === "reactive") return createElement(Circle, { cx: 4, cy: 4, r: 3.1, fill: color });
+  if (kind === "compliant") return createElement(Rect, { x: 1, y: 1, width: 6, height: 6, fill: color });
+  if (kind === "stiff") {
+    return createElement(Polygon, { points: "4,0.4 7.6,4 4,7.6 0.4,4", fill: color });
+  }
+  return createElement(Polygon, { points: "4,0.5 7.5,7.4 0.5,7.4", fill: color });
 }
 
-function metricCell(column: DoorSheetData["columns"][number], cell: DoorSheetCell | undefined): ReactNode {
-  const podium = cell ? PODIUM[cell.rank] : undefined;
+function rsqIcon(kind: RsqKey): ReactNode {
+  return createElement(Svg, { width: 8, height: 8, viewBox: "0 0 8 8" }, rsqShape(kind));
+}
+
+function metricCell(
+  column: DoorSheetColumn,
+  cell: DoorSheetCell | undefined,
+  qualifier: string | null
+): ReactNode {
+  const stroke = cell ? PODIUM_STROKE[cell.rank] : undefined;
+  const rsq = column.key === "10-5_RSI" ? rsqKey(qualifier) : null;
+  const mark = cell ? formatMark(cell.value, column.units) : "—";
   return createElement(
     View,
     {
       key: column.key,
-      style: podium ? [styles.metric, { ...podium, borderWidth: 1 }] : styles.metric,
+      style: stroke
+        ? [styles.metric, { borderWidth: 1.2, borderColor: stroke, borderRadius: 2 }]
+        : styles.metric,
     },
-    createElement(Text, { style: styles.mark }, cell ? formatMark(cell.value, column.units) : "—"),
-    cell ? createElement(Text, { style: styles.rank }, rankLabel(cell)) : null
+    createElement(
+      View,
+      { style: styles.markRow },
+      rsq ? rsqIcon(rsq) : null,
+      createElement(
+        Text,
+        { style: rsq ? [styles.mark, { color: RSQ[rsq].color, marginLeft: 2 }] : styles.mark },
+        mark
+      )
+    ),
+    cell ? createElement(Text, { style: styles.rank }, doorSheetRankLabel(cell, column.scored)) : null
   );
 }
 
-function columnHeader(column: DoorSheetData["columns"][number]): ReactNode {
-  const showUnits = column.units !== "" && column.units !== column.label;
+function columnHeader(column: DoorSheetColumn): ReactNode {
+  const showUnits = column.units !== "" && !column.label.startsWith(column.units);
   return createElement(
     View,
     { key: column.key, style: styles.metric },
@@ -209,17 +382,49 @@ function columnHeader(column: DoorSheetData["columns"][number]): ReactNode {
   );
 }
 
+function keyLine(showRsq: boolean, showNote: boolean): ReactNode {
+  return createElement(
+    View,
+    { style: styles.legend },
+    showRsq
+      ? (Object.keys(RSQ) as RsqKey[]).map((kind) =>
+          createElement(
+            View,
+            { key: kind, style: styles.legendItem },
+            rsqIcon(kind),
+            createElement(Text, { style: [styles.legendText, { color: RSQ[kind].color }] }, RSQ[kind].label)
+          )
+        )
+      : null,
+    showNote
+      ? createElement(Text, { style: styles.legendText }, "*: non-scored, component metric.")
+      : null
+  );
+}
+
 function DoorSheetDocument({ data }: { data: DoorSheetData }) {
-  const driLine =
-    data.columns.some((column) => column.key === "DRI") && data.driBox != null
-      ? `DRI @ ${data.driBox} in`
-      : null;
+  const showRsq = data.columns.some((column) => column.key === "10-5_RSI");
+  const showNote = data.columns.some((column) => !column.scored);
   const header = createElement(
     View,
     null,
-    createElement(Text, { style: styles.h1 }, data.title),
-    createElement(Text, { style: driLine ? styles.day : [styles.day, { marginBottom: 8 }] }, data.dayLabel),
-    driLine ? createElement(Text, { style: styles.dri }, driLine) : null
+    createElement(
+      View,
+      { style: styles.header },
+      createElement(
+        View,
+        { style: styles.titles },
+        createElement(Text, { style: styles.h1 }, data.title.replace(": ", ":\n")),
+        createElement(Text, { style: styles.day }, data.dayLabel)
+      ),
+      existsSync(logoPath)
+        ? createElement(Image, {
+            src: `data:image/png;base64,${readFileSync(logoPath).toString("base64")}`,
+            style: styles.logo,
+          })
+        : null
+    ),
+    showRsq || showNote ? keyLine(showRsq, showNote) : null
   );
   const columnHead = createElement(
     View,
@@ -244,9 +449,11 @@ function DoorSheetDocument({ data }: { data: DoorSheetData }) {
             createElement(
               View,
               { style: styles.name },
-              createElement(Text, { style: styles.nameText }, `${row.athlete.last_name}, ${row.athlete.first_name}`)
+              createElement(Text, { style: styles.nameText }, doorSheetAthleteName(row.athlete))
             ),
-            ...data.columns.map((column) => metricCell(column, row.athlete.cells[column.key])),
+            ...data.columns.map((column) =>
+              metricCell(column, row.athlete.cells[column.key], row.athlete.qualifier)
+            ),
             createElement(
               View,
               { style: styles.points },

@@ -15,4 +15,34 @@ describe("bestTenYardMarks", () => {
       { athlete_id: "b", key: "10yd_Split", value: 1.9 },
     ]);
   });
+
+  it("reads the 0-10 saved on the 20-yard alias from a gated 40", () => {
+    const marks = bestTenYardMarks([
+      {
+        athlete_id: "a",
+        metric_key: "Acceleration",
+        component: "0-10yd",
+        legacy_metric_key: "20yd_Dash",
+        legacy_component: "0-10yd",
+        display_value: 1.64,
+      },
+      {
+        athlete_id: "a",
+        metric_key: "Acceleration",
+        component: "0-5yd",
+        legacy_metric_key: "20yd_Dash",
+        legacy_component: "0-5yd",
+        display_value: 0.92,
+      },
+      {
+        athlete_id: "a",
+        metric_key: "Acceleration",
+        component: "0-40yd",
+        legacy_metric_key: "40yd_Dash",
+        legacy_component: "0-40yd",
+        display_value: 4.82,
+      },
+    ]);
+    expect(marks).toEqual([{ athlete_id: "a", key: "10yd_Split", value: 1.64 }]);
+  });
 });

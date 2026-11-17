@@ -6,12 +6,20 @@ export type BoardRow = {
   untested: boolean;
 };
 
+function rankPoints(athlete: BoardAthlete): number {
+  return athlete.rank_points ?? 0;
+}
+
 function tieKey(athlete: BoardAthlete): string {
-  return `${athlete.total_points}|${athlete.slots_completed}`;
+  const hidden = athlete.total_points === 0 ? rankPoints(athlete) : 0;
+  return `${athlete.total_points}|${hidden}|${athlete.slots_completed}`;
 }
 
 function compareBoardAthletes(a: BoardAthlete, b: BoardAthlete): number {
   if (a.total_points !== b.total_points) return b.total_points - a.total_points;
+  if (a.total_points === 0 && rankPoints(a) !== rankPoints(b)) {
+    return rankPoints(b) - rankPoints(a);
+  }
   if (a.slots_completed !== b.slots_completed) return b.slots_completed - a.slots_completed;
   const byLast = a.last_name.localeCompare(b.last_name);
   if (byLast !== 0) return byLast;

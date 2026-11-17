@@ -16,6 +16,8 @@ export type ScoredCell = {
   rank: number;
   tied: boolean;
   points: number;
+  /** Ordering value for a place that shows zero. Zero for 1st through 8th. */
+  order_points: number;
   band?: string;
 };
 
@@ -24,6 +26,8 @@ export type ScoredBatteryRow = {
   first_name: string;
   last_name: string;
   total_points: number;
+  /** Sum of the hidden place values. Orders athletes who show the same points, including zeros. */
+  rank_points: number;
   slots_completed: number;
   sprint_points: number;
   dri_band: string | null;
@@ -129,6 +133,7 @@ export function scoreBatteryRows(input: {
         rank: row.rank,
         tied: row.tied,
         points: row.points,
+        order_points: row.order_points,
       };
       if (key === "DRI") cell.band = driBand(row.value).label;
       byId.set(row.athlete_id, cell);
@@ -139,15 +144,16 @@ export function scoreBatteryRows(input: {
   const rows = athletes.map((athlete) => {
     const cells: Record<string, ScoredCell> = {};
     const pointsByKey: Record<string, number> = {};
+    let rank_points = 0;
     for (const [key, byId] of rankedByKey) {
       const cell = byId.get(athlete.athlete_id);
       if (cell == null) continue;
       cells[key] = cell;
+      if (DISPLAY_ONLY_KEYS.includes(key)) continue;
       pointsByKey[key] = cell.points;
+      rank_points += cell.order_points;
     }
-    const scoredPoints = { ...pointsByKey };
-    for (const key of DISPLAY_ONLY_KEYS) delete scoredPoints[key];
-    const totals = batteryTotal(scoredPoints);
+    const totals = batteryTotal(pointsByKey);
     const dri = teamBoxDri(athlete, input.teamBox);
     const driPeak = peakBox(athlete.dri_marks);
     return {
@@ -155,6 +161,7 @@ export function scoreBatteryRows(input: {
       first_name: athlete.first_name,
       last_name: athlete.last_name,
       total_points: totals.total_points,
+      rank_points,
       slots_completed: totals.slots_completed,
       sprint_points: totals.sprint_points,
       dri_band: dri == null ? null : driBand(dri).label,
@@ -166,6 +173,7 @@ export function scoreBatteryRows(input: {
 
   return rows.toSorted((a, b) => {
     if (a.total_points !== b.total_points) return b.total_points - a.total_points;
+    if (a.total_points === 0 && a.rank_points !== b.rank_points) return b.rank_points - a.rank_points;
     if (a.slots_completed !== b.slots_completed) return b.slots_completed - a.slots_completed;
     const byLast = a.last_name.localeCompare(b.last_name);
     if (byLast !== 0) return byLast;

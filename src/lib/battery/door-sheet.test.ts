@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { doorSheetAthletes, doorSheetColumnKeys } from "./door-sheet";
+import {
+  DOOR_SHEET_TITLE,
+  doorSheetAthletes,
+  doorSheetAthleteName,
+  doorSheetColumnKeys,
+  doorSheetColumns,
+  doorSheetDayHeading,
+  doorSheetRankLabel,
+} from "./door-sheet";
 import type { BoardAthlete } from "./load";
 
 function athlete(id: string, points: number, cells: BoardAthlete["cells"]): BoardAthlete {
@@ -10,6 +18,7 @@ function athlete(id: string, points: number, cells: BoardAthlete["cells"]): Boar
     last_name: id,
     group_key: null,
     total_points: points,
+    rank_points: 0,
     slots_completed: points > 0 ? 1 : 0,
     qualifier: null,
     higher_box: false,
@@ -31,6 +40,40 @@ describe("doorSheetColumnKeys", () => {
       "OH-MB_Throw",
       "Bench-Press",
     ]);
+  });
+
+  it("labels the scored DRI height and keeps the 0-10 out of the points", () => {
+    const columns = doorSheetColumns(
+      "A",
+      [{ key: "DRI", label: "DRI @ 12in", units: "DRI" }],
+      "12"
+    );
+    expect(columns.find((column) => column.key === "DRI")).toMatchObject({
+      label: "DRI-12",
+      scored: true,
+    });
+    expect(columns.find((column) => column.key === "10yd_Split")).toMatchObject({
+      label: "0-10*",
+      scored: false,
+    });
+    expect(doorSheetColumns("A", [], "18").find((column) => column.key === "DRI")?.label).toBe(
+      "DRI-18"
+    );
+  });
+});
+
+describe("door sheet labels", () => {
+  it("puts the bib on the name and the place points beside the rank", () => {
+    expect(
+      doorSheetAthleteName({ first_name: "Graeme", last_name: "Hayes", bib: "103" })
+    ).toBe("Hayes, Graeme (103)");
+    expect(doorSheetRankLabel({ rank: 1, tied: false, points: 10 }, true)).toBe("1 - 10pts");
+    expect(doorSheetRankLabel({ rank: 2, tied: true, points: 8 }, true)).toBe("T2 - 8pts");
+    expect(doorSheetRankLabel({ rank: 9, tied: false, points: 0 }, true)).toBe("9");
+    expect(doorSheetRankLabel({ rank: 13, tied: true, points: 0 }, true)).toBe("T13");
+    expect(doorSheetRankLabel({ rank: 1, tied: false, points: 10 }, false)).toBe("1");
+    expect(DOOR_SHEET_TITLE).toBe("Liberty Boys Basketball: Baseline Testing Assessment");
+    expect(doorSheetDayHeading("A", "Rate and Reactivity")).toBe("Day A: Rate and Reactivity");
   });
 });
 

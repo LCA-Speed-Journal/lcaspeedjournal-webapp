@@ -35,13 +35,13 @@ describe("scoreBatteryRows", () => {
     expect(a.athlete_id).toBe("a");
     expect(a.cells["10-5_RSI"]).toMatchObject({
       rank: 1,
-      points: 2,
+      points: 10,
       tied: false,
     });
     expect(a.cells.DRI).toMatchObject({
       value: 2.2,
       rank: 1,
-      points: 2,
+      points: 10,
       tied: false,
     });
     expect(a.dri_band).toBe("Bouncy");
@@ -50,10 +50,10 @@ describe("scoreBatteryRows", () => {
     expect(b?.higher_box).toBe(false);
     expect(b?.cells.DRI.value).toBe(1.4);
     expect(a.total_points).toBeGreaterThan(b?.total_points ?? 0);
-    expect(a.total_points).toBe(6);
-    expect(a.sprint_points).toBe(2);
-    expect(b?.total_points).toBe(3);
-    expect(b?.sprint_points).toBe(1);
+    expect(a.total_points).toBe(30);
+    expect(a.sprint_points).toBe(10);
+    expect(b?.total_points).toBe(24);
+    expect(b?.sprint_points).toBe(8);
     expect(a.slots_completed).toBe(3);
     expect(b?.slots_completed).toBe(3);
     expect(a.cells["10x10m_best"]).toBeUndefined();
@@ -73,7 +73,7 @@ describe("scoreBatteryRows", () => {
     });
 
     expect(rows.map((row) => row.athlete_id)).toEqual(["b"]);
-    expect(rows[0].cells["10-5_RSI"]).toMatchObject({ rank: 1, points: 1 });
+    expect(rows[0].cells["10-5_RSI"]).toMatchObject({ rank: 1, points: 10 });
   });
 
   it("ranks a heavier bench without adding its points to the meet total", () => {
@@ -112,10 +112,37 @@ describe("scoreBatteryRows", () => {
     });
     const ann = rows.find((row) => row.athlete_id === "a")!;
     const bea = rows.find((row) => row.athlete_id === "b")!;
-    expect(ann.cells["10yd_Split"]).toMatchObject({ value: 1.62, rank: 1, points: 2 });
-    expect(bea.cells["10yd_Split"]).toMatchObject({ value: 1.8, rank: 2, points: 1 });
-    expect(ann.total_points).toBe(6);
-    expect(bea.total_points).toBe(3);
+    expect(ann.cells["10yd_Split"]).toMatchObject({ value: 1.62, rank: 1, points: 10 });
+    expect(bea.cells["10yd_Split"]).toMatchObject({ value: 1.8, rank: 2, points: 8 });
+    expect(ann.total_points).toBe(30);
+    expect(bea.total_points).toBe(24);
     expect(ann.slots_completed).toBe(3);
+  });
+
+  it("shows zero past eighth and still orders those athletes by the half-size tail", () => {
+    const field = Array.from({ length: 10 }, (_, index) => ({
+      athlete_id: String(index),
+      first_name: "A",
+      last_name: String(index).padStart(2, "0"),
+      dri_marks: [],
+    }));
+    const rows = scoreBatteryRows({
+      athletes: field,
+      marks: field.map((athlete, index) => ({
+        athlete_id: athlete.athlete_id,
+        key: "10-5_RSI",
+        value: 10 - index,
+      })),
+      teamBox: null,
+    });
+    const eighth = rows.find((row) => row.athlete_id === "7")!;
+    const ninth = rows.find((row) => row.athlete_id === "8")!;
+    const tenth = rows.find((row) => row.athlete_id === "9")!;
+    expect(eighth.total_points).toBe(1);
+    expect(ninth.total_points).toBe(0);
+    expect(tenth.total_points).toBe(0);
+    expect(ninth.rank_points).toBe(0.5);
+    expect(tenth.rank_points).toBe(0.25);
+    expect(rows.map((row) => row.athlete_id).slice(-3)).toEqual(["7", "8", "9"]);
   });
 });

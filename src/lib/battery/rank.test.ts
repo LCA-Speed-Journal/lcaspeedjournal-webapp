@@ -2,20 +2,38 @@ import { describe, expect, it } from "vitest";
 import { rankFullField } from "./rank";
 
 describe("rankFullField", () => {
-  it("gives first place one point per athlete in the field", () => {
+  it("pays the 8-place scale and stops at eighth", () => {
     const ranked = rankFullField(
-      [
-        { athlete_id: "a", value: 5 },
-        { athlete_id: "b", value: 4 },
-        { athlete_id: "c", value: 3 },
-      ],
+      Array.from({ length: 10 }, (_, index) => ({
+        athlete_id: String(index),
+        value: 10 - index,
+      })),
       "higher"
     );
-    const first = ranked.find((row) => row.athlete_id === "a");
-    expect(first).toMatchObject({ rank: 1, tied: false, points: 3 });
+    expect(ranked.find((row) => row.athlete_id === "0")).toMatchObject({
+      rank: 1,
+      tied: false,
+      points: 10,
+      order_points: 0,
+    });
+    expect(ranked.find((row) => row.athlete_id === "7")).toMatchObject({
+      rank: 8,
+      points: 1,
+      order_points: 0,
+    });
+    expect(ranked.find((row) => row.athlete_id === "8")).toMatchObject({
+      rank: 9,
+      points: 0,
+      order_points: 0.5,
+    });
+    expect(ranked.find((row) => row.athlete_id === "9")).toMatchObject({
+      rank: 10,
+      points: 0,
+      order_points: 0.25,
+    });
   });
 
-  it("shares points on a tie and skips the next place", () => {
+  it("shares the place's points on a tie and skips the next place", () => {
     const ranked = rankFullField(
       [
         { athlete_id: "a", value: 10 },
@@ -27,17 +45,17 @@ describe("rankFullField", () => {
     expect(ranked.find((row) => row.athlete_id === "a")).toMatchObject({
       rank: 1,
       tied: true,
-      points: 2,
+      points: 10,
     });
     expect(ranked.find((row) => row.athlete_id === "b")).toMatchObject({
       rank: 1,
       tied: true,
-      points: 2,
+      points: 10,
     });
     expect(ranked.find((row) => row.athlete_id === "c")).toMatchObject({
       rank: 3,
       tied: false,
-      points: 1,
+      points: 6,
     });
   });
 
@@ -49,7 +67,10 @@ describe("rankFullField", () => {
       ],
       "lower"
     );
-    expect(ranked.find((row) => row.athlete_id === "fast")?.rank).toBe(1);
-    expect(ranked.find((row) => row.athlete_id === "slow")?.points).toBe(1);
+    expect(ranked.find((row) => row.athlete_id === "fast")).toMatchObject({
+      rank: 1,
+      points: 10,
+    });
+    expect(ranked.find((row) => row.athlete_id === "slow")?.points).toBe(8);
   });
 });

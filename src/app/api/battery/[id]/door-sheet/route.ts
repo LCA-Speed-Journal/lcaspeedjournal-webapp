@@ -10,8 +10,10 @@ import {
   readPgError,
 } from "@/lib/battery/load";
 import {
+  DOOR_SHEET_TITLE,
   doorSheetAthletes,
-  doorSheetColumnKeys,
+  doorSheetColumns,
+  doorSheetDayHeading,
   doorSheetFilename,
   renderDoorSheet,
   type DoorSheetData,
@@ -20,15 +22,6 @@ import {
 export const runtime = "nodejs";
 
 const MIGRATION_ERROR = "Run scripts/migrate-testing-battery.sql";
-
-const DAY_A_LABELS: Record<string, { label: string; units: string }> = {
-  "10yd_Split": { label: "0-10", units: "s" },
-  "20yd_Dash": { label: "0-20", units: "s" },
-  "40yd_Dash": { label: "0-40", units: "s" },
-  MaxVelocity: { label: "Max V", units: "mph" },
-  "10-5_RSI": { label: "RSI", units: "RSI" },
-  DRI: { label: "DRI", units: "DRI" },
-};
 
 function schemaResponse() {
   return NextResponse.json({ error: MIGRATION_ERROR }, { status: 503 });
@@ -70,25 +63,15 @@ export async function GET(
       return NextResponse.json({ error: "Battery not found" }, { status: 404 });
     }
 
-    const keys = doorSheetColumnKeys(
-      dayKey,
-      board.columns.map((column) => column.key)
-    );
-    const byKey = new Map(board.columns.map((column) => [column.key, column]));
-    const columns = keys.map((key) => {
-      if (dayKey === "A") {
-        const fixed = DAY_A_LABELS[key];
-        return { key, label: fixed?.label ?? key, units: fixed?.units ?? "" };
-      }
-      const column = byKey.get(key);
-      return { key, label: column?.label ?? key, units: column?.units ?? "" };
-    });
+    const columns = doorSheetColumns(dayKey, board.columns, board.battery.team_dri_box);
     const data: DoorSheetData = {
-      title: board.battery.title.trim(),
-      dayLabel: board.day_label.trim(),
-      driBox: board.battery.team_dri_box,
+      title: DOOR_SHEET_TITLE,
+      dayLabel: doorSheetDayHeading(dayKey, board.day_label),
       columns,
-      rows: doorSheetAthletes(board.athletes, keys),
+      rows: doorSheetAthletes(
+        board.athletes,
+        columns.map((column) => column.key)
+      ),
     };
     const buffer = await renderDoorSheet(data);
     return pdfResponse(buffer, doorSheetFilename(dayKey));
