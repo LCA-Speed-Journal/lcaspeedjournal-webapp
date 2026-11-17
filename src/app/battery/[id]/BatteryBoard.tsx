@@ -453,31 +453,28 @@ function MarkCell({
   return (
     <div
       data-mark-cell
-      className="relative flex h-full min-h-0 min-w-0 items-center justify-center self-stretch overflow-hidden px-0.5 text-center"
+      className={`relative flex min-w-0 items-center justify-center px-0.5 text-center ${
+        scroll ? "h-auto" : "h-full min-h-0 self-stretch overflow-hidden"
+      }`}
       style={{
         fontSize: markFont,
-        minHeight: lockFrame
-          ? "var(--podium-cell)"
-          : scroll && markFont === "1.05rem"
-            ? "4rem"
-            : undefined,
+        minHeight: lockFrame ? "var(--podium-cell)" : undefined,
       }}
     >
-      {frame ? (
+      {frame && !scroll ? (
+        <div className={`pointer-events-none absolute inset-x-0.5 inset-y-[5%] ${frame}`} />
+      ) : null}
+      {frame && lockFrame ? (
         <div
-          className={`pointer-events-none absolute ${
-            lockFrame ? "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" : `inset-x-0.5 ${scroll ? "inset-y-1" : "inset-y-[5%]"}`
-          } ${frame}`}
-          style={
-            lockFrame
-              ? { width: "var(--podium-w)", height: "var(--podium-h)" }
-              : undefined
-          }
+          className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${frame}`}
+          style={{ width: "var(--podium-w)", height: "var(--podium-h)" }}
         />
       ) : null}
       <div
         data-mark-stack
-        className="relative flex max-h-full min-w-0 max-w-full flex-col items-center justify-center gap-0.5 leading-none"
+        className={`relative flex min-w-0 max-w-full flex-col items-center justify-center gap-0.5 leading-none ${
+          frame && scroll && !lockFrame ? `px-1 py-1 ${frame}` : ""
+        }`}
       >
         {cell ? (
           <div className="flex max-w-full items-center justify-center gap-[0.15em] leading-none">
@@ -530,7 +527,6 @@ function AthleteRow({
   nameLabel,
   scroll,
   nameRef,
-  fullWidth,
   lockFrame = false,
 }: {
   row: BoardRow;
@@ -540,7 +536,6 @@ function AthleteRow({
   nameLabel: string;
   scroll: boolean;
   nameRef?: Ref<HTMLSpanElement>;
-  fullWidth?: boolean;
   lockFrame?: boolean;
 }) {
   const { athlete, place, untested } = row;
@@ -550,9 +545,9 @@ function AthleteRow({
     : "bg-[color-mix(in_srgb,var(--surface)_25%,var(--background))]";
   return (
     <div
-      className={`grid min-h-0 items-center border-b border-border/70 ${
-        fullWidth !== false ? "w-full" : ""
-      } ${scroll ? "shrink-0 py-1.5" : "flex-1"} ${
+      className={`grid h-auto w-full items-center border-b border-border/70 ${
+        scroll ? "shrink-0 py-1" : "min-h-0 flex-1"
+      } ${
         untested ? "bg-surface/40 text-foreground-muted" : "bg-surface/25"
       }`}
       style={{ gridTemplateColumns: template }}
@@ -1090,9 +1085,7 @@ export function BatteryBoard({
           style={narrow ? { width: phoneGridWidth(columns.length) } : undefined}
         >
           <div
-            className={`grid shrink-0 border-b border-border text-[11px] font-semibold uppercase tracking-wide text-foreground-muted ${
-              narrow ? "" : "w-full"
-            }`}
+            className="grid w-full shrink-0 border-b border-border text-[11px] font-semibold uppercase tracking-wide text-foreground-muted"
             style={{ gridTemplateColumns: template }}
           >
             <span className={`${PIN_PLACE} bg-background py-1 text-center`}>#</span>
@@ -1149,7 +1142,6 @@ export function BatteryBoard({
                   markFont={markFont}
                   scroll={listMode}
                   lockFrame={listMode && !narrow}
-                  fullWidth={!narrow}
                   nameLabel={
                     listMode
                       ? shortName(item.row.athlete.first_name, item.row.athlete.last_name)
