@@ -38,6 +38,7 @@ import { isDropoffMetric } from "@/lib/dropoff/metrics";
 import { directionFromUnits, summarizeDropoff } from "@/lib/dropoff/summarize";
 import { LEGACY_SPEED_KEYS } from "@/lib/speed/windows";
 import { rsqQuadrant } from "@/lib/battery/rsq";
+import { batteryEntryKeys } from "@/lib/battery/entry-metrics";
 import { BOYS_BASKETBALL_BASELINE } from "@/lib/battery/template";
 import { testingLiftMovement } from "@/lib/battery/testing-lifts";
 
@@ -471,37 +472,34 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const allOptions = metricOptions();
   const selectedSession = sessions.find((s) => s.id === effectiveSessionId);
   const sessionMetrics = selectedSession?.day_metrics;
-  const registryOptions =
-    Array.isArray(sessionMetrics) && sessionMetrics.length > 0
-      ? allOptions.filter((o) => sessionAllowsMetric(sessionMetrics, o.key))
+  const visibleKeys = batteryEntryKeys({
+    batterySession,
+    sessionDate: selectedSession?.session_date,
+    dayMetrics: Array.isArray(sessionMetrics) ? sessionMetrics : null,
+    registryKeys: allOptions.map((option) => option.key),
+  });
+  const matchedBatteryDay = batterySession
+    ? BOYS_BASKETBALL_BASELINE.days.find(
+        (day) => day.session_date === selectedSession?.session_date?.slice(0, 10)
+      )
+    : undefined;
+  const registryOptions = matchedBatteryDay
+    ? allOptions.filter((option) => visibleKeys.includes(option.key))
+    : Array.isArray(sessionMetrics) && sessionMetrics.length > 0
+      ? allOptions.filter((option) => sessionAllowsMetric(sessionMetrics, option.key))
       : allOptions;
-  const liftKeys = new Set<string>();
-  if (Array.isArray(sessionMetrics)) {
-    for (const key of sessionMetrics) {
-      if (testingLiftMovement(key)) liftKeys.add(key);
-    }
-  }
-  if (batterySession) {
-    const testingDay = BOYS_BASKETBALL_BASELINE.days.find(
-      (day) => day.session_date === selectedSession?.session_date
-    );
-    if (testingDay) {
-      for (const key of testingDay.metric_keys) {
-        if (testingLiftMovement(key)) liftKeys.add(key);
-      }
-    }
-  }
+  const liftKeys = visibleKeys.filter(
+    (key) => testingLiftMovement(key) && !registryOptions.some((option) => option.key === key)
+  );
   const options = [
     ...registryOptions,
-    ...[...liftKeys]
-      .filter((key) => !registryOptions.some((option) => option.key === key))
-      .map((key) => ({
-        key,
-        label: testingLiftMovement(key) ?? key,
-        inputStructure: "single_interval",
-        inputUnits: "lb",
-        defaultSplits: [] as (number | string)[],
-      })),
+    ...liftKeys.map((key) => ({
+      key,
+      label: testingLiftMovement(key) ?? key,
+      inputStructure: "single_interval" as const,
+      inputUnits: "lb",
+      defaultSplits: [] as (number | string)[],
+    })),
   ];
   const selectedMetric = options.find((o) => o.key === metricKey) ?? null;
 
