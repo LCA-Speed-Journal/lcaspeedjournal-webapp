@@ -23,11 +23,11 @@ export const BOYS_BASKETBALL_BASELINE = {
     },
     {
       day_key: "B",
-      label: "Upper Body",
+      label: "Strength",
       session_date: "2026-11-17",
       sort_order: 2,
       rest_seconds: null as number | null,
-      metric_keys: ["OH-MB_Throw", "Bench-Press"],
+      metric_keys: ["Bench-Press", "Hex-Deadlift"],
     },
     {
       day_key: "C",
@@ -43,7 +43,7 @@ export const BOYS_BASKETBALL_BASELINE = {
       session_date: "2026-11-20",
       sort_order: 4,
       rest_seconds: 10 as number | null,
-      metric_keys: ["10x10m", "Hex-Deadlift"],
+      metric_keys: ["10x10m", "OH-MB_Throw"],
     },
   ],
 };
