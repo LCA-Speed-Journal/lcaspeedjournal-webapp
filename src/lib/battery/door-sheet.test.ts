@@ -7,6 +7,8 @@ import {
   doorSheetColumns,
   doorSheetDayHeading,
   doorSheetRankLabel,
+  doorSheetTotalHeader,
+  doorSheetTotalText,
 } from "./door-sheet";
 import type { BoardAthlete } from "./load";
 
@@ -90,5 +92,26 @@ describe("doorSheetAthletes", () => {
     );
     expect(rows.map((row) => row.athlete.athlete_id)).toEqual(["fast", "only-ten"]);
     expect(rows.map((row) => row.place)).toEqual([1, 2]);
+  });
+
+  it("ranks a strength day by total pounds and labels the total column Lb", () => {
+    const rows = doorSheetAthletes(
+      [
+        athlete("low", 0, {
+          "Bench-Press": { value: 185, rank: 2, tied: false, points: 0 },
+          "Hex-Deadlift": { value: 275, rank: 2, tied: false, points: 0 },
+        }),
+        athlete("high", 0, {
+          "Bench-Press": { value: 225, rank: 1, tied: false, points: 0 },
+          "Hex-Deadlift": { value: 315, rank: 1, tied: false, points: 0 },
+        }),
+      ],
+      ["Bench-Press", "Hex-Deadlift"]
+    );
+    expect(rows.map((row) => row.athlete.athlete_id)).toEqual(["high", "low"]);
+    expect(rows.map((row) => row.place)).toEqual([1, 2]);
+    expect(doorSheetTotalHeader(["Bench-Press", "Hex-Deadlift"])).toBe("Lb");
+    expect(doorSheetTotalText(["Bench-Press", "Hex-Deadlift"], rows[0]!.athlete)).toBe("540");
+    expect(doorSheetTotalHeader(["OH-MB_Throw"])).toBe("Pts");
   });
 });

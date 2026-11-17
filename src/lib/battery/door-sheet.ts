@@ -17,6 +17,12 @@ import {
 } from "@react-pdf/renderer";
 import { orderBoard } from "./board-order";
 import type { BoardAthlete } from "./load";
+import {
+  formatStrengthPounds,
+  isStrengthPoundDay,
+  orderByStrengthPounds,
+  strengthPounds,
+} from "./strength-rank";
 
 const regularFont = path.join(process.cwd(), "public/fonts/Montserrat-Regular.ttf");
 const boldFont = path.join(process.cwd(), "public/fonts/Montserrat-Bold.ttf");
@@ -118,7 +124,10 @@ export function doorSheetAthletes(athletes: BoardAthlete[], columnKeys: readonly
   const printed = athletes.filter((athlete) =>
     columnKeys.some((key) => athlete.cells[key] != null)
   );
-  return orderBoard(printed, []).filter((row) => row.place != null);
+  const ordered = isStrengthPoundDay(columnKeys)
+    ? orderByStrengthPounds(printed, [])
+    : orderBoard(printed, []);
+  return ordered.filter((row) => row.place != null);
 }
 
 type DoorSheetCell = BoardAthlete["cells"][string];
@@ -163,6 +172,17 @@ function formatMark(value: number, units: string): string {
 
 function formatPoints(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+export function doorSheetTotalHeader(columnKeys: readonly string[]): "Lb" | "Pts" {
+  return isStrengthPoundDay(columnKeys) ? "Lb" : "Pts";
+}
+
+export function doorSheetTotalText(columnKeys: readonly string[], athlete: BoardAthlete): string {
+  if (isStrengthPoundDay(columnKeys)) {
+    return formatStrengthPounds(strengthPounds(athlete) ?? 0);
+  }
+  return formatPoints(athlete.total_points);
 }
 
 const PODIUM_STROKE: Record<number, string> = {
@@ -432,7 +452,15 @@ function DoorSheetDocument({ data }: { data: DoorSheetData }) {
     createElement(View, { style: styles.place }, createElement(Text, { style: styles.headerLabel }, "#")),
     createElement(View, { style: styles.name }, createElement(Text, { style: styles.headerLabel }, "Athlete")),
     ...data.columns.map((column) => columnHeader(column)),
-    createElement(View, { style: styles.points }, createElement(Text, { style: styles.headerLabel }, "Pts"))
+    createElement(
+      View,
+      { style: styles.points },
+      createElement(
+        Text,
+        { style: styles.headerLabel },
+        doorSheetTotalHeader(data.columns.map((column) => column.key))
+      )
+    )
   );
   const body =
     data.rows.length === 0
@@ -457,7 +485,14 @@ function DoorSheetDocument({ data }: { data: DoorSheetData }) {
             createElement(
               View,
               { style: styles.points },
-              createElement(Text, { style: styles.pointsText }, formatPoints(row.athlete.total_points))
+              createElement(
+                Text,
+                { style: styles.pointsText },
+                doorSheetTotalText(
+                  data.columns.map((column) => column.key),
+                  row.athlete
+                )
+              )
             )
           )
         );

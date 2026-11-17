@@ -5,6 +5,12 @@ import useSWR from "swr";
 import { FreshnessStamp, useQuietRefresh } from "@/app/components/FreshnessStamp";
 import { PageBackground } from "@/app/components/PageBackground";
 import { orderBoard, type BoardRow } from "@/lib/battery/board-order";
+import {
+  formatStrengthPounds,
+  isStrengthPoundDay,
+  orderByStrengthPounds,
+  strengthPounds,
+} from "@/lib/battery/strength-rank";
 import { DRI_BOXES } from "@/lib/battery/dri";
 import type { BoardCell, BoardColumn, BoardPayload } from "@/lib/battery/load";
 import { RsiChart } from "./RsiChart";
@@ -529,6 +535,7 @@ function AthleteRow({
   scroll,
   nameRef,
   lockFrame = false,
+  totalText,
 }: {
   row: BoardRow;
   columns: BoardColumn[];
@@ -538,6 +545,7 @@ function AthleteRow({
   scroll: boolean;
   nameRef?: Ref<HTMLSpanElement>;
   lockFrame?: boolean;
+  totalText: string;
 }) {
   const { athlete, place, untested } = row;
   const name = `${athlete.first_name} ${athlete.last_name}`.trim() || "Athlete";
@@ -595,7 +603,7 @@ function AthleteRow({
         />
       ))}
       <span className="pr-1 text-center font-mono text-[13px] font-semibold tabular-nums md:text-sm">
-        {formatPoints(athlete.total_points)}
+        {totalText}
       </span>
     </div>
   );
@@ -646,7 +654,12 @@ export function BatteryBoard({
   });
   const fetched = data?.url === url ? data.data : undefined;
   const payload = !isLoading && fetched?.view === view ? fetched : undefined;
-  const ordered = payload ? orderBoard(payload.athletes, payload.untested_ids) : [];
+  const strengthDay = payload ? isStrengthPoundDay(payload.columns.map((column) => column.key)) : false;
+  const ordered = !payload
+    ? []
+    : strengthDay
+      ? orderByStrengthPounds(payload.athletes, payload.untested_ids)
+      : orderBoard(payload.athletes, payload.untested_ids);
   const paging = !narrow && !reviewList && ordered.length > ATHLETES_PER_PAGE;
   const listMode = narrow || reviewList;
   const pageCount = paging ? boardPageCount(ordered.length) : 1;
@@ -1172,7 +1185,7 @@ export function BatteryBoard({
                 </span>
               )
             )}
-            <span className="py-1 pr-1 text-center">Pts</span>
+            <span className="py-1 pr-1 text-center">{strengthDay ? "Lb" : "Pts"}</span>
           </div>
 
           {items.length === 0 ? (
@@ -1210,6 +1223,13 @@ export function BatteryBoard({
                   markFont={markFont}
                   scroll={listMode}
                   lockFrame={listMode && !narrow}
+                  totalText={
+                    strengthDay
+                      ? item.row.place == null
+                        ? "—"
+                        : formatStrengthPounds(strengthPounds(item.row.athlete) ?? 0)
+                      : formatPoints(item.row.athlete.total_points)
+                  }
                   nameLabel={
                     listMode
                       ? shortName(item.row.athlete.first_name, item.row.athlete.last_name)
