@@ -43,9 +43,10 @@ const HIGHER_KEYS = new Set([
   "Hex-Deadlift",
 ]);
 
-const DISPLAY_ONLY_KEYS = ["Bench-Press", "Hex-Deadlift"];
+const DISPLAY_ONLY_KEYS = ["Bench-Press", "Hex-Deadlift", "10yd_Split"];
 
 const LOWER_KEYS = new Set([
+  "10yd_Split",
   "20yd_Dash",
   "40yd_Dash",
   "10x10m_best",

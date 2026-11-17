@@ -99,4 +99,23 @@ describe("scoreBatteryRows", () => {
     expect(bea.total_points).toBe(bea.cells["10-5_RSI"].points);
     expect(ann.slots_completed).toBe(1);
   });
+
+  it("ranks the 0-10 split and leaves it out of the meet total", () => {
+    const rows = scoreBatteryRows({
+      athletes,
+      marks: [
+        ...marks,
+        { athlete_id: "a", key: "10yd_Split", value: 1.62 },
+        { athlete_id: "b", key: "10yd_Split", value: 1.8 },
+      ],
+      teamBox: "12",
+    });
+    const ann = rows.find((row) => row.athlete_id === "a")!;
+    const bea = rows.find((row) => row.athlete_id === "b")!;
+    expect(ann.cells["10yd_Split"]).toMatchObject({ value: 1.62, rank: 1, points: 2 });
+    expect(bea.cells["10yd_Split"]).toMatchObject({ value: 1.8, rank: 2, points: 1 });
+    expect(ann.total_points).toBe(6);
+    expect(bea.total_points).toBe(3);
+    expect(ann.slots_completed).toBe(3);
+  });
 });
