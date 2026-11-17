@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { batteryTotal, COUNTED_SLOT_COUNT } from "./slots";
 
 describe("batteryTotal", () => {
-  it("averages the three sprint columns into one slot", () => {
+  it("averages the 20 and the 40 into one slot and counts max velocity in full", () => {
     const total = batteryTotal({
       "10-5_RSI": 30,
       "20yd_Dash": 20,
@@ -10,10 +10,20 @@ describe("batteryTotal", () => {
       MaxVelocity: 30,
       DRI: 15,
     });
-    expect(COUNTED_SLOT_COUNT).toBe(9);
-    expect(total.sprint_points).toBe(20);
-    expect(total.total_points).toBe(65);
-    expect(total.slots_completed).toBe(3);
+    expect(COUNTED_SLOT_COUNT).toBe(10);
+    expect(total.sprint_points).toBe(15);
+    expect(total.total_points).toBe(90);
+    expect(total.slots_completed).toBe(4);
+  });
+
+  it("ignores the display-only 0-10 split", () => {
+    const total = batteryTotal({
+      "10yd_Split": 40,
+      "40yd_Dash": 10,
+    });
+    expect(total.sprint_points).toBe(10);
+    expect(total.total_points).toBe(10);
+    expect(total.slots_completed).toBe(1);
   });
 
   it("leaves a missing sprint column out of the average", () => {

@@ -1,10 +1,9 @@
-import { scoreAthleteTotals } from "@/lib/norms/testing-day-rank";
+export const COUNTED_SLOT_COUNT = 10;
 
-export const COUNTED_SLOT_COUNT = 9;
+const DASH_KEYS = ["20yd_Dash", "40yd_Dash"] as const;
 
-const SPRINT_KEYS = ["20yd_Dash", "40yd_Dash", "MaxVelocity"] as const;
-
-const OTHER_SLOTS = [
+const FULL_SLOTS = [
+  "MaxVelocity",
   "10-5_RSI",
   "DRI",
   "Standing-Broad",
@@ -20,12 +19,23 @@ export function batteryTotal(pointsByKey: Record<string, number>): {
   total_points: number;
   slots_completed: number;
 } {
-  const totals = scoreAthleteTotals(pointsByKey);
-  const sprintPresent = SPRINT_KEYS.some((key) => pointsByKey[key] != null);
-  const otherPresent = OTHER_SLOTS.filter((key) => pointsByKey[key] != null).length;
+  const dash = DASH_KEYS.flatMap((key) => {
+    const points = pointsByKey[key];
+    return points == null ? [] : [points];
+  });
+  const sprint_points =
+    dash.length === 0 ? 0 : dash.reduce((sum, points) => sum + points, 0) / dash.length;
+  let full = 0;
+  let fullCount = 0;
+  for (const key of FULL_SLOTS) {
+    const points = pointsByKey[key];
+    if (points == null) continue;
+    full += points;
+    fullCount += 1;
+  }
   return {
-    sprint_points: totals.sprint_points,
-    total_points: totals.total_points,
-    slots_completed: otherPresent + (sprintPresent ? 1 : 0),
+    sprint_points,
+    total_points: sprint_points + full,
+    slots_completed: fullCount + (dash.length > 0 ? 1 : 0),
   };
 }
