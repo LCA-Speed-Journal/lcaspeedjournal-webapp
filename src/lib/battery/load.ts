@@ -21,7 +21,7 @@ import { boardFocusDay, type BoardView } from "./board-focus";
 import { bestTenYardMarks, TEN_YD_KEY } from "./ten-yard";
 import { testingLiftMovement } from "./testing-lifts";
 import { pickComparisonSession } from "./comparison-session";
-import { BOYS_BASKETBALL_BASELINE } from "./template";
+import { BOYS_BASKETBALL_BASELINE, templateForHugoGroup } from "./template";
 import { averageRsiAttempts, groupRsiAttempts } from "./rsq";
 
 export type BoardDirection = "higher" | "lower";
@@ -959,9 +959,10 @@ export async function loadBatteryBoard(
   const basketballSessions = new Set(basketballSessionIds);
   let comparisonSessionId =
     battery.comparison_session_id == null ? null : String(battery.comparison_session_id);
-  // Sample mode can still show the Sept 2 changes when the battery row never
-  // stored a comparison session. The lookup is read-only.
-  if (sampleOn && comparisonSessionId == null) {
+  const template = templateForHugoGroup(String(battery.hugo_group));
+  if (template.comparison_date == null || template.comparison_hugo_group == null) {
+    comparisonSessionId = null;
+  } else if (sampleOn && comparisonSessionId == null) {
     comparisonSessionId = await sampleComparisonSessionId();
   } else if (comparisonSessionId == null) {
     comparisonSessionId = await attachComparisonSessionIfMissing(String(battery.id));
