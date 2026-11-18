@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MEET_COLUMN_ORDER, meetColumnKeys, metricTint } from "./meet-columns";
+import { MEET_COLUMN_ORDER, headerTintClass, meetColumnKeys, metricTint } from "./meet-columns";
 
 describe("meet columns", () => {
   it("orders the finished meet from vertical through hex", () => {
@@ -46,5 +46,14 @@ describe("meet columns", () => {
     expect(metricTint("Bench-Press")).toBe("strength");
     expect(metricTint("Hex-Deadlift")).toBe("strength");
     expect(metricTint("10yd_Split")).toBeNull();
+  });
+
+  it("uses a light header wash for each category", () => {
+    expect(headerTintClass("Vertical Jump")).toBe("bg-purple-500/15");
+    expect(headerTintClass("40yd_Dash")).toBe("bg-blue-500/15");
+    expect(headerTintClass("10x10m_mean")).toBe("bg-green-500/15");
+    expect(headerTintClass("OH-MB_Throw")).toBe("bg-orange-500/15");
+    expect(headerTintClass("Hex-Deadlift")).toBe("bg-red-500/15");
+    expect(headerTintClass("10yd_Split")).toBe("");
   });
 });

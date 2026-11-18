@@ -8,10 +8,12 @@ export function RsiChart({
   label,
   athletes,
   onDetailChange,
+  className = "",
 }: {
   label: string;
   athletes: RsqDot[];
   onDetailChange: (open: boolean) => void;
+  className?: string;
 }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const hideTimer = useRef<number | null>(null);
@@ -109,7 +111,7 @@ export function RsiChart({
       <button
         ref={buttonRef}
         type="button"
-        className="w-full truncate px-0 py-1 text-center underline decoration-dotted underline-offset-2 hover:text-accent md:px-0.5"
+        className={`w-full truncate px-0 py-1 text-center underline decoration-dotted underline-offset-2 hover:text-accent md:px-0.5 ${className}`}
         aria-haspopup="dialog"
         aria-expanded={open === "detail"}
         title="Hover for the RSQ preview. Click to open it."

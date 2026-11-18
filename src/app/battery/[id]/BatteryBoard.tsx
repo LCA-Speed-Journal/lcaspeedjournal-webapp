@@ -12,6 +12,7 @@ import {
   strengthPounds,
 } from "@/lib/battery/strength-rank";
 import { DRI_BOXES } from "@/lib/battery/dri";
+import { headerTintClass } from "@/lib/battery/meet-columns";
 import type { BoardCell, BoardColumn, BoardPayload } from "@/lib/battery/load";
 import { RsiChart } from "./RsiChart";
 import type { RsqDot } from "./RsqPlot";
@@ -1185,20 +1186,26 @@ export function BatteryBoard({
           >
             <span className={`${PIN_PLACE} bg-background py-1 text-center`}>#</span>
             <span className={`${PIN_NAME} bg-background py-1 pl-1 pr-3`}>Athlete</span>
-            {columns.map((column) =>
-              column.key === "10-5_RSI" && rsqAthletes.length > 0 ? (
+            {columns.map((column) => {
+              const tint = payload.view === "meet" ? headerTintClass(column.key) : "";
+              return column.key === "10-5_RSI" && rsqAthletes.length > 0 ? (
                 <RsiChart
                   key={column.key}
                   label={column.label}
                   athletes={rsqAthletes}
                   onDetailChange={onRsqDetail}
+                  className={tint}
                 />
               ) : (
-                <span key={column.key} className="truncate px-0 py-1 text-center md:px-0.5" title={column.label}>
+                <span
+                  key={column.key}
+                  className={`truncate px-0 py-1 text-center md:px-0.5 ${tint}`}
+                  title={column.label}
+                >
                   {column.label}
                 </span>
-              )
-            )}
+              );
+            })}
             <span className="py-1 pr-1 text-center">{strengthDay ? "Lb" : "Pts"}</span>
           </div>
 

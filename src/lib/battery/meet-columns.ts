@@ -38,6 +38,19 @@ export function metricTint(key: string): MetricTint | null {
   return TINTS[key] ?? null;
 }
 
+const HEADER_TINT_CLASS: Record<MetricTint, string> = {
+  power: "bg-purple-500/15",
+  speed: "bg-blue-500/15",
+  repeat: "bg-green-500/15",
+  throw: "bg-orange-500/15",
+  strength: "bg-red-500/15",
+};
+
+export function headerTintClass(key: string): string {
+  const tint = metricTint(key);
+  return tint == null ? "" : HEADER_TINT_CLASS[tint];
+}
+
 /** Meet grid. Sprint columns stay when a 40 was logged. The raw 10x10 series key never shows. */
 export function meetColumnKeys(present: Set<string>, expandSprint: boolean): string[] {
   const sprint = new Set<string>(SPRINT_COLUMN_KEYS);
