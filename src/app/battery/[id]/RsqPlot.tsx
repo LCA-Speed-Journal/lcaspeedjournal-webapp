@@ -81,6 +81,21 @@ export function RsqPlot({
                 </span>
               ))}
             </div>
+            {athletes.flatMap((athlete) =>
+              athlete.trials.map((trial, index) => {
+                const point = rsqPoint(trial.jump_in, trial.gct_ms);
+                return (
+                  <span
+                    key={`${athlete.athlete_id}-trial-${index}`}
+                    data-rsq-trial={athlete.athlete_id}
+                    className={`pointer-events-none absolute z-0 -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-400/80 ${
+                      full ? "h-1.5 w-1.5" : "h-1 w-1"
+                    }`}
+                    style={{ left: `${point.x * 100}%`, top: `${point.y * 100}%` }}
+                  />
+                );
+              })
+            )}
             {athletes.map((athlete) => {
               const point = rsqPoint(athlete.jump_in, athlete.gct_ms);
               const quadrant = rsqQuadrant(athlete.jump_in, athlete.gct_ms);

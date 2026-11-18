@@ -22,6 +22,7 @@ import { bestTenYardMarks, TEN_YD_KEY } from "./ten-yard";
 import { testingLiftMovement } from "./testing-lifts";
 import { pickComparisonSession } from "./comparison-session";
 import { BOYS_BASKETBALL_BASELINE } from "./template";
+import { averageRsiAttempts, groupRsiAttempts } from "./rsq";
 
 export type BoardDirection = "higher" | "lower";
 
@@ -101,11 +102,14 @@ export type BoardPayload = {
   sample: boolean;
 };
 
+export type BoardRsqTrial = { jump_in: number; gct_ms: number };
+
 export type BoardRsqPoint = {
   athlete_id: string;
   name: string;
   jump_in: number;
   gct_ms: number;
+  trials: BoardRsqTrial[];
 };
 
 const HIGHER_METRIC_KEYS = [
@@ -633,39 +637,27 @@ function athleteDisplayName(firstName: string, lastName: string): string {
   return `${firstName} ${lastName}`.trim() || "Athlete";
 }
 
-function closestMark(rows: NormEntry[], anchor: number | null): NormEntry {
-  if (anchor == null) {
-    return rows.reduce((best, row) => (row.created_at >= best.created_at ? row : best));
-  }
-  return rows.reduce((best, row) => {
-    const distance = Math.abs(row.created_at - anchor);
-    const bestDistance = Math.abs(best.created_at - anchor);
-    if (distance < bestDistance) return row;
-    if (distance === bestDistance && row.created_at >= best.created_at) return row;
-    return best;
-  });
-}
-
-/** Jump and contact from the same save as the best RSI, so the dot matches the standings color. */
-function pairJumpAndContact(rows: NormEntry[]): { jump: number; gct: number } | null {
-  const jumps = rows.filter((row) => row.metric_key === RSQ_JUMP_KEY);
-  const contacts = rows.filter((row) => row.metric_key === RSQ_CONTACT_KEY);
-  if (jumps.length === 0 || contacts.length === 0) return null;
-
-  let anchor: number | null = null;
-  let bestRsi = -Infinity;
-  for (const row of rows) {
-    if (row.metric_key !== "10-5_RSI") continue;
-    const laterTie = row.display_value === bestRsi && (anchor == null || row.created_at >= anchor);
-    if (row.display_value > bestRsi || laterTie) {
-      bestRsi = row.display_value;
-      anchor = row.created_at;
-    }
-  }
-
+function attemptsForAthlete(rows: NormEntry[]): { jump: number; gct: number; trials: BoardRsqTrial[] } | null {
+  const attempts = groupRsiAttempts(
+    rows
+      .filter(
+        (row) =>
+          row.metric_key === "10-5_RSI" ||
+          row.metric_key === RSQ_JUMP_KEY ||
+          row.metric_key === RSQ_CONTACT_KEY
+      )
+      .map((row) => ({
+        metric_key: row.metric_key,
+        display_value: row.display_value,
+        created_at: row.created_at,
+      }))
+  );
+  const mean = averageRsiAttempts(attempts);
+  if (mean == null) return null;
   return {
-    jump: closestMark(jumps, anchor).display_value,
-    gct: closestMark(contacts, anchor).display_value,
+    jump: mean.jump,
+    gct: mean.gct,
+    trials: attempts.map((attempt) => ({ jump_in: attempt.jump, gct_ms: attempt.gct })),
   };
 }
 
@@ -687,13 +679,14 @@ function rsqFromEntries(
   for (const athlete of athletes) {
     const own = byAthlete.get(athlete.athlete_id);
     if (!own) continue;
-    const pair = pairJumpAndContact(own);
-    if (!pair) continue;
+    const attempts = attemptsForAthlete(own);
+    if (!attempts) continue;
     points.push({
       athlete_id: athlete.athlete_id,
       name: athleteDisplayName(athlete.first_name, athlete.last_name),
-      jump_in: pair.jump,
-      gct_ms: pair.gct,
+      jump_in: attempts.jump,
+      gct_ms: attempts.gct,
+      trials: attempts.trials,
     });
   }
   return points;
@@ -719,6 +712,7 @@ function rsqFromSampleMarks(
       name: athleteDisplayName(athlete.first_name, athlete.last_name),
       jump_in: jumpIn,
       gct_ms: gctMs,
+      trials: [{ jump_in: jumpIn, gct_ms: gctMs }],
     });
   }
   return points;
