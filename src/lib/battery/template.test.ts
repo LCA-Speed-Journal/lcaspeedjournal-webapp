@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOYS_BASKETBALL_BASELINE } from "./template";
+import { BATTERY_TEMPLATES, BOYS_BASKETBALL_BASELINE, GIRLS_BASKETBALL_BASELINE, templateForHugoGroup, templateById } from "./template";
 
 describe("BOYS_BASKETBALL_BASELINE", () => {
   it("locks Monday drills and the four ordered testing days", () => {
@@ -24,5 +24,29 @@ describe("BOYS_BASKETBALL_BASELINE", () => {
     expect(BOYS_BASKETBALL_BASELINE.cutoff_n).toBe(18);
     expect(BOYS_BASKETBALL_BASELINE.senior_grad_year).toBe(2027);
     expect(BOYS_BASKETBALL_BASELINE.comparison_date).toBe("2026-09-02");
+  });
+});
+
+describe("GIRLS_BASKETBALL_BASELINE", () => {
+  it("is one Thursday session for the women's roster", () => {
+    expect(GIRLS_BASKETBALL_BASELINE.title).toBe("Girls Basketball Baseline");
+    expect(GIRLS_BASKETBALL_BASELINE.hugo_group).toBe("womens_basketball");
+    expect(GIRLS_BASKETBALL_BASELINE.cutoff_n).toBe(12);
+    expect(GIRLS_BASKETBALL_BASELINE.comparison_date).toBeNull();
+    expect(GIRLS_BASKETBALL_BASELINE.days).toEqual([
+      {
+        day_key: "A",
+        label: "Baseline",
+        session_date: "2026-11-19",
+        sort_order: 1,
+        rest_seconds: null,
+        metric_keys: ["40yd_Dash", "Vertical Jump", "Standing-Broad", "10-5_RSI", "OH-MB_Throw"],
+      },
+    ]);
+    expect(BATTERY_TEMPLATES.map((item) => item.id)).toContain("girls_basketball_baseline");
+    expect(templateById("girls_basketball_baseline")).toBe(GIRLS_BASKETBALL_BASELINE);
+    expect(templateForHugoGroup("womens_basketball")).toBe(GIRLS_BASKETBALL_BASELINE);
+    expect(templateForHugoGroup("mens_basketball")).toBe(BOYS_BASKETBALL_BASELINE);
+    expect(templateById("nope")).toBeNull();
   });
 });

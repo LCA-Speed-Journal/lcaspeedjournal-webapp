@@ -1,5 +1,6 @@
 export const BATTERY_TEMPLATES = [
   { id: "boys_basketball_baseline", label: "Boys Basketball Baseline" },
+  { id: "girls_basketball_baseline", label: "Girls Basketball Baseline" },
 ] as const;
 
 export type BatteryTemplateId = (typeof BATTERY_TEMPLATES)[number]["id"];
@@ -10,8 +11,8 @@ export const BOYS_BASKETBALL_BASELINE = {
   grouping_mode: "cutoff" as const,
   cutoff_n: 18,
   senior_grad_year: 2027,
-  comparison_date: "2026-09-02",
-  comparison_hugo_group: "soccer",
+  comparison_date: "2026-09-02" as string | null,
+  comparison_hugo_group: "soccer" as string | null,
   days: [
     {
       day_key: "A",
@@ -47,3 +48,34 @@ export const BOYS_BASKETBALL_BASELINE = {
     },
   ],
 };
+
+export const GIRLS_BASKETBALL_BASELINE = {
+  title: "Girls Basketball Baseline",
+  hugo_group: "womens_basketball",
+  grouping_mode: "cutoff" as const,
+  cutoff_n: 12,
+  senior_grad_year: 2027,
+  comparison_date: null as string | null,
+  comparison_hugo_group: null as string | null,
+  days: [
+    {
+      day_key: "A",
+      label: "Baseline",
+      session_date: "2026-11-19",
+      sort_order: 1,
+      rest_seconds: null as number | null,
+      metric_keys: ["40yd_Dash", "Vertical Jump", "Standing-Broad", "10-5_RSI", "OH-MB_Throw"],
+    },
+  ],
+};
+
+export function templateById(id: string) {
+  if (id === "boys_basketball_baseline") return BOYS_BASKETBALL_BASELINE;
+  if (id === "girls_basketball_baseline") return GIRLS_BASKETBALL_BASELINE;
+  return null;
+}
+
+export function templateForHugoGroup(hugoGroup: string) {
+  if (hugoGroup === GIRLS_BASKETBALL_BASELINE.hugo_group) return GIRLS_BASKETBALL_BASELINE;
+  return BOYS_BASKETBALL_BASELINE;
+}

@@ -821,6 +821,7 @@ async function attachComparisonSessionIfMissing(batteryId: string): Promise<stri
 
   const comparisonDate = BOYS_BASKETBALL_BASELINE.comparison_date;
   const comparisonHugoGroup = BOYS_BASKETBALL_BASELINE.comparison_hugo_group;
+  if (comparisonDate == null || comparisonHugoGroup == null) return null;
   const fortyYd = "40yd_Dash";
 
   const rememberMiss = () => {

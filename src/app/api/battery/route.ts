@@ -1,5 +1,5 @@
 /**
- * Testing battery API - POST creates a boys basketball baseline (coach only).
+ * Testing battery API - POST creates a basketball baseline from a known template (coach only).
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -7,7 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { databaseErrorBody, rememberRead } from "@/lib/db-guard";
 import { isBatterySchemaMissing, readPgError } from "@/lib/battery/load";
-import { BOYS_BASKETBALL_BASELINE } from "@/lib/battery/template";
+import { BOYS_BASKETBALL_BASELINE, GIRLS_BASKETBALL_BASELINE, templateById } from "@/lib/battery/template";
 
 const MIGRATION_ERROR = "Run scripts/migrate-testing-battery.sql";
 
@@ -16,7 +16,7 @@ function schemaResponse() {
 }
 
 async function insertBattery(
-  template: typeof BOYS_BASKETBALL_BASELINE,
+  template: typeof BOYS_BASKETBALL_BASELINE | typeof GIRLS_BASKETBALL_BASELINE,
   comparisonId: string | null
 ) {
   const run = (sessionId: string | null) => sql`
@@ -143,15 +143,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    if (body?.template !== "boys_basketball_baseline") {
+    const template = templateById(String(body?.template ?? ""));
+    if (template == null) {
       return NextResponse.json({ error: "Unknown template" }, { status: 400 });
     }
 
-    const template = BOYS_BASKETBALL_BASELINE;
-    const comparisonId = await comparisonSessionId(
-      template.comparison_date,
-      template.comparison_hugo_group
-    );
+    const comparisonId =
+      template.comparison_date != null && template.comparison_hugo_group != null
+        ? await comparisonSessionId(template.comparison_date, template.comparison_hugo_group)
+        : null;
     const inserted = await insertBattery(template, comparisonId);
     const id = (inserted.rows[0] as { id: string } | undefined)?.id;
     if (!id) {
