@@ -14,4 +14,26 @@ describe("orderDayColumnKeys", () => {
       "Bench-Press",
     ]);
   });
+
+  it("leaves a day A that is not the boys reactivity set in the order it was given", () => {
+    expect(
+      orderDayColumnKeys("A", [
+        "20yd_Dash",
+        "40yd_Dash",
+        "MaxVelocity",
+        "Vertical Jump",
+        "Standing-Broad",
+        "10-5_RSI",
+        "OH-MB_Throw",
+      ])
+    ).toEqual([
+      "20yd_Dash",
+      "40yd_Dash",
+      "MaxVelocity",
+      "Vertical Jump",
+      "Standing-Broad",
+      "10-5_RSI",
+      "OH-MB_Throw",
+    ]);
+  });
 });

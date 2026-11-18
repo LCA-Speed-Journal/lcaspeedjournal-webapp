@@ -62,6 +62,25 @@ describe("doorSheetColumnKeys", () => {
       "DRI-18"
     );
   });
+
+  it("keeps a girls day on the board columns and scores bench", () => {
+    expect(
+      doorSheetColumnKeys("A", ["20yd_Dash", "Vertical Jump", "10-5_RSI"])
+    ).toEqual(["20yd_Dash", "Vertical Jump", "10-5_RSI"]);
+    const columns = doorSheetColumns(
+      "B",
+      [
+        { key: "Bench-Press", label: "Bench", units: "lb" },
+        { key: "Hex-Deadlift", label: "Hex DL", units: "lb" },
+      ],
+      null
+    );
+    expect(columns.find((column) => column.key === "Bench-Press")).toMatchObject({
+      label: "Bench",
+      scored: true,
+    });
+    expect(doorSheetRankLabel({ rank: 1, tied: false, points: 4 }, true)).toBe("1 - 4pts");
+  });
 });
 
 describe("door sheet labels", () => {

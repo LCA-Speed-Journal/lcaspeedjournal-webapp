@@ -56,7 +56,16 @@ const DAY_A_LABELS: Record<string, { label: string; units: string }> = {
   DRI: { label: "DRI", units: "DRI" },
 };
 
-const UNSCORED_KEYS = new Set(["10yd_Split", "Bench-Press", "Hex-Deadlift"]);
+const UNSCORED_KEYS = new Set(["10yd_Split"]);
+
+const BOYS_DAY_A_BOARD = new Set([
+  "10yd_Split",
+  "20yd_Dash",
+  "40yd_Dash",
+  "MaxVelocity",
+  "10-5_RSI",
+  "DRI",
+]);
 
 export type DoorSheetColumn = {
   key: string;
@@ -66,7 +75,9 @@ export type DoorSheetColumn = {
 };
 
 export function doorSheetColumnKeys(dayKey: string, boardColumnKeys: readonly string[]): string[] {
-  if (dayKey === "A") return [...DAY_A_DOOR_COLUMNS];
+  const boysDay =
+    dayKey === "A" && boardColumnKeys.every((key) => BOYS_DAY_A_BOARD.has(key));
+  if (boysDay) return [...DAY_A_DOOR_COLUMNS];
   return [...boardColumnKeys];
 }
 
