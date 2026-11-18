@@ -14,7 +14,7 @@ import {
   testingLiftMovement,
   testingStrengthTitle,
 } from "@/lib/battery/testing-lifts";
-import { BOYS_BASKETBALL_BASELINE } from "@/lib/battery/template";
+import { templateForHugoGroup } from "@/lib/battery/template";
 import { isUuid, serializeDate } from "@/lib/weight-room/insert-template";
 import { isHugoGroup } from "@/lib/weight-room/constants";
 
@@ -31,8 +31,8 @@ function calendarDate(raw: unknown): string | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : null;
 }
 
-function dayKeyForMovement(movementKey: string): string | null {
-  const day = BOYS_BASKETBALL_BASELINE.days.find((item) =>
+function dayKeyForMovement(hugoGroup: string, movementKey: string): string | null {
+  const day = templateForHugoGroup(hugoGroup).days.find((item) =>
     (item.metric_keys as readonly string[]).includes(movementKey)
   );
   return day?.day_key ?? null;
@@ -81,11 +81,6 @@ export async function POST(
     );
   }
 
-  const dayKey = dayKeyForMovement(movementKey);
-  if (!dayKey) {
-    return NextResponse.json({ error: "Unknown movement" }, { status: 400 });
-  }
-
   try {
     const { id } = await params;
     if (!isUuid(id)) {
@@ -100,11 +95,9 @@ export async function POST(
           d.session_date,
           s.session_date AS linked_session_date
         FROM testing_batteries b
-        LEFT JOIN testing_battery_days d
-          ON d.battery_id = b.id AND d.day_key = ${dayKey}
+        LEFT JOIN testing_battery_days d ON d.battery_id = b.id
         LEFT JOIN sessions s ON s.id = d.session_id
         WHERE b.id = ${id}
-        LIMIT 1
       `,
       sql`SELECT id FROM athletes WHERE id = ${athleteId} LIMIT 1`,
     ]);
@@ -115,13 +108,25 @@ export async function POST(
       return NextResponse.json({ error: "Athlete not found" }, { status: 400 });
     }
 
-    const battery = batteryResult.rows[0] as {
+    const batteryRows = batteryResult.rows as {
       hugo_group: unknown;
       day_key: unknown;
       session_date: unknown;
       linked_session_date: unknown;
-    };
-    if (battery.day_key == null) {
+    }[];
+    const hugoGroupRaw = batteryRows[0]?.hugo_group;
+    if (!isHugoGroup(hugoGroupRaw)) {
+      return NextResponse.json(
+        { error: "Battery group is not a weight-room group" },
+        { status: 400 }
+      );
+    }
+    const dayKey = dayKeyForMovement(hugoGroupRaw, movementKey);
+    if (!dayKey) {
+      return NextResponse.json({ error: "Unknown movement" }, { status: 400 });
+    }
+    const battery = batteryRows.find((row) => row.day_key === dayKey);
+    if (!battery || battery.day_key == null) {
       return NextResponse.json({ error: "Day not found" }, { status: 404 });
     }
     const sessionDate =
@@ -129,13 +134,7 @@ export async function POST(
     if (!sessionDate) {
       return NextResponse.json({ error: "Testing day has no date" }, { status: 400 });
     }
-    if (!isHugoGroup(battery.hugo_group)) {
-      return NextResponse.json(
-        { error: "Battery group is not a weight-room group" },
-        { status: 400 }
-      );
-    }
-    const hugoGroup = battery.hugo_group;
+    const hugoGroup = hugoGroupRaw;
     const title = `${movementName} ${sessionDate}`;
     if (!(await athleteOnRoster(athleteId, hugoGroup))) {
       return NextResponse.json({ error: "Athlete is not on this roster" }, { status: 400 });

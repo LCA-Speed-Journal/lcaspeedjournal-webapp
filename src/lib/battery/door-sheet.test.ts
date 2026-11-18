@@ -80,6 +80,15 @@ describe("doorSheetColumnKeys", () => {
       scored: true,
     });
     expect(doorSheetRankLabel({ rank: 1, tied: false, points: 4 }, true)).toBe("1 - 4pts");
+    const girls = doorSheetColumns(
+      "A",
+      [
+        { key: "20yd_Dash", label: "20yd", units: "s" },
+        { key: "Vertical Jump", label: "Vertical", units: "in" },
+      ],
+      null
+    );
+    expect(girls.find((column) => column.key === "20yd_Dash")?.label).toBe("20yd");
   });
 });
 

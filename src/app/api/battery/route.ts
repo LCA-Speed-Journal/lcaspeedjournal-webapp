@@ -282,16 +282,20 @@ export async function GET(request: NextRequest) {
 
   try {
     const { rows } = await sql`
-      SELECT battery_id
-      FROM testing_battery_days
-      WHERE session_id = ${sessionId}
+      SELECT d.battery_id, b.hugo_group
+      FROM testing_battery_days d
+      INNER JOIN testing_batteries b ON b.id = d.battery_id
+      WHERE d.session_id = ${sessionId}
       LIMIT 1
     `;
-    const batteryId = (rows[0] as { battery_id?: string } | undefined)?.battery_id;
-    if (!batteryId) {
+    const match = rows[0] as { battery_id?: string; hugo_group?: string } | undefined;
+    if (!match?.battery_id) {
       return NextResponse.json({ error: "Battery not found" }, { status: 404 });
     }
-    return NextResponse.json({ id: String(batteryId) });
+    return NextResponse.json({
+      id: String(match.battery_id),
+      hugo_group: match.hugo_group == null ? null : String(match.hugo_group),
+    });
   } catch (err) {
     if (isBatterySchemaMissing(err)) return schemaResponse();
     if (readPgError(err).codes.includes("22P02")) {

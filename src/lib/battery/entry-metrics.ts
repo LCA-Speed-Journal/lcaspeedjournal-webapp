@@ -1,20 +1,21 @@
 import { LEGACY_SPEED_KEYS } from "@/lib/speed/windows";
 import { testingLiftMovement } from "./testing-lifts";
-import { BOYS_BASKETBALL_BASELINE } from "./template";
+import { templateForHugoGroup } from "./template";
 
 const SPEED_RUN_KEY = "SpeedRun";
 
 export function batteryEntryKeys(input: {
   batterySession: boolean;
+  hugoGroup?: string | null;
   sessionDate: string | null | undefined;
   dayMetrics: readonly string[] | null | undefined;
   registryKeys: readonly string[];
 }): string[] {
   const date = input.sessionDate?.slice(0, 10) ?? "";
-  const day =
-    input.batterySession
-      ? BOYS_BASKETBALL_BASELINE.days.find((item) => item.session_date === date)
-      : undefined;
+  const template = templateForHugoGroup(input.hugoGroup ?? "mens_basketball");
+  const day = input.batterySession
+    ? template.days.find((item) => item.session_date === date)
+    : undefined;
 
   if (day) {
     const registry = new Set(input.registryKeys);

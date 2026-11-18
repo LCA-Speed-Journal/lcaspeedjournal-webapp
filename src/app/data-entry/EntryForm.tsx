@@ -39,7 +39,7 @@ import { directionFromUnits, summarizeDropoff } from "@/lib/dropoff/summarize";
 import { LEGACY_SPEED_KEYS } from "@/lib/speed/windows";
 import { rsqQuadrant } from "@/lib/battery/rsq";
 import { batteryEntryKeys } from "@/lib/battery/entry-metrics";
-import { BOYS_BASKETBALL_BASELINE } from "@/lib/battery/template";
+import { templateForHugoGroup } from "@/lib/battery/template";
 import { testingLiftMovement } from "@/lib/battery/testing-lifts";
 
 const SPEED_RUN_KEY = "SpeedRun";
@@ -232,6 +232,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const [quickCreating, setQuickCreating] = useState(false);
   const [quickCreateError, setQuickCreateError] = useState("");
   const [batterySession, setBatterySession] = useState(false);
+  const [batteryGroup, setBatteryGroup] = useState<string | null>(null);
   const [batteryId, setBatteryId] = useState("");
   const [sheetBusy, setSheetBusy] = useState(false);
   const [sheetNote, setSheetNote] = useState("");
@@ -264,6 +265,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     setDriValues(["", "", "", ""]);
     setRepValues(emptyReps());
     setBatterySession(false);
+    setBatteryGroup(null);
     setBatteryId("");
     setSheetNote("");
     setBibs([]);
@@ -277,11 +279,12 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           { cache: "no-store" }
         );
         if (cancelled || !batteryRes.ok) return;
-        const batteryJson = (await batteryRes.json()) as { id?: unknown };
+        const batteryJson = (await batteryRes.json()) as { id?: unknown; hugo_group?: unknown };
         const nextBatteryId = typeof batteryJson.id === "string" ? batteryJson.id : "";
         if (!nextBatteryId) return;
         if (cancelled) return;
         setBatteryId(nextBatteryId);
+        setBatteryGroup(typeof batteryJson.hugo_group === "string" ? batteryJson.hugo_group : null);
         setBatterySession(true);
         const bibRes = await fetch(`/api/battery/${encodeURIComponent(nextBatteryId)}/bibs`, {
           cache: "no-store",
@@ -293,6 +296,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       } catch {
         if (!cancelled) {
           setBatterySession(false);
+          setBatteryGroup(null);
           setBibs([]);
         }
       }
@@ -474,12 +478,13 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const sessionMetrics = selectedSession?.day_metrics;
   const visibleKeys = batteryEntryKeys({
     batterySession,
+    hugoGroup: batteryGroup,
     sessionDate: selectedSession?.session_date,
     dayMetrics: Array.isArray(sessionMetrics) ? sessionMetrics : null,
     registryKeys: allOptions.map((option) => option.key),
   });
   const matchedBatteryDay = batterySession
-    ? BOYS_BASKETBALL_BASELINE.days.find(
+    ? templateForHugoGroup(batteryGroup ?? "mens_basketball").days.find(
         (day) => day.session_date === selectedSession?.session_date?.slice(0, 10)
       )
     : undefined;

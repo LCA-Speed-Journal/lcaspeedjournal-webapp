@@ -265,8 +265,8 @@ function asText(raw: unknown): string {
   return raw == null ? "" : String(raw);
 }
 
-function testsForDay(dayKey: string): string[] {
-  const match = BOYS_BASKETBALL_BASELINE.days.find((day) => day.day_key === dayKey);
+function testsForDay(hugoGroup: string, dayKey: string): string[] {
+  const match = templateForHugoGroup(hugoGroup).days.find((day) => day.day_key === dayKey);
   return match ? [...match.metric_keys] : [];
 }
 
@@ -303,7 +303,7 @@ async function loadTestingLiftMarks(
   for (const day of days) {
     if (dayKeys != null && !dayKeys.has(day.day_key)) continue;
     if (!day.session_date) continue;
-    for (const key of testsForDay(day.day_key)) {
+    for (const key of testsForDay(hugoGroup, day.day_key)) {
       const name = testingLiftMovement(key);
       if (!name) continue;
       wanted.push({ date: day.session_date, name, key });
@@ -952,14 +952,15 @@ export async function loadBatteryBoard(
     .toSorted((a, b) => a.sort_order - b.sort_order || a.day_key.localeCompare(b.day_key));
 
   const sampleOn = options.sample === true && process.env.NODE_ENV !== "production";
+  const hugoGroup = String(battery.hugo_group);
   const liftMarksPromise = sampleOn
     ? Promise.resolve([] as BatteryMark[])
-    : loadTestingLiftMarks(String(battery.hugo_group), days, liftDayKeys(days, options));
+    : loadTestingLiftMarks(hugoGroup, days, liftDayKeys(days, options));
   const basketballSessionIds = days.flatMap((day) => (day.session_id ? [day.session_id] : []));
   const basketballSessions = new Set(basketballSessionIds);
   let comparisonSessionId =
     battery.comparison_session_id == null ? null : String(battery.comparison_session_id);
-  const template = templateForHugoGroup(String(battery.hugo_group));
+  const template = templateForHugoGroup(hugoGroup);
   if (template.comparison_date == null || template.comparison_hugo_group == null) {
     comparisonSessionId = null;
   } else if (sampleOn && comparisonSessionId == null) {
@@ -1044,7 +1045,7 @@ export async function loadBatteryBoard(
         );
 
   const focusKeys = focusDay
-    ? new Set(expandedDayKeys(testsForDay(focusDay.day_key)))
+    ? new Set(expandedDayKeys(testsForDay(hugoGroup, focusDay.day_key)))
     : new Set<string>();
   const dayA = days.find((day) => day.day_key === "A") ?? null;
   const dayARows = meetRows.filter(
@@ -1081,7 +1082,7 @@ export async function loadBatteryBoard(
   const limitedMeetKeys =
     samplePack && options.view === "meet" && meetDayKeys != null
       ? new Set(
-          [...meetDayKeys].flatMap((dayKey) => expandedDayKeys(testsForDay(dayKey)))
+          [...meetDayKeys].flatMap((dayKey) => expandedDayKeys(testsForDay(hugoGroup, dayKey)))
         )
       : null;
   const liftMarks = await liftMarksPromise;
@@ -1171,7 +1172,7 @@ export async function loadBatteryBoard(
     options.view === "meet"
       ? meetColumnKeys(present, present.has("40yd_Dash") || hasFortyEntry(scoringRows))
       : focusDay
-        ? orderDayColumnKeys(focusDay.day_key, expandedDayKeys(testsForDay(focusDay.day_key)))
+        ? orderDayColumnKeys(focusDay.day_key, expandedDayKeys(testsForDay(hugoGroup, focusDay.day_key)))
         : [];
   const columns = columnKeys.map((key) => columnFor(key, teamBox));
   const viewKeys = new Set(columns.map((column) => column.key));

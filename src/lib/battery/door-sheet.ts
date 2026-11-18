@@ -87,11 +87,16 @@ export function doorSheetColumns(
   driBox: string | null
 ): DoorSheetColumn[] {
   const byKey = new Map(boardColumns.map((column) => [column.key, column]));
-  return doorSheetColumnKeys(
+  const columnKeys = doorSheetColumnKeys(
     dayKey,
     boardColumns.map((column) => column.key)
-  ).map((key) => {
-    const fixed = dayKey === "A" ? DAY_A_LABELS[key] : undefined;
+  );
+  const boysDoorLabels =
+    dayKey === "A" &&
+    (columnKeys.includes("10yd_Split") ||
+      columnKeys.every((key) => BOYS_DAY_A_BOARD.has(key)));
+  return columnKeys.map((key) => {
+    const fixed = boysDoorLabels ? DAY_A_LABELS[key] : undefined;
     const board = byKey.get(key);
     const box = driBox?.trim() ?? "";
     const scored = !UNSCORED_KEYS.has(key);
