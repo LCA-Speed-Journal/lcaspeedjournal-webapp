@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rsqPoint, rsqQuadrant } from "./rsq";
+import { averageRsiAttempts, groupRsiAttempts, rsqPoint, rsqQuadrant } from "./rsq";
 
 describe("rsqQuadrant", () => {
   it("puts the crosshair in Compliant and the upper left in Reactive", () => {
@@ -15,5 +15,33 @@ describe("rsqPoint", () => {
     expect(rsqPoint(10, 200)).toEqual({ x: 0.5, y: 0.5 });
     expect(rsqPoint(20, 0).y).toBe(0);
     expect(rsqPoint(0, 400).x).toBe(1);
+  });
+});
+
+describe("groupRsiAttempts", () => {
+  it("keeps a high jump with its own slow contact", () => {
+    const attempts = groupRsiAttempts([
+      { metric_key: "10-5_RSI", display_value: 1.5, created_at: 0 },
+      { metric_key: "10-5_JH", display_value: 18, created_at: 1 },
+      { metric_key: "10-5_GCT", display_value: 280, created_at: 2 },
+      { metric_key: "10-5_RSI", display_value: 2.4, created_at: 10 },
+      { metric_key: "10-5_JH", display_value: 11, created_at: 11 },
+      { metric_key: "10-5_GCT", display_value: 140, created_at: 12 },
+    ]);
+    expect(attempts).toEqual([
+      { jump: 18, gct: 280 },
+      { jump: 11, gct: 140 },
+    ]);
+    expect(averageRsiAttempts(attempts)).toEqual({ jump: 14.5, gct: 210 });
+  });
+
+  it("drops an attempt that is missing jump or contact", () => {
+    expect(
+      groupRsiAttempts([
+        { metric_key: "10-5_RSI", display_value: 2, created_at: 0 },
+        { metric_key: "10-5_JH", display_value: 12, created_at: 1 },
+      ])
+    ).toEqual([]);
+    expect(averageRsiAttempts([])).toBeNull();
   });
 });
