@@ -25,11 +25,35 @@ export type RsiAttemptRow = {
 
 export type RsiAttempt = { jump: number; gct: number };
 
+/** Each RSI test is logged as the score plus the jump and contact from that same trial. */
+export const RSI_TESTS = [
+  { rsi: "10-5_RSI", jump: "10-5_JH", contact: "10-5_GCT" },
+  { rsi: "Hop-Test_RSI", jump: "Hop-Test_JH", contact: "Hop-Test_GCT" },
+] as const;
+
+export function rsiTestFor(metricKey: string): (typeof RSI_TESTS)[number] | null {
+  return RSI_TESTS.find((test) => test.rsi === metricKey) ?? null;
+}
+
+export function isRsiCompanionKey(metricKey: string): boolean {
+  return RSI_TESTS.some((test) => test.jump === metricKey || test.contact === metricKey);
+}
+
+function rsiPart(metricKey: string): "rsi" | "jump" | "contact" | null {
+  for (const test of RSI_TESTS) {
+    if (metricKey === test.rsi) return "rsi";
+    if (metricKey === test.jump) return "jump";
+    if (metricKey === test.contact) return "contact";
+  }
+  return null;
+}
+
 /** RSI must sort ahead of the jump and contact when timestamps tie. */
 function rsiRowRank(metricKey: string): number {
-  if (metricKey === "10-5_RSI") return 0;
-  if (metricKey === "10-5_JH") return 1;
-  if (metricKey === "10-5_GCT") return 2;
+  const part = rsiPart(metricKey);
+  if (part === "rsi") return 0;
+  if (part === "jump") return 1;
+  if (part === "contact") return 2;
   return 3;
 }
 
@@ -49,16 +73,17 @@ export function groupRsiAttempts(rows: RsiAttemptRow[]): RsiAttempt[] {
   };
 
   for (const row of sorted) {
-    if (row.metric_key === "10-5_RSI") {
+    const part = rsiPart(row.metric_key);
+    if (part === "rsi") {
       flush();
       continue;
     }
-    if (row.metric_key === "10-5_JH") {
+    if (part === "jump") {
       if (jump != null) flush();
       jump = row.display_value;
       continue;
     }
-    if (row.metric_key === "10-5_GCT") {
+    if (part === "contact") {
       if (gct != null) flush();
       gct = row.display_value;
     }

@@ -9,7 +9,12 @@ import {
   loadBatteryBoard,
   readPgError,
 } from "@/lib/battery/load";
-import { meetSheetFilename, renderMeetSheet, type MeetSheetData } from "@/lib/battery/meet-sheet";
+import {
+  meetSheetFilename,
+  meetSheetTitle,
+  renderMeetSheet,
+  type MeetSheetData,
+} from "@/lib/battery/meet-sheet";
 
 export const runtime = "nodejs";
 
@@ -44,14 +49,15 @@ export async function GET(
     const { searchParams } = new URL(request.url);
     const groupParam = searchParams.get("group");
     const group = groupParam == null || groupParam.trim() === "" ? "overall" : groupParam.trim();
+    const sample = searchParams.get("sample") === "1" && process.env.NODE_ENV !== "production";
 
-    const board = await loadBatteryBoard(id, { view: "meet", group });
+    const board = await loadBatteryBoard(id, { view: "meet", group, sample });
     if (!board) {
       return NextResponse.json({ error: "Battery not found" }, { status: 404 });
     }
 
     const data: MeetSheetData = {
-      title: board.battery.title.trim() || "Meet",
+      title: meetSheetTitle(board.battery.hugo_group),
       columns: board.columns,
       rows: board.athletes,
     };

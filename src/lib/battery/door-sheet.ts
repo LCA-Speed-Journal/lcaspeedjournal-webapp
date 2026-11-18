@@ -201,22 +201,22 @@ export function doorSheetTotalText(columnKeys: readonly string[], athlete: Board
   return formatPoints(athlete.total_points);
 }
 
-const PODIUM_STROKE: Record<number, string> = {
+export const PODIUM_STROKE: Record<number, string> = {
   1: "#c9a227",
   2: "#6b7280",
   3: "#b45309",
 };
 
-const RSQ = {
+export const RSQ = {
   reactive: { label: "Reactive", color: "#2563eb" },
   compliant: { label: "Compliant", color: "#dc2626" },
   stiff: { label: "Stiff", color: "#16a34a" },
   developing: { label: "Developing", color: "#f97316" },
 } as const;
 
-type RsqKey = keyof typeof RSQ;
+export type RsqKey = keyof typeof RSQ;
 
-function rsqKey(qualifier: string | null): RsqKey | null {
+export function rsqKey(qualifier: string | null): RsqKey | null {
   if (!qualifier) return null;
   const key = qualifier.trim().toLowerCase();
   return key in RSQ ? (key as RsqKey) : null;
@@ -374,8 +374,8 @@ function rsqShape(kind: RsqKey): ReactNode {
   return createElement(Polygon, { points: "4,0.5 7.5,7.4 0.5,7.4", fill: color });
 }
 
-function rsqIcon(kind: RsqKey): ReactNode {
-  return createElement(Svg, { width: 8, height: 8, viewBox: "0 0 8 8" }, rsqShape(kind));
+export function rsqIcon(kind: RsqKey, size = 8): ReactNode {
+  return createElement(Svg, { width: size, height: size, viewBox: "0 0 8 8" }, rsqShape(kind));
 }
 
 function metricCell(

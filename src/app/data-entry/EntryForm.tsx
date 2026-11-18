@@ -37,7 +37,7 @@ import { formatDropoffCaption } from "@/lib/dropoff/format";
 import { isDropoffMetric } from "@/lib/dropoff/metrics";
 import { directionFromUnits, summarizeDropoff } from "@/lib/dropoff/summarize";
 import { LEGACY_SPEED_KEYS } from "@/lib/speed/windows";
-import { rsqQuadrant } from "@/lib/battery/rsq";
+import { rsiTestFor, rsqQuadrant } from "@/lib/battery/rsq";
 import { batteryEntryKeys } from "@/lib/battery/entry-metrics";
 import { templateForHugoGroup } from "@/lib/battery/template";
 import { testingLiftMovement } from "@/lib/battery/testing-lifts";
@@ -72,6 +72,17 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 function isSplitMetricKey(metricKey: string): boolean {
   return metricKey.endsWith("_Split");
+}
+
+/** RSI alone is enough. Jump and contact are optional, and they have to be entered together. */
+function rsiEntryReady(rsi: string, jump: string, gct: string): boolean {
+  const score = rsi.trim();
+  if (score === "" || !Number.isFinite(Number(score))) return false;
+  const jumpBlank = jump.trim() === "";
+  const gctBlank = gct.trim() === "";
+  if (jumpBlank && gctBlank) return true;
+  if (jumpBlank || gctBlank) return false;
+  return Number.isFinite(Number(jump.trim())) && Number.isFinite(Number(gct.trim()));
 }
 
 function metricOptions() {
@@ -829,36 +840,43 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       }
       return;
     }
-    if (batterySession && metricKey === "10-5_RSI") {
+    const rsiTest = rsiTestFor(metricKey);
+    if (rsiTest) {
       const rsiRaw = rawInput.trim();
       const jumpRaw = rsiJumpInches.trim();
       const gctRaw = rsiGctMs.trim();
       const rsi = Number(rsiRaw);
       const jumpInches = Number(jumpRaw);
       const gctMs = Number(gctRaw);
-      if (
-        rsiRaw === "" ||
-        jumpRaw === "" ||
-        gctRaw === "" ||
-        !Number.isFinite(rsi) ||
-        !Number.isFinite(jumpInches) ||
-        !Number.isFinite(gctMs)
-      ) {
-        setError("Enter RSI, jump height, and ground contact");
+      const jumpBlank = jumpRaw === "";
+      const gctBlank = gctRaw === "";
+      if (rsiRaw === "" || !Number.isFinite(rsi)) {
+        setError("Enter RSI");
         setLoading(false);
         return;
       }
-      const qualifier = rsqQuadrant(jumpInches, gctMs);
+      if (jumpBlank !== gctBlank || (!jumpBlank && (!Number.isFinite(jumpInches) || !Number.isFinite(gctMs)))) {
+        setError("Enter both jump height and ground contact, or leave both blank");
+        setLoading(false);
+        return;
+      }
       const shared = {
         session_id: effectiveSessionId,
         athlete_id: athleteId,
         context_hugo_group: contextHugoGroupForSave(sportFilter),
       };
-      const rows = [
-        { ...shared, metric_key: "10-5_RSI", raw_input: rsiRaw, qualifier },
-        { ...shared, metric_key: "10-5_JH", raw_input: jumpRaw },
-        { ...shared, metric_key: "10-5_GCT", raw_input: gctRaw },
-      ];
+      const rows = jumpBlank
+        ? [{ ...shared, metric_key: rsiTest.rsi, raw_input: rsiRaw }]
+        : [
+            {
+              ...shared,
+              metric_key: rsiTest.rsi,
+              raw_input: rsiRaw,
+              qualifier: rsqQuadrant(jumpInches, gctMs),
+            },
+            { ...shared, metric_key: rsiTest.jump, raw_input: jumpRaw },
+            { ...shared, metric_key: rsiTest.contact, raw_input: gctRaw },
+          ];
       try {
         for (const row of rows) {
           const res = await fetch("/api/entries", {
@@ -872,14 +890,25 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             return;
           }
         }
-        setSuccess("Saved 3 entries");
+        setSuccess(`Saved ${rows.length} ${rows.length === 1 ? "entry" : "entries"}`);
         setRawInput("");
+        setRsiJumpInches("");
+        setRsiGctMs("");
         clearBatteryEntry();
         void globalMutate(
           (key) => typeof key === "string" && key.startsWith("/api/leaderboard"),
           undefined,
           { revalidate: true }
         );
+        if (batteryId) {
+          void globalMutate(
+            (key) =>
+              typeof key === "string" &&
+              key.startsWith(`/api/battery/${batteryId}/board`),
+            undefined,
+            { revalidate: true }
+          );
+        }
         if (entriesKey) {
           void globalMutate(entriesKey);
         }
@@ -1040,11 +1069,8 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       ? batteryDriReady
       : batterySession && metricKey === "10x10m"
         ? batteryRepsReady
-        : batterySession && metricKey === "10-5_RSI"
-          ? [rawInput, rsiJumpInches, rsiGctMs].every((value) => {
-              const trimmed = value.trim();
-              return trimmed !== "" && Number.isFinite(Number(trimmed));
-            })
+        : rsiTestFor(metricKey) != null
+          ? rsiEntryReady(rawInput, rsiJumpInches, rsiGctMs)
           : metricKey === SPEED_RUN_KEY
             ? speedPreview?.ok === true
             : multiFieldEntry
@@ -1576,7 +1602,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
       ) : (
       <div>
         <label htmlFor="entry_raw" className="mb-1 block text-sm font-medium text-foreground">
-          {batterySession && metricKey === "10-5_RSI" ? "RSI" : "Value"}
+          {rsiTestFor(metricKey) != null ? "RSI" : "Value"}
         </label>
         {showSplitEntryToggle && (
           <div className="mb-2 flex gap-1 rounded border border-border bg-surface-elevated p-1">
@@ -1725,7 +1751,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             required
           />
         )}
-        {batterySession && metricKey === "10-5_RSI" ? (
+        {rsiTestFor(metricKey) != null ? (
           <div className="mt-3 space-y-2">
             <div>
               <label
@@ -1742,7 +1768,6 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
                 value={rsiJumpInches}
                 onChange={(e) => setRsiJumpInches(e.target.value)}
                 className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
-                required
               />
             </div>
             <div>
@@ -1760,13 +1785,12 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
                 value={rsiGctMs}
                 onChange={(e) => setRsiGctMs(e.target.value)}
                 className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
-                required
               />
             </div>
           </div>
         ) : null}
         {!showNamedFlies &&
-        !(batterySession && (metricKey === "DRI" || metricKey === "10x10m" || metricKey === "10-5_RSI")) ? (
+        !(batterySession && (metricKey === "DRI" || metricKey === "10x10m") || rsiTestFor(metricKey) != null) ? (
           <p className="mt-1 text-xs text-foreground-muted">
             {inputHint(selectedMetric, selectedSession?.day_splits, splitEntryMode)}
           </p>

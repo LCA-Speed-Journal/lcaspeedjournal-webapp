@@ -1003,7 +1003,7 @@ export function BatteryBoard({
 
   return (
     <BoardFrame>
-      <div className="absolute right-3 top-14 z-20 md:top-3">
+      <div className="absolute right-3 top-14 z-20">
         <FreshnessStamp updatedAt={quiet.updatedAt} polling={quiet.polling} onRefresh={onRefresh} />
       </div>
       <header className="mb-1 shrink-0">
@@ -1113,7 +1113,7 @@ export function BatteryBoard({
                 ) : null}
                 {payload.view === "meet" ? (
                   <a
-                    href={`/api/battery/${encodeURIComponent(batteryId)}/meet-sheet?group=${encodeURIComponent(group)}`}
+                    href={`/api/battery/${encodeURIComponent(batteryId)}/meet-sheet?group=${encodeURIComponent(group)}${payload.sample ? "&sample=1" : ""}`}
                     className={chipClass(false)}
                   >
                     Print meet

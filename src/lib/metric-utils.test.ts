@@ -144,5 +144,9 @@ describe("sessionSetupMetricOptions", () => {
     expect(keys).not.toContain("10-20m_Split");
     expect(keys).toContain("10m_Light-Sled");
     expect(keys).toContain("Vertical Jump");
+    expect(keys).toContain("10-5_RSI");
+    expect(keys).toContain("Hop-Test_RSI");
+    expect(keys).not.toContain("10-5_JH");
+    expect(keys).not.toContain("Hop-Test_GCT");
   });
 });

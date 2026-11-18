@@ -8,16 +8,16 @@ import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { parseEntry, getMetricsRegistry } from "@/lib/parser";
 import { parseContextHugoGroup } from "@/lib/guest-athletes";
+import { rsiTestFor } from "@/lib/battery/rsq";
 import { rowsForSpeedRun } from "@/lib/speed/save-rows";
 import type { SpeedRunInput } from "@/lib/speed/windows";
 
 const INSERT_TIMEOUT_MS = 15000;
 
-const RSI_METRIC_KEY = "10-5_RSI";
 const RSI_QUALIFIERS = new Set(["reactive", "compliant", "stiff", "developing"]);
 
 function rsiQualifierForSave(metricKey: unknown, qualifier: unknown): string | null {
-  if (metricKey !== RSI_METRIC_KEY) return null;
+  if (typeof metricKey !== "string" || rsiTestFor(metricKey) == null) return null;
   if (typeof qualifier !== "string") return null;
   const value = qualifier.trim().toLowerCase();
   return RSI_QUALIFIERS.has(value) ? value : null;
@@ -274,7 +274,7 @@ export async function POST(request: NextRequest) {
             AND component = ${row.component}
         `;
       }
-      const rowQualifier = row.metric_key === RSI_METRIC_KEY ? qualifier : null;
+      const rowQualifier = rsiTestFor(row.metric_key) != null ? qualifier : null;
       const result = await insertStandardEntry(
         {
           session_id,

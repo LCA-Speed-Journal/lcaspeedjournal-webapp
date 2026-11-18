@@ -45,6 +45,15 @@ describe("groupRsiAttempts", () => {
     expect(averageRsiAttempts([])).toBeNull();
   });
 
+  it("pairs a hop-test jump and contact the same way", () => {
+    const attempts = groupRsiAttempts([
+      { metric_key: "Hop-Test_RSI", display_value: 1.8, created_at: 0 },
+      { metric_key: "Hop-Test_JH", display_value: 16, created_at: 0 },
+      { metric_key: "Hop-Test_GCT", display_value: 190, created_at: 1 },
+    ]);
+    expect(attempts).toEqual([{ jump: 16, gct: 190 }]);
+  });
+
   it("keeps the jump when it shares the RSI timestamp", () => {
     expect(
       groupRsiAttempts([

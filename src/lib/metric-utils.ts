@@ -1,3 +1,4 @@
+import { isRsiCompanionKey } from "./battery/rsq";
 import { getMetricsRegistry } from "./parser";
 import { LEGACY_SPEED_KEYS } from "./speed/windows";
 
@@ -126,7 +127,7 @@ const SPEED_RUN_OPTION: SessionSetupMetricOption = {
 /** Registry options for session setup and the entry form, with one Speed run in place of unresisted dashes. */
 export function sessionSetupMetricOptions(): SessionSetupMetricOption[] {
   const options = Object.entries(getMetricsRegistry())
-    .filter(([key]) => !LEGACY_SPEED_KEYS.has(key))
+    .filter(([key]) => !LEGACY_SPEED_KEYS.has(key) && !isRsiCompanionKey(key))
     .map(([key, m]) => ({
       key,
       label: m.display_name || key,

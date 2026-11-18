@@ -501,6 +501,26 @@
     "input_structure": "single_interval",
     "default_splits": []
   },
+  "Hop-Test_JH": {
+    "display_name": "Hop-Test_JH",
+    "category": "X-Factor",
+    "subcategory": "Vertical Jump",
+    "input_units": "in",
+    "display_units": "inches",
+    "conversion_formula": "",
+    "input_structure": "single_interval",
+    "default_splits": []
+  },
+  "Hop-Test_GCT": {
+    "display_name": "Hop-Test_GCT",
+    "category": "X-Factor",
+    "subcategory": "Vertical Jump",
+    "input_units": "ms",
+    "display_units": "ms",
+    "conversion_formula": "",
+    "input_structure": "single_interval",
+    "default_splits": []
+  },
   "Depth-Pop-GCT_8": {
     "display_name": "Depth-Pop-GCT_8",
     "category": "X-Factor",
