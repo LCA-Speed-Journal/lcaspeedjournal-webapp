@@ -11,6 +11,7 @@ import {
 import { sameSpeedMark } from "@/lib/speed/windows";
 import { compareMark, SHARED_SOCCER_KEYS } from "./compare";
 import { orderDayColumnKeys } from "./day-columns";
+import { meetColumnKeys } from "./meet-columns";
 import { bestDriPerAthleteBox, resolveScoredDriBox } from "./dri";
 import { latestRepeatSeriesTimes, scoreRepeatSprint } from "./repeat-sprint";
 import { applySampleOverrides } from "./sample-overrides";
@@ -121,23 +122,6 @@ const RSQ_PLOT_KEYS = new Set<string>([RSQ_JUMP_KEY, RSQ_CONTACT_KEY]);
 
 const SPRINT_COLUMN_KEYS = ["20yd_Dash", "40yd_Dash", "MaxVelocity"] as const;
 const REPEAT_COLUMN_KEYS = ["10x10m_best", "10x10m_mean", "10x10m_decrement"] as const;
-
-const COLUMN_ORDER = [
-  "10-5_RSI",
-  "20yd_Dash",
-  "40yd_Dash",
-  "MaxVelocity",
-  "DRI",
-  "Standing-Broad",
-  "Vertical Jump",
-  "OH-MB_Throw",
-  "Bench-Press",
-  "10x10m_best",
-  "10x10m_mean",
-  "10x10m_decrement",
-  "Hex-Deadlift",
-  "10x10m",
-] as const;
 
 const COLUMN_META: Record<string, { label: string; direction: BoardDirection; units: string }> = {
   "10-5_RSI": { label: "RSI", direction: "higher", units: "RSI" },
@@ -372,15 +356,6 @@ function keysWithCells(rows: { cells: Record<string, ScoredCell> }[]): Set<strin
     for (const key of Object.keys(row.cells)) present.add(key);
   }
   return present;
-}
-
-function meetColumnKeys(present: Set<string>, expandSprint: boolean): string[] {
-  const sprint = new Set<string>(SPRINT_COLUMN_KEYS);
-  return COLUMN_ORDER.filter((key) => {
-    if (key === "10x10m") return false;
-    if (expandSprint && sprint.has(key)) return true;
-    return present.has(key);
-  });
 }
 
 function hasFortyEntry(rows: NormEntry[]): boolean {
