@@ -1,5 +1,5 @@
 import { driBand, higherBoxFlag, peakBox } from "./dri";
-import { rankFullField, type RankDirection } from "./rank";
+import { rankFullField, STRENGTH_PLACE_POINTS, type RankDirection } from "./rank";
 import { batteryTotal } from "./slots";
 
 export type BatteryMark = { athlete_id: string; key: string; value: number };
@@ -47,7 +47,8 @@ const HIGHER_KEYS = new Set([
   "Hex-Deadlift",
 ]);
 
-const DISPLAY_ONLY_KEYS = ["Bench-Press", "Hex-Deadlift", "10yd_Split"];
+const DISPLAY_ONLY_KEYS = ["10yd_Split"];
+const STRENGTH_KEYS = new Set(["Bench-Press", "Hex-Deadlift"]);
 
 const LOWER_KEYS = new Set([
   "10yd_Split",
@@ -124,7 +125,8 @@ export function scoreBatteryRows(input: {
     if (direction == null) continue;
     const ranked = rankFullField(
       [...byAthlete.entries()].map(([athlete_id, value]) => ({ athlete_id, value })),
-      direction
+      direction,
+      STRENGTH_KEYS.has(key) ? STRENGTH_PLACE_POINTS : undefined
     );
     const byId = new Map<string, ScoredCell>();
     for (const row of ranked) {

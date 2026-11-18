@@ -76,7 +76,7 @@ describe("scoreBatteryRows", () => {
     expect(rows[0].cells["10-5_RSI"]).toMatchObject({ rank: 1, points: 10 });
   });
 
-  it("ranks a heavier bench without adding its points to the meet total", () => {
+  it("adds the lighter bench and hex points to the meet total", () => {
     const athletes = [
       { athlete_id: "a", first_name: "Ann", last_name: "A", dri_marks: [] },
       { athlete_id: "b", first_name: "Bea", last_name: "B", dri_marks: [] },
@@ -92,12 +92,13 @@ describe("scoreBatteryRows", () => {
     const rows = scoreBatteryRows({ athletes, marks, teamBox: null });
     const ann = rows.find((row) => row.athlete_id === "a")!;
     const bea = rows.find((row) => row.athlete_id === "b")!;
-    expect(ann.cells["Bench-Press"].rank).toBe(1);
-    expect(bea.cells["Bench-Press"].rank).toBe(2);
-    expect(ann.cells["Hex-Deadlift"].rank).toBe(1);
-    expect(ann.total_points).toBe(ann.cells["10-5_RSI"].points);
-    expect(bea.total_points).toBe(bea.cells["10-5_RSI"].points);
-    expect(ann.slots_completed).toBe(1);
+    expect(ann.cells["Bench-Press"]).toMatchObject({ rank: 1, points: 4 });
+    expect(bea.cells["Bench-Press"]).toMatchObject({ rank: 2, points: 4 });
+    expect(ann.cells["Hex-Deadlift"]).toMatchObject({ rank: 1, points: 4 });
+    expect(bea.cells["Hex-Deadlift"]).toMatchObject({ rank: 2, points: 4 });
+    expect(ann.total_points).toBe(18);
+    expect(bea.total_points).toBe(16);
+    expect(ann.slots_completed).toBe(3);
   });
 
   it("ranks the 0-10 split and leaves it out of the meet total", () => {

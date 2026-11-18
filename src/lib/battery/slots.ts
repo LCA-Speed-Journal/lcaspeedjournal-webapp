@@ -1,4 +1,4 @@
-export const COUNTED_SLOT_COUNT = 11;
+export const COUNTED_SLOT_COUNT = 13;
 
 const SPEED_KEYS = ["20yd_Dash", "40yd_Dash", "MaxVelocity"] as const;
 
@@ -12,6 +12,8 @@ const OTHER_SLOTS = [
   "10x10m_mean",
   "10x10m_decrement",
 ] as const;
+
+const STRENGTH_KEYS = ["Bench-Press", "Hex-Deadlift"] as const;
 
 export function batteryTotal(pointsByKey: Record<string, number>): {
   sprint_points: number;
@@ -29,6 +31,12 @@ export function batteryTotal(pointsByKey: Record<string, number>): {
   let other = 0;
   let otherCount = 0;
   for (const key of OTHER_SLOTS) {
+    const points = pointsByKey[key];
+    if (points == null) continue;
+    other += points;
+    otherCount += 1;
+  }
+  for (const key of STRENGTH_KEYS) {
     const points = pointsByKey[key];
     if (points == null) continue;
     other += points;

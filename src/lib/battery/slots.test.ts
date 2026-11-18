@@ -10,7 +10,7 @@ describe("batteryTotal", () => {
       MaxVelocity: 30,
       DRI: 15,
     });
-    expect(COUNTED_SLOT_COUNT).toBe(11);
+    expect(COUNTED_SLOT_COUNT).toBe(13);
     expect(total.sprint_points).toBe(60);
     expect(total.total_points).toBe(105);
     expect(total.slots_completed).toBe(5);
@@ -34,6 +34,17 @@ describe("batteryTotal", () => {
     expect(total.sprint_points).toBe(10);
     expect(total.total_points).toBe(18);
     expect(total.slots_completed).toBe(2);
+  });
+
+  it("adds bench and hex on the lighter scale", () => {
+    const total = batteryTotal({
+      "10-5_RSI": 10,
+      "Bench-Press": 4,
+      "Hex-Deadlift": 4,
+    });
+    expect(total.total_points).toBe(18);
+    expect(total.slots_completed).toBe(3);
+    expect(total.sprint_points).toBe(0);
   });
 
   it("counts each 10x10 quality as its own slot", () => {
