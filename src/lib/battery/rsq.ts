@@ -25,10 +25,18 @@ export type RsiAttemptRow = {
 
 export type RsiAttempt = { jump: number; gct: number };
 
+/** RSI must sort ahead of the jump and contact when timestamps tie. */
+function rsiRowRank(metricKey: string): number {
+  if (metricKey === "10-5_RSI") return 0;
+  if (metricKey === "10-5_JH") return 1;
+  if (metricKey === "10-5_GCT") return 2;
+  return 3;
+}
+
 /** One RSI save owns the jump and contact that follow it, until the next RSI. */
 export function groupRsiAttempts(rows: RsiAttemptRow[]): RsiAttempt[] {
   const sorted = rows.toSorted(
-    (a, b) => a.created_at - b.created_at || a.metric_key.localeCompare(b.metric_key)
+    (a, b) => a.created_at - b.created_at || rsiRowRank(a.metric_key) - rsiRowRank(b.metric_key)
   );
   const attempts: RsiAttempt[] = [];
   let jump: number | null = null;

@@ -44,4 +44,14 @@ describe("groupRsiAttempts", () => {
     ).toEqual([]);
     expect(averageRsiAttempts([])).toBeNull();
   });
+
+  it("keeps the jump when it shares the RSI timestamp", () => {
+    expect(
+      groupRsiAttempts([
+        { metric_key: "10-5_RSI", display_value: 2, created_at: 0 },
+        { metric_key: "10-5_JH", display_value: 15, created_at: 0 },
+        { metric_key: "10-5_GCT", display_value: 180, created_at: 1 },
+      ])
+    ).toEqual([{ jump: 15, gct: 180 }]);
+  });
 });
