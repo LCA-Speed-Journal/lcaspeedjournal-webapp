@@ -1110,6 +1110,14 @@ export function BatteryBoard({
                     Print day
                   </a>
                 ) : null}
+                {payload.view === "meet" ? (
+                  <a
+                    href={`/api/battery/${encodeURIComponent(batteryId)}/meet-sheet?group=${encodeURIComponent(group)}`}
+                    className={chipClass(false)}
+                  >
+                    Print meet
+                  </a>
+                ) : null}
               </>
             ) : null}
             {modeError ? <p className="text-sm text-danger">{modeError}</p> : null}

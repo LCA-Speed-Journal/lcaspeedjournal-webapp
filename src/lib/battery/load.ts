@@ -82,6 +82,7 @@ export type BoardPayload = {
   battery: {
     id: string;
     title: string;
+    hugo_group: string;
     grouping_mode: string;
     cutoff_n: number | null;
     team_dri_box: string | null;
@@ -1182,6 +1183,7 @@ export async function loadBatteryBoard(
     battery: {
       id: String(battery.id),
       title: asText(battery.title),
+      hugo_group: String(battery.hugo_group),
       grouping_mode: asText(battery.grouping_mode),
       cutoff_n: cutoff,
       team_dri_box: teamBox,
