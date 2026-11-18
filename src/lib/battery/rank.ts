@@ -17,17 +17,24 @@ export type FieldRank = FieldMark & {
 /** 1st through 8th. A tie takes the points for the shared place. */
 export const PLACE_POINTS = [10, 8, 6, 5, 4, 3, 2, 1] as const;
 
-export function placeScore(rank: number): { points: number; order_points: number } {
-  if (rank >= 1 && rank <= PLACE_POINTS.length) {
-    return { points: PLACE_POINTS[rank - 1], order_points: 0 };
+/** Bench and hex. 1st through 3rd share 4. A tie still takes the shared place. */
+export const STRENGTH_PLACE_POINTS = [4, 4, 4, 3, 3, 2, 2, 1] as const;
+
+export function placeScore(
+  rank: number,
+  scale: readonly number[] = PLACE_POINTS
+): { points: number; order_points: number } {
+  if (rank >= 1 && rank <= scale.length) {
+    return { points: scale[rank - 1], order_points: 0 };
   }
-  const stepsPast = Math.max(1, rank - PLACE_POINTS.length);
+  const stepsPast = Math.max(1, rank - scale.length);
   return { points: 0, order_points: 2 ** -stepsPast };
 }
 
 export function rankFullField(
   marks: FieldMark[],
-  direction: RankDirection
+  direction: RankDirection,
+  scale: readonly number[] = PLACE_POINTS
 ): FieldRank[] {
   const sorted = marks.toSorted((a, b) => {
     if (a.value !== b.value) {
@@ -42,7 +49,7 @@ export function rankFullField(
     while (j < sorted.length && sorted[j].value === sorted[i].value) j += 1;
     const rank = i + 1;
     const tied = j - i > 1;
-    const score = placeScore(rank);
+    const score = placeScore(rank, scale);
     for (let k = i; k < j; k += 1) {
       out.push({ ...sorted[k], rank, tied, ...score });
     }
