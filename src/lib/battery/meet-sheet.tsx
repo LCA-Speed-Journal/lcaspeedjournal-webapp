@@ -21,7 +21,8 @@ import { metricTint, type MetricTint } from "./meet-columns";
 
 const regularFont = path.join(process.cwd(), "public/fonts/Montserrat-Regular.ttf");
 const boldFont = path.join(process.cwd(), "public/fonts/Montserrat-Bold.ttf");
-if (existsSync(regularFont) && existsSync(boldFont)) {
+const fontFamily = existsSync(regularFont) && existsSync(boldFont) ? "Montserrat" : "Helvetica";
+if (fontFamily === "Montserrat") {
   Font.register({
     family: "Montserrat",
     fonts: [
@@ -116,13 +117,13 @@ const styles = StyleSheet.create({
     paddingBottom: meetSheetPage.paddingBottom,
     paddingHorizontal: meetSheetPage.paddingHorizontal,
     fontSize: 7,
-    fontFamily: "Montserrat",
+    fontFamily,
     color: "#111111",
     backgroundColor: "#ffffff",
   },
   title: {
     fontSize: 11,
-    fontFamily: "Montserrat",
+    fontFamily,
     fontWeight: 700,
     marginBottom: 4,
   },
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   placeText: {
-    fontFamily: "Montserrat",
+    fontFamily,
     fontWeight: 700,
     fontSize: 7,
     textAlign: "center",
@@ -164,12 +165,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   nameText: {
-    fontFamily: "Montserrat",
+    fontFamily,
     fontWeight: 700,
     fontSize: 7,
   },
   headerLabel: {
-    fontFamily: "Montserrat",
+    fontFamily,
     fontWeight: 700,
     fontSize: 6,
     textAlign: "center",
@@ -202,7 +203,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
   },
   pointsText: {
-    fontFamily: "Montserrat",
+    fontFamily,
     fontWeight: 700,
     fontSize: 7,
     textAlign: "right",
