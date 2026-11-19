@@ -97,9 +97,14 @@ export function formatFeetInches(feet: number): string {
   return `${sign}${whole}' ${inchText}"`;
 }
 
-export function formatStoredMark(value: number, units: string, plain: (n: number) => string): string {
-  if (!Number.isFinite(value)) return "";
-  if (units.toLowerCase() === "ft" || units.toLowerCase() === "feet") return formatFeetInches(value);
+export function formatStoredMark(
+  value: number | null,
+  units: string | null,
+  plain: (n: number) => string
+): string {
+  if (value == null || !Number.isFinite(value)) return "";
+  const unit = units ?? "";
+  if (unit.toLowerCase() === "ft" || unit.toLowerCase() === "feet") return formatFeetInches(value);
   const body = plain(value);
-  return units ? `${body} ${units}` : body;
+  return unit ? `${body} ${unit}` : body;
 }

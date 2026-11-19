@@ -42,6 +42,7 @@ describe("formatStoredMark", () => {
   it("prints feet as feet-inches and leaves other units with the screen formatter", () => {
     expect(formatStoredMark(6.5, "ft", (n) => n.toFixed(2))).toBe("6' 6\"");
     expect(formatStoredMark(1.85, "s", (n) => n.toFixed(2))).toBe("1.85 s");
+    expect(formatStoredMark(null, null, (n) => String(n))).toBe("");
   });
 });
 
