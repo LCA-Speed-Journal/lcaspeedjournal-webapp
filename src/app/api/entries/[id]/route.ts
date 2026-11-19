@@ -19,6 +19,7 @@ type EntryRow = {
   component: string | null;
   raw_input: string;
   context_hugo_group: string | null;
+  measured_unit?: string | null;
 };
 
 function isMissingMeasuredUnitColumn(err: unknown): boolean {
@@ -32,6 +33,29 @@ function isMissingMeasuredUnitColumn(err: unknown): boolean {
     current = rec.cause;
   }
   return codes.includes("42703") && messages.join(" ").toLowerCase().includes("measured_unit");
+}
+
+async function loadEntryForReparse(id: string): Promise<EntryRow | null> {
+  try {
+    const { rows } = await sql`
+      SELECT id, session_id, athlete_id, metric_key, interval_index, component,
+             raw_input, context_hugo_group, measured_unit
+      FROM entries
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+    return (rows[0] as EntryRow | undefined) ?? null;
+  } catch (err) {
+    if (!isMissingMeasuredUnitColumn(err)) throw err;
+    const { rows } = await sql`
+      SELECT id, session_id, athlete_id, metric_key, interval_index, component,
+             raw_input, context_hugo_group
+      FROM entries
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+    return (rows[0] as EntryRow | undefined) ?? null;
+  }
 }
 
 type SessionRow = {
@@ -105,17 +129,10 @@ export async function PATCH(
     // Path B: Raw re-parse
     if (raw_input != null && String(raw_input).trim() !== "") {
       const rawInputStr = String(raw_input).trim();
-      const { rows: entryRows } = await sql`
-        SELECT id, session_id, athlete_id, metric_key, interval_index, component,
-               raw_input, context_hugo_group
-        FROM entries
-        WHERE id = ${id}
-        LIMIT 1
-      `;
-      if (!entryRows.length) {
+      const entry = await loadEntryForReparse(id);
+      if (!entry) {
         return NextResponse.json({ error: "Entry not found" }, { status: 404 });
       }
-      const entry = entryRows[0] as EntryRow;
 
       const patchDecision = decideSpeedRunRawPatch(
         entry.raw_input,
@@ -213,12 +230,15 @@ export async function PATCH(
           : undefined;
 
       const measuredUnitProvided = Object.prototype.hasOwnProperty.call(body, "measured_unit");
-      const measuredUnit = readMeasuredUnit(body.measured_unit);
+      let measuredUnit = readMeasuredUnit(body.measured_unit);
       if (measuredUnitProvided && body.measured_unit != null && measuredUnit == null) {
         return NextResponse.json(
           { error: "measured_unit must be ft_in, in, cm, or m" },
           { status: 400 }
         );
+      }
+      if (!measuredUnitProvided) {
+        measuredUnit = readMeasuredUnit(entry.measured_unit);
       }
 
       const parsed = parseEntry(

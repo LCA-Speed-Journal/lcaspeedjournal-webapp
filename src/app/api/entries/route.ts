@@ -380,7 +380,14 @@ export async function POST(request: NextRequest) {
         ? { day_splits: sess.day_splits, day_components: sess.day_components }
         : undefined;
 
+    const measuredUnitProvided = Object.prototype.hasOwnProperty.call(body, "measured_unit");
     const measuredUnit = readMeasuredUnit(body.measured_unit);
+    if (measuredUnitProvided && measuredUnit == null) {
+      return NextResponse.json(
+        { error: "measured_unit must be ft_in, in, cm, or m" },
+        { status: 400 }
+      );
+    }
     const parsed = parseEntry(
       metric_key,
       rawInputStr,
