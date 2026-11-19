@@ -5,6 +5,7 @@
  */
 import type { ConversionFormula } from "./conversions";
 import { convertValue } from "./conversions";
+import { defaultDistanceUnit, storedDistance } from "./distance-units";
 import type { MetricRegistry } from "./canonical-cumulative";
 import { resolveCanonicalZeroStartRow } from "./canonical-cumulative";
 import { FORTY_YD_DASH } from "./norms/editor-metrics";
@@ -107,16 +108,22 @@ type SessionOverrides = {
   day_components?: Record<string, string[]>;
 };
 
+export type ParseEntryOptions = {
+  measuredUnit?: "ft_in" | "in" | "cm" | "m";
+};
+
 /**
  * Parse raw input into one or more entry rows.
  * @param metricKey - Metric display_name from registry
  * @param rawInput - Coach-entered value(s); pipe-separated for cumulative/paired
  * @param sessionOverrides - Optional day_splits, day_components from session
+ * @param options - Optional measured unit for a single distance value
  */
 export function parseEntry(
   metricKey: string,
   rawInput: string,
-  sessionOverrides?: SessionOverrides
+  sessionOverrides?: SessionOverrides,
+  options?: ParseEntryOptions
 ): ParsedEntry[] {
   const metric = getMetric(metricKey);
   if (!metric) {
@@ -128,7 +135,7 @@ export function parseEntry(
   if (inputStructure === "single_interval") {
     const splitOverride =
       sessionOverrides?.day_splits?.[metricKey]?.filter((s) => typeof s === "number") ?? [];
-    return parseSingleInterval(metric, rawInput.trim(), splitOverride);
+    return parseSingleInterval(metric, rawInput.trim(), splitOverride, options);
   }
   if (inputStructure === "cumulative") {
     const named =
@@ -207,7 +214,8 @@ function parseNamedFortyYardComponents(
 function parseSingleInterval(
   metric: MetricDef,
   rawInput: string,
-  splitOverride: number[] = []
+  splitOverride: number[] = [],
+  options?: ParseEntryOptions
 ): ParsedEntry[] {
   const values = splitValues(rawInput);
 
@@ -292,6 +300,26 @@ function parseSingleInterval(
     }
 
     return rows;
+  }
+
+  if (values.length === 1 && defaultDistanceUnit(metric.input_units) != null) {
+    const measuredUnit = options?.measuredUnit ?? defaultDistanceUnit(metric.input_units)!;
+    const stored = storedDistance({
+      raw: rawInput.trim(),
+      measuredUnit,
+      inputUnits: metric.input_units,
+      displayUnits: metric.display_units,
+    });
+    return [
+      {
+        metric_key: metric.display_name,
+        interval_index: null,
+        component: null,
+        value: stored.value,
+        display_value: stored.displayValue,
+        units: stored.units,
+      },
+    ];
   }
 
   if (values.length > 1) {

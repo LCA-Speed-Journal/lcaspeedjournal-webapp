@@ -87,19 +87,57 @@ describe("parseEntry throw metrics in feet", () => {
     expect(discusPwrRow.units).toBe("ft");
   });
 
-  it("accepts Standing-Broad in feet (display units) as well as cm", () => {
-    const [fromCm] = parseEntry("Standing-Broad", "251.46");
-    expect(fromCm.display_value).toBeCloseTo(8.25, 2);
-    expect(fromCm.units).toBe("ft");
+  it("accepts Standing-Broad bare numbers and ft suffixes as feet", () => {
+    const [bare] = parseEntry("Standing-Broad", "8.25");
+    expect(bare.display_value).toBeCloseTo(8.25, 5);
+    expect(bare.value).toBeCloseTo(8.25, 5);
+    expect(bare.units).toBe("ft");
 
     const [fromFt] = parseEntry("Standing-Broad", "8.25ft");
     expect(fromFt.display_value).toBeCloseTo(8.25, 5);
-    expect(fromFt.value).toBeCloseTo(8.25 * 30.48, 5);
+    expect(fromFt.value).toBeCloseTo(8.25, 5);
     expect(fromFt.units).toBe("ft");
 
     const [fromFtSpaced] = parseEntry("Standing-Broad", "8.25 ft");
     expect(fromFtSpaced.display_value).toBeCloseTo(8.25, 5);
+    expect(fromFtSpaced.value).toBeCloseTo(8.25, 5);
     expect(fromFtSpaced.units).toBe("ft");
+
+    const [fromCm] = parseEntry("Standing-Broad", "251.46", undefined, { measuredUnit: "cm" });
+    expect(fromCm.display_value).toBeCloseTo(8.25, 2);
+    expect(fromCm.value).toBeCloseTo(8.25, 2);
+    expect(fromCm.units).toBe("ft");
+  });
+
+  it("reads Standing-Broad feet-inches as decimal feet", () => {
+    const [row] = parseEntry("Standing-Broad", "6-6", undefined, { measuredUnit: "ft_in" });
+    expect(row.display_value).toBeCloseTo(6.5, 5);
+    expect(row.value).toBeCloseTo(6.5, 5);
+    expect(row.units).toBe("ft");
+  });
+
+  it("converts Standing-Broad centimeters when the toggle says cm", () => {
+    const [row] = parseEntry("Standing-Broad", "198.12", undefined, { measuredUnit: "cm" });
+    expect(row.display_value).toBeCloseTo(6.5, 2);
+    expect(row.units).toBe("ft");
+  });
+
+  it("rejects a centimeter suffix while the toggle is feet-inches", () => {
+    expect(() => parseEntry("ShotPut", "200cm", undefined, { measuredUnit: "ft_in" })).toThrow(/unit/i);
+  });
+
+  it("reads OH-MB_Throw bare feet in both columns", () => {
+    const [row] = parseEntry("OH-MB_Throw", "8.25");
+    expect(row.display_value).toBeCloseTo(8.25, 5);
+    expect(row.value).toBeCloseTo(8.25, 5);
+    expect(row.units).toBe("ft");
+  });
+
+  it("stores Standing-Triple bare meters and displays feet", () => {
+    const [row] = parseEntry("Standing-Triple", "12.5");
+    expect(row.value).toBeCloseTo(12.5, 5);
+    expect(row.display_value).toBeCloseTo(12.5 * 3.281, 5);
+    expect(row.units).toBe("ft");
   });
 });
 
