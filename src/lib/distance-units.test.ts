@@ -4,6 +4,7 @@ import {
   formatFeetInches,
   parseDistanceMagnitude,
   storedDistance,
+  type DistanceUnit,
 } from "./distance-units";
 
 describe("formatFeetInches", () => {
@@ -113,5 +114,16 @@ describe("storedDistance", () => {
     expect(stored.displayValue).toBeCloseTo(30, 2);
     expect(stored.value).toBeCloseTo(30, 2);
     expect(stored.units).toBe("in");
+  });
+
+  it("rejects a measured unit outside the four distance units", () => {
+    expect(() =>
+      storedDistance({
+        raw: "12.5",
+        measuredUnit: "ft" as DistanceUnit,
+        inputUnits: "ft",
+        displayUnits: "ft",
+      })
+    ).toThrow(/unit|distance|store/i);
   });
 });
