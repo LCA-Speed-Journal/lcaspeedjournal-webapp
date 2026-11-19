@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatFeetInches, parseDistanceMagnitude } from "./distance-units";
+import {
+  defaultDistanceUnit,
+  formatFeetInches,
+  parseDistanceMagnitude,
+  storedDistance,
+} from "./distance-units";
 
 describe("formatFeetInches", () => {
   it("prints a whole inch without a decimal", () => {
@@ -48,5 +53,65 @@ describe("parseDistanceMagnitude", () => {
   it("rejects a unit suffix that disagrees with the toggle", () => {
     expect(() => parseDistanceMagnitude("200cm", "ft_in")).toThrow(/unit/i);
     expect(() => parseDistanceMagnitude("6-6", "cm")).toThrow(/unit/i);
+  });
+});
+
+describe("defaultDistanceUnit", () => {
+  it("maps a feet metric to the feet-inches toggle", () => {
+    expect(defaultDistanceUnit("ft")).toBe("ft_in");
+    expect(defaultDistanceUnit("cm")).toBe("cm");
+    expect(defaultDistanceUnit("m")).toBe("m");
+    expect(defaultDistanceUnit("in")).toBe("in");
+    expect(defaultDistanceUnit("inches")).toBe("in");
+    expect(defaultDistanceUnit("s")).toBeNull();
+  });
+});
+
+describe("storedDistance", () => {
+  it("keeps a feet-inches jump in decimal feet", () => {
+    const stored = storedDistance({
+      raw: "6-6",
+      measuredUnit: "ft_in",
+      inputUnits: "ft",
+      displayUnits: "ft",
+    });
+    expect(stored.value).toBeCloseTo(6.5, 5);
+    expect(stored.displayValue).toBeCloseTo(6.5, 5);
+    expect(stored.units).toBe("ft");
+  });
+
+  it("converts centimeters into feet for a jump", () => {
+    const stored = storedDistance({
+      raw: "198.12",
+      measuredUnit: "cm",
+      inputUnits: "ft",
+      displayUnits: "ft",
+    });
+    expect(stored.displayValue).toBeCloseTo(6.5, 2);
+    expect(stored.value).toBeCloseTo(6.5, 2);
+  });
+
+  it("stores a bound in meters and displays feet", () => {
+    const stored = storedDistance({
+      raw: "12.5",
+      measuredUnit: "m",
+      inputUnits: "m",
+      displayUnits: "ft",
+    });
+    expect(stored.value).toBe(12.5);
+    expect(stored.displayValue).toBeCloseTo(12.5 * 3.281, 5);
+    expect(stored.units).toBe("ft");
+  });
+
+  it("stores a vertical entered in centimeters as inches", () => {
+    const stored = storedDistance({
+      raw: "76.2",
+      measuredUnit: "cm",
+      inputUnits: "in",
+      displayUnits: "in",
+    });
+    expect(stored.displayValue).toBeCloseTo(30, 2);
+    expect(stored.value).toBeCloseTo(30, 2);
+    expect(stored.units).toBe("in");
   });
 });

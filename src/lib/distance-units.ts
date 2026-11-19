@@ -1,5 +1,48 @@
 export type DistanceUnit = "ft_in" | "in" | "cm" | "m";
 
+const CM_PER_FT = 30.48;
+const M_TO_FT = 3.281;
+
+export function defaultDistanceUnit(inputUnits: string): DistanceUnit | null {
+  const unit = inputUnits.toLowerCase();
+  if (unit === "ft" || unit === "feet") return "ft_in";
+  if (unit === "in" || unit === "inch" || unit === "inches") return "in";
+  if (unit === "cm") return "cm";
+  if (unit === "m" || unit === "meter" || unit === "meters") return "m";
+  return null;
+}
+
+function toFeet(magnitude: number, unit: DistanceUnit): number {
+  if (unit === "ft_in") return magnitude;
+  if (unit === "in") return magnitude / 12;
+  if (unit === "cm") return magnitude / CM_PER_FT;
+  return magnitude * M_TO_FT;
+}
+
+function fromFeet(feet: number, storedUnits: string): number {
+  const unit = storedUnits.toLowerCase();
+  if (unit === "ft" || unit === "feet") return feet;
+  if (unit === "in" || unit === "inch" || unit === "inches") return feet * 12;
+  if (unit === "cm") return feet * CM_PER_FT;
+  if (unit === "m" || unit === "meter" || unit === "meters") return feet / M_TO_FT;
+  throw new Error(`Cannot store distance as ${storedUnits}`);
+}
+
+export function storedDistance(input: {
+  raw: string;
+  measuredUnit: DistanceUnit;
+  inputUnits: string;
+  displayUnits: string;
+}): { value: number; displayValue: number; units: string } {
+  const magnitude = parseDistanceMagnitude(input.raw, input.measuredUnit);
+  const feet = toFeet(magnitude, input.measuredUnit);
+  return {
+    value: fromFeet(feet, input.inputUnits),
+    displayValue: fromFeet(feet, input.displayUnits),
+    units: input.displayUnits,
+  };
+}
+
 const FEET_INCHES =
   /^(-?\d+(?:\.\d+)?)\s*(?:'|ft|feet|foot|-)\s*(\d+(?:\.\d+)?)(?:\s*(?:"|in|inch|inches))?\s*$/i;
 
