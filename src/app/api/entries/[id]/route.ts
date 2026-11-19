@@ -231,7 +231,7 @@ export async function PATCH(
 
       const measuredUnitProvided = Object.prototype.hasOwnProperty.call(body, "measured_unit");
       let measuredUnit = readMeasuredUnit(body.measured_unit);
-      if (measuredUnitProvided && body.measured_unit != null && measuredUnit == null) {
+      if (measuredUnitProvided && measuredUnit == null) {
         return NextResponse.json(
           { error: "measured_unit must be ft_in, in, cm, or m" },
           { status: 400 }
