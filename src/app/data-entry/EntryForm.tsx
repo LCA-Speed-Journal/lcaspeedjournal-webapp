@@ -41,6 +41,24 @@ import { rsiTestFor, rsqQuadrant } from "@/lib/battery/rsq";
 import { batteryEntryKeys } from "@/lib/battery/entry-metrics";
 import { templateForHugoGroup } from "@/lib/battery/template";
 import { testingLiftMovement } from "@/lib/battery/testing-lifts";
+import {
+  defaultDistanceUnit,
+  type DistanceUnit,
+} from "@/lib/distance-units";
+
+const DISTANCE_UNIT_CHOICES: { unit: DistanceUnit; label: string }[] = [
+  { unit: "ft_in", label: "ft-in" },
+  { unit: "in", label: "in" },
+  { unit: "cm", label: "cm" },
+  { unit: "m", label: "m" },
+];
+
+const DISTANCE_INPUT_HINTS: Record<DistanceUnit, string> = {
+  ft_in: "e.g. 6-6 (ft-in)",
+  in: "e.g. 34.5 (in)",
+  cm: "e.g. 200 (cm)",
+  m: "e.g. 2.05 (m)",
+};
 
 const SPEED_RUN_KEY = "SpeedRun";
 const REPEAT_REP_COUNT = 10;
@@ -98,7 +116,8 @@ function metricOptions() {
 function inputHint(
   metric: ReturnType<typeof metricOptions>[0] | null,
   sessionSplits?: Record<string, number[]> | null,
-  splitEntryMode?: "cumulative" | "segment"
+  splitEntryMode?: "cumulative" | "segment",
+  distanceUnit?: DistanceUnit | null
 ): string {
   if (!metric) return "Select a metric";
   const isSplitMetric = isSplitMetricKey(metric.key);
@@ -106,6 +125,9 @@ function inputHint(
   const splitCount = Array.isArray(splitConfig) && splitConfig.length > 0 ? splitConfig.length : 0;
 
   if (metric.inputStructure === "single_interval") {
+    if (!(isSplitMetric && splitCount > 0) && distanceUnit) {
+      return DISTANCE_INPUT_HINTS[distanceUnit];
+    }
     if (isSplitMetric && splitCount > 0) {
       const splitsStr = splitConfig!.map((m) => `${m}m`).join(", ");
       if (splitEntryMode === "segment" && splitCount > 1) {
@@ -223,6 +245,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [metricKey, setMetricKey] = useState("");
   const [rawInput, setRawInput] = useState("");
+  const [distanceUnits, setDistanceUnits] = useState<Record<string, DistanceUnit>>({});
   const [speedDraft, setSpeedDraft] = useState<SpeedRunDraft>(EMPTY_SPEED_RUN_DRAFT);
   const [splitValues, setSplitValues] = useState<string[]>([]);
   const [splitEntryMode, setSplitEntryMode] = useState<"cumulative" | "segment">("cumulative");
@@ -556,6 +579,17 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     isMobile &&
     selectedMetric?.inputStructure === "cumulative" &&
     splitCount > 0;
+  const distanceDefault = selectedMetric
+    ? defaultDistanceUnit(selectedMetric.inputUnits)
+    : null;
+  const activeDistanceUnit =
+    distanceDefault == null ? null : (distanceUnits[metricKey] ?? distanceDefault);
+  const showDistanceUnitToggle =
+    activeDistanceUnit != null &&
+    metricKey !== SPEED_RUN_KEY &&
+    !(batterySession && (metricKey === "DRI" || metricKey === "10x10m")) &&
+    !showNamedFlies &&
+    !showMobileSplits;
 
   useEffect(() => {
     if (showNamedFlies && splitValues.length !== namedFortyComponents.length) {
@@ -1010,6 +1044,9 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
           metric_key: metricKey,
           raw_input: rawToSend,
           context_hugo_group: contextHugoGroupForSave(sportFilter),
+          ...(showDistanceUnitToggle && activeDistanceUnit
+            ? { measured_unit: activeDistanceUnit }
+            : {}),
         }),
       });
       const json = await res.json();
@@ -1739,17 +1776,47 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
             ))}
           </div>
         ) : (
-          <input
-            id="entry_raw"
-            type="text"
-            inputMode="decimal"
-            autoComplete="off"
-            value={rawInput}
-            onChange={(e) => setRawInput(e.target.value)}
-            placeholder={inputHint(selectedMetric, selectedSession?.day_splits, splitEntryMode)}
-            className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
-            required
-          />
+          <>
+            {showDistanceUnitToggle ? (
+              <div className="mb-2 flex gap-1 rounded border border-border bg-surface-elevated p-1">
+                {DISTANCE_UNIT_CHOICES.map((choice) => (
+                  <button
+                    key={choice.unit}
+                    type="button"
+                    onClick={() =>
+                      setDistanceUnits((current) => ({
+                        ...current,
+                        [metricKey]: choice.unit,
+                      }))
+                    }
+                    className={`flex-1 rounded px-2 py-1.5 text-sm transition-colors ${
+                      activeDistanceUnit === choice.unit
+                        ? "bg-accent text-background"
+                        : "text-foreground hover:bg-surface"
+                    }`}
+                  >
+                    {choice.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <input
+              id="entry_raw"
+              type="text"
+              inputMode="decimal"
+              autoComplete="off"
+              value={rawInput}
+              onChange={(e) => setRawInput(e.target.value)}
+              placeholder={inputHint(
+                selectedMetric,
+                selectedSession?.day_splits,
+                splitEntryMode,
+                activeDistanceUnit
+              )}
+              className="min-h-[44px] w-full rounded border border-border bg-surface-elevated px-3 py-2 text-base text-foreground placeholder:text-foreground-muted focus:border-accent"
+              required
+            />
+          </>
         )}
         {rsiTestFor(metricKey) != null ? (
           <div className="mt-3 space-y-2">
@@ -1792,7 +1859,12 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
         {!showNamedFlies &&
         !(batterySession && (metricKey === "DRI" || metricKey === "10x10m") || rsiTestFor(metricKey) != null) ? (
           <p className="mt-1 text-xs text-foreground-muted">
-            {inputHint(selectedMetric, selectedSession?.day_splits, splitEntryMode)}
+            {inputHint(
+              selectedMetric,
+              selectedSession?.day_splits,
+              splitEntryMode,
+              showDistanceUnitToggle ? activeDistanceUnit : null
+            )}
           </p>
         ) : null}
         {dropoffCaption ? (
