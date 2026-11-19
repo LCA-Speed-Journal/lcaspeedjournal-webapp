@@ -610,7 +610,7 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                     <td className="px-3 py-2 font-mono">
                       {feetMark ? formatFeetInches(value) : row.display_value}
                       {summary && isBest ? (
-                        <div className="text-xs text-foreground-muted">{formatDropoffCaption(summary)}</div>
+                        <div className="text-xs text-foreground-muted">{formatDropoffCaption(summary, row.units)}</div>
                       ) : null}
                       {summary && past && !isBest ? (
                         <div className="text-xs text-danger">Past the line</div>

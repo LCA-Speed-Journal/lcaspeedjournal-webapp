@@ -1,12 +1,15 @@
+import { formatFeetInches } from "@/lib/distance-units";
 import type { DropoffDirection, DropoffSummary } from "./summarize";
 
-function formatMark(n: number): string {
+function formatMark(n: number, units?: string): string {
+  const unit = (units ?? "").toLowerCase();
+  if (unit === "ft" || unit === "feet") return formatFeetInches(n);
   if (Number.isInteger(n)) return String(n);
   return n.toFixed(2);
 }
 
-export function formatDropoffCaption(summary: DropoffSummary): string {
-  const base = `Best ${formatMark(summary.initial)} · Line ${formatMark(summary.dropoffLine)} · ${summary.attemptsAboveLine} above`;
+export function formatDropoffCaption(summary: DropoffSummary, units?: string): string {
+  const base = `Best ${formatMark(summary.initial, units)} · Line ${formatMark(summary.dropoffLine, units)} · ${summary.attemptsAboveLine} above`;
   return summary.crossedDropoff ? `${base} · Past the line` : base;
 }
 

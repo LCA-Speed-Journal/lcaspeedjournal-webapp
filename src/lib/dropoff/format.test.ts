@@ -25,6 +25,21 @@ describe("formatDropoffCaption", () => {
       })
     ).toBe("Best 28.50 · Line 26.79 · 2 above · Past the line");
   });
+
+  it("prints a feet best as feet and inches", () => {
+    expect(
+      formatDropoffCaption(
+        {
+          initial: 6.5,
+          dropoffLine: 6.11,
+          dropoffPercent: 6,
+          attemptsAboveLine: 1,
+          crossedDropoff: false,
+        },
+        "ft"
+      )
+    ).toBe("Best 6' 6\" · Line 6' 1.3\" · 1 above");
+  });
 });
 
 describe("attemptPastLine", () => {

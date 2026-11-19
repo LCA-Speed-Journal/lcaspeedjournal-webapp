@@ -389,7 +389,7 @@ export function EntryForm({ sessionId: sessionIdProp, onSuccess }: EntryFormProp
     );
     if (!picked) return null;
     const summary = summarizeDropoff(picked.values, directionFromUnits(picked.units));
-    return summary ? formatDropoffCaption(summary) : null;
+    return summary ? formatDropoffCaption(summary, picked.units) : null;
   })();
   const athleteSearch = athleteQuery.trim().toLowerCase();
   const filteredAthletes = athleteSearch

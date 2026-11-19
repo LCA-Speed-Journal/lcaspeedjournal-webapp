@@ -804,13 +804,16 @@ function LeaderboardCard({
     row.dropoff_percent != null &&
     row.attempts_above_line != null &&
     row.crossed_dropoff != null
-      ? formatDropoffCaption({
-          initial: row.session_initial,
-          dropoffLine: row.dropoff_line,
-          dropoffPercent: row.dropoff_percent,
-          attemptsAboveLine: row.attempts_above_line,
-          crossedDropoff: row.crossed_dropoff,
-        })
+      ? formatDropoffCaption(
+          {
+            initial: row.session_initial,
+            dropoffLine: row.dropoff_line,
+            dropoffPercent: row.dropoff_percent,
+            attemptsAboveLine: row.attempts_above_line,
+            crossedDropoff: row.crossed_dropoff,
+          },
+          units
+        )
       : null;
 
   return (
