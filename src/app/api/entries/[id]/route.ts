@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql, withTransaction } from "@/lib/db";
 import { parseEntry, getMetricsRegistry } from "@/lib/parser";
+import { distanceFtFromCm, distanceFtFromM } from "@/lib/conversions";
 import { defaultDistanceUnit, readMeasuredUnit } from "@/lib/distance-units";
 import { decideSpeedRunRawPatch } from "@/lib/speed/raw-run";
 import { rowsForSpeedRun } from "@/lib/speed/save-rows";
@@ -63,6 +64,49 @@ type SessionRow = {
   day_components: Record<string, string[]> | null;
 };
 
+type DistanceFamily = "ft" | "in" | "cm" | "m";
+
+function distanceFamily(units: string): DistanceFamily | null {
+  const unit = units.toLowerCase();
+  if (unit === "ft" || unit === "feet" || unit === "foot") return "ft";
+  if (unit === "in" || unit === "inch" || unit === "inches") return "in";
+  if (unit === "cm") return "cm";
+  if (unit === "m" || unit === "meter" || unit === "meters" || unit === "metre" || unit === "metres") {
+    return "m";
+  }
+  return null;
+}
+
+function magnitudeToFeet(magnitude: number, family: DistanceFamily): number {
+  if (family === "ft") return magnitude;
+  if (family === "in") return magnitude / 12;
+  if (family === "cm") return distanceFtFromCm(magnitude);
+  return distanceFtFromM(magnitude);
+}
+
+function feetToStored(feet: number, family: DistanceFamily): number {
+  if (family === "ft") return feet;
+  if (family === "in") return feet * 12;
+  if (family === "cm") return feet / distanceFtFromCm(1);
+  return feet / distanceFtFromM(1);
+}
+
+/**
+ * Override types the board number (display units). When storage and display
+ * are different families (meters stored, feet shown), convert back into input units.
+ * Same family (both feet, or both inches) keeps the typed number in both columns.
+ */
+function storedValueFromDisplayOverride(
+  displayNum: number,
+  inputUnits: string,
+  displayUnits: string
+): number {
+  const inputFamily = distanceFamily(inputUnits);
+  const displayFamily = distanceFamily(displayUnits);
+  if (!inputFamily || !displayFamily || inputFamily === displayFamily) return displayNum;
+  return feetToStored(magnitudeToFeet(displayNum, displayFamily), inputFamily);
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -102,10 +146,13 @@ export async function PATCH(
         units: string;
         metric_key: string;
       };
-      const newValue = displayNum ?? cur.value;
       const newDisplayValue = displayNum ?? cur.display_value;
       let newUnits = unitsStr ?? cur.units;
       const metric = getMetricsRegistry()[cur.metric_key];
+      const newValue =
+        displayNum !== undefined && metric && defaultDistanceUnit(metric.input_units) != null
+          ? storedValueFromDisplayOverride(displayNum, metric.input_units, metric.display_units)
+          : (displayNum ?? cur.value);
       if (
         metric &&
         defaultDistanceUnit(metric.input_units) != null &&

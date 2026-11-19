@@ -1,5 +1,6 @@
 import { sql } from "@/lib/db";
 import { isFortyYardComponent } from "@/lib/norms/forty-yd";
+import type { DistanceUnit } from "@/lib/distance-units";
 import { getMetricsRegistry, parseEntry, parseFortyYardComponent, type ParsedEntry } from "@/lib/parser";
 import {
   applyJournalPosts,
@@ -32,6 +33,16 @@ function parseJournalPostItem(value: unknown): JournalPostChoice | null {
     component,
     post: value.post,
   };
+}
+
+/** Map a weight-room cell suffix onto the journal measured-unit toggle. */
+function measuredUnitForSuffix(units: string | null | undefined): DistanceUnit | undefined {
+  const u = (units ?? "").trim().toLowerCase();
+  if (u === "cm" || u === "centimeter" || u === "centimeters") return "cm";
+  if (u === "ft" || u === "feet" || u === "foot" || u === "'") return "ft_in";
+  if (u === "m" || u === "meter" || u === "meters" || u === "metre" || u === "metres") return "m";
+  if (u === "in" || u === "inch" || u === "inches" || u === '"') return "in";
+  return undefined;
 }
 
 function errorMessage(err: unknown): string {
@@ -285,16 +296,21 @@ export async function dualWriteWeightRoomJournal(input: {
 
   for (const item of posted) {
     try {
-      const rawInput =
-        item.units && String(item.units).trim()
-          ? `${item.best_value}${String(item.units).trim()}`
-          : String(item.best_value);
+      const suffix =
+        item.units && String(item.units).trim() ? String(item.units).trim() : "";
+      const rawInput = suffix ? `${item.best_value}${suffix}` : String(item.best_value);
+      const measuredUnit = measuredUnitForSuffix(suffix);
       const rows =
         item.metric_key === "40yd_Dash"
           ? isFortyYardComponent(item.component)
             ? [parseFortyYardComponent(String(item.best_value), item.component)]
             : []
-          : parseEntry(item.metric_key, rawInput);
+          : parseEntry(
+              item.metric_key,
+              rawInput,
+              undefined,
+              measuredUnit ? { measuredUnit } : undefined
+            );
       if (item.metric_key === "40yd_Dash" && rows.length === 0) {
         journal_warnings.push(`${item.metric_key}: pick a 40yd split`);
         continue;

@@ -6,9 +6,11 @@ WHERE measured_unit IS NULL
   AND metric_key IN (
     'Seated-Broad', 'Standing-Broad', 'MB-Broad',
     'Depth-Broad_8', 'Depth-Broad_12', 'Depth-Broad_18'
-  );
+  )
+  AND created_at < '2026-11-20';
 
 UPDATE entries
 SET measured_unit = 'm'
 WHERE measured_unit IS NULL
-  AND metric_key IN ('Triple-Broad', 'OH-MB_Throw', 'UH-MB_Throw');
+  AND metric_key IN ('Triple-Broad', 'OH-MB_Throw', 'UH-MB_Throw')
+  AND created_at < '2026-11-20';
