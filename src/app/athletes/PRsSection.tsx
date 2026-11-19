@@ -1,6 +1,7 @@
 "use client";
 
 import useSWR from "swr";
+import { formatStoredMark } from "@/lib/distance-units";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -50,12 +51,9 @@ export function PRsSection({ athleteId }: PRsSectionProps) {
                 {pr.display_name}
               </span>
               <div className="mt-0.5 font-mono text-sm font-semibold text-foreground">
-                {typeof pr.value === "number" && Number.isFinite(pr.value)
-                  ? pr.value.toFixed(2)
-                  : pr.value}{" "}
-                <span className="font-normal text-foreground-muted">
-                  {pr.units}
-                </span>
+                {typeof pr.value === "number"
+                  ? formatStoredMark(pr.value, pr.units, (n) => n.toFixed(2))
+                  : pr.value}
               </div>
             </div>
           ))}

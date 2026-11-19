@@ -1,3 +1,4 @@
+import { formatFeetInches } from "@/lib/distance-units";
 import { f2fShowsPredicted40s } from "./f2f/labels";
 import type { F2fThemeMix, F2fThemePrimary, F2fThemeSummary } from "./f2f/themes";
 import type { F2fProfile, F2fQuality } from "./f2f/types";
@@ -41,10 +42,16 @@ export function zoneAbbrev(label: string | undefined): string | null {
 
 export function fmtPdfTableMark(
   value: number,
-  _units: string | null | undefined,
+  units: string | null | undefined,
   zoneLabel?: string
 ): string {
-  const n = Number.isInteger(value) ? String(value) : value.toFixed(2);
+  const unit = (units ?? "").toLowerCase();
+  const n =
+    unit === "ft" || unit === "feet"
+      ? formatFeetInches(value)
+      : Number.isInteger(value)
+        ? String(value)
+        : value.toFixed(2);
   const abbrev = zoneAbbrev(zoneLabel);
   return abbrev ? `${n} \u2014 ${abbrev}` : n;
 }

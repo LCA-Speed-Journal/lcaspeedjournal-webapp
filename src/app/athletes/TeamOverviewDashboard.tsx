@@ -5,6 +5,7 @@
  * for the current school year, plus recent coach notes.
  */
 import { Fragment, useState } from "react";
+import { formatStoredMark } from "@/lib/distance-units";
 import useSWR from "swr";
 import { SpeedCurveCharts } from "@/components/speed/SpeedCurve";
 import type {
@@ -72,8 +73,7 @@ type TeamOverviewData = {
 };
 
 function formatValue(value: number, units: string): string {
-  const n = Number.isFinite(value) ? value.toFixed(2) : String(value);
-  return units ? `${n} ${units}` : n;
+  return formatStoredMark(value, units, (n) => n.toFixed(2));
 }
 
 function formatCell(cell: LeaderCell | null, units: string): string {

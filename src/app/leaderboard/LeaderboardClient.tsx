@@ -28,6 +28,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { PageBackground } from "@/app/components/PageBackground";
 import type { LeaderboardRow, LeaderboardAnimationTrigger, NormPopulationOption } from "@/types";
 import type { SessionMetric, SessionMetricComponent } from "@/app/api/leaderboard/session-metrics/route";
+import { formatStoredMark } from "@/lib/distance-units";
 import { formatLeaderboardName } from "@/lib/display-names";
 import { ZoneLegend, ZoneMark } from "./ZoneMark";
 import { isLiveLeaderboardZone } from "@/lib/norms/palette";
@@ -844,8 +845,7 @@ function LeaderboardCard({
           className={`font-mono text-lg font-semibold tabular-nums ${rank === 1 && !hasZone ? "text-gold-text" : ""}`}
           style={hasZone ? { color: row.zone_color } : undefined}
         >
-          {formatValue(primaryValue)}{" "}
-          <span className="text-sm font-normal text-foreground-muted">{primaryUnits}</span>
+          {formatStoredMark(primaryValue, primaryUnits, formatValue)}
         </span>
         {fortyReadout ? (
           <span className="font-mono text-xs tabular-nums text-foreground-muted">

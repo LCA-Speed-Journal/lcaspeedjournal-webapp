@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { FreshnessStamp, useQuietRefresh } from "@/app/components/FreshnessStamp";
 import { PageBackground } from "@/app/components/PageBackground";
 import { orderBoard, type BoardRow } from "@/lib/battery/board-order";
+import { formatFeetInches } from "@/lib/distance-units";
 import {
   formatStrengthPounds,
   isStrengthPoundDay,
@@ -241,16 +242,8 @@ export function pageItems(
   return items;
 }
 
-function formatFeetInches(feet: number): string {
-  const totalInches = Math.round(Math.abs(feet) * 12);
-  const whole = Math.floor(totalInches / 12);
-  const inches = totalInches % 12;
-  const sign = feet < 0 ? "-" : "";
-  return `${sign}${whole}'${inches}"`;
-}
-
 export function formatMark(value: number, units: string): string {
-  if (units === "ft") return formatFeetInches(value);
+  if (units === "ft" || units === "feet") return formatFeetInches(value);
   if (units === "in") {
     const body = Math.abs(value) >= 10 ? value.toFixed(1) : value.toFixed(2);
     return `${body}in.`;

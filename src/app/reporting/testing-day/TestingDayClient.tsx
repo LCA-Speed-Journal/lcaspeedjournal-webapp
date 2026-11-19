@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
+import { formatStoredMark } from "@/lib/distance-units";
 import { ZoneLegend, ZoneMark } from "@/app/leaderboard/ZoneMark";
 import type { NormPopulationOption } from "@/types";
 import {
@@ -115,8 +116,9 @@ async function downloadAudiencePdf(
 }
 
 function fmtMark(value: number, units: string): string {
-  const n = Number.isInteger(value) ? String(value) : value.toFixed(2);
-  return units ? `${n} ${units}` : n;
+  return formatStoredMark(value, units, (n) =>
+    Number.isInteger(n) ? String(n) : n.toFixed(2)
+  );
 }
 
 function sportLabel(sport: string | null): string {

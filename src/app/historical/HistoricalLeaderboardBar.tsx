@@ -12,6 +12,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { LeaderboardRow } from "@/types";
+import { formatStoredMark } from "@/lib/distance-units";
 import { formatLeaderboardName } from "@/lib/display-names";
 import { getLeaderboardSections } from "@/lib/leaderboard-sections";
 
@@ -147,7 +148,7 @@ export default function HistoricalLeaderboardBar({
                       formatter={(value: number, _name: string, props: { payload?: { fullName: string; rank: number; source_component?: string } }) => {
                         const p = props.payload;
                         const windowSuffix = p?.source_component ? ` · ${p.source_component}` : "";
-                        return [`${formatValue(value)} ${units}${windowSuffix}`, metricDisplayName];
+                        return [`${formatStoredMark(value, units, formatValue)}${windowSuffix}`, metricDisplayName];
                       }}
                       labelFormatter={(_, payload) => {
                         const p = payload?.[0]?.payload;
@@ -218,7 +219,7 @@ export default function HistoricalLeaderboardBar({
             formatter={(value: number, _name: string, props: { payload?: { fullName: string; rank: number; source_component?: string } }) => {
               const p = props.payload;
               const windowSuffix = p?.source_component ? ` · ${p.source_component}` : "";
-              return [`${formatValue(value)} ${units}${windowSuffix}`, metricDisplayName];
+              return [`${formatStoredMark(value, units, formatValue)}${windowSuffix}`, metricDisplayName];
             }}
             labelFormatter={(_, payload) => {
               const p = payload?.[0]?.payload;

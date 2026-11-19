@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import useSWR from "swr";
 import Link from "next/link";
 import { PageBackground } from "@/app/components/PageBackground";
+import { formatStoredMark } from "@/lib/distance-units";
 import { formatLeaderboardName } from "@/lib/display-names";
 import { getLeaderboardSections } from "@/lib/leaderboard-sections";
 import { useIsMobile } from "@/hooks/useMediaQuery";
@@ -96,11 +97,12 @@ function HistoricalCard({
           className="font-mono text-lg font-semibold tabular-nums"
           style={hasZone ? { color: row.zone_color } : undefined}
         >
-          {formatValue(row.display_value)}{" "}
-          <span className="text-sm font-normal text-foreground-muted">
-            {units}
-            {row.source_component ? ` · ${row.source_component}` : ""}
-          </span>
+          {formatStoredMark(row.display_value, units, formatValue)}
+          {row.source_component ? (
+            <span className="text-sm font-normal text-foreground-muted">
+              {` · ${row.source_component}`}
+            </span>
+          ) : null}
         </span>
         {hasZone && (
           <ZoneMark
@@ -474,12 +476,12 @@ export default function HistoricalClient() {
                   <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border/80 bg-surface-elevated px-4 py-2 text-sm text-foreground-muted">
                     {leaderboardMaleAvg != null && (
                       <span>
-                        Men&apos;s Average: <span className="font-mono font-medium text-foreground">{formatValue(leaderboardMaleAvg)} {units}</span>
+                        Men&apos;s Average: <span className="font-mono font-medium text-foreground">{formatStoredMark(leaderboardMaleAvg, units, formatValue)}</span>
                       </span>
                     )}
                     {leaderboardFemaleAvg != null && (
                       <span>
-                        Women&apos;s Average: <span className="font-mono font-medium text-foreground">{formatValue(leaderboardFemaleAvg)} {units}</span>
+                        Women&apos;s Average: <span className="font-mono font-medium text-foreground">{formatStoredMark(leaderboardFemaleAvg, units, formatValue)}</span>
                       </span>
                     )}
                   </div>

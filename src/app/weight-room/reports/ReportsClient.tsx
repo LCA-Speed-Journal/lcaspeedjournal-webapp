@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
+import { formatStoredMark } from "@/lib/distance-units";
 import {
   HUGO_GROUP_META,
   HUGO_GROUPS,
@@ -92,7 +93,7 @@ function formatParsedOutput(out: {
     return `${out.load}×${out.reps}${unit}`;
   }
   if (out.load != null) {
-    return out.units ? `${out.load} ${out.units}` : String(out.load);
+    return formatStoredMark(out.load, out.units ?? "", (n) => String(n));
   }
   return "—";
 }

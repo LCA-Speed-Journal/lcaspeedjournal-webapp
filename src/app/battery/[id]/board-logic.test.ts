@@ -171,7 +171,7 @@ describe("gym board order", () => {
     expect(formatMark(19.2, "mph")).toBe("19.2mph");
     expect(formatMark(2.74, "RSI")).toBe("2.74");
     expect(formatMark(2.48, "DRI")).toBe("2.48");
-    expect(formatMark(7.5, "ft")).toBe("7'6\"");
+    expect(formatMark(7.5, "ft")).toBe("7' 6\"");
     expect(formatMark(33.7, "in")).toBe("33.7in.");
     expect(formatMark(11.15, "%")).toBe("11.2%");
   });

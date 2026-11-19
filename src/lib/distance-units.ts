@@ -84,6 +84,7 @@ export function parseDistanceMagnitude(raw: string, unit: DistanceUnit): number 
 }
 
 export function formatFeetInches(feet: number): string {
+  if (!Number.isFinite(feet)) return "";
   const sign = feet < 0 ? "-" : "";
   const abs = Math.abs(feet);
   let whole = Math.floor(abs + 1e-9);
@@ -94,4 +95,11 @@ export function formatFeetInches(feet: number): string {
   }
   const inchText = Number.isInteger(inches) ? String(inches) : inches.toFixed(1);
   return `${sign}${whole}' ${inchText}"`;
+}
+
+export function formatStoredMark(value: number, units: string, plain: (n: number) => string): string {
+  if (!Number.isFinite(value)) return "";
+  if (units.toLowerCase() === "ft" || units.toLowerCase() === "feet") return formatFeetInches(value);
+  const body = plain(value);
+  return units ? `${body} ${units}` : body;
 }

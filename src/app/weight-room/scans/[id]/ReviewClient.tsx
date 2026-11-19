@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
+import { formatStoredMark } from "@/lib/distance-units";
 import {
   cellKey,
   parseScanExtraction,
@@ -57,7 +58,7 @@ function previewParsed(raw: string): string {
   }
   if (p.kind === "bw") return "BW";
   if (p.kind === "amrap") return `AMRAP ${p.reps}`;
-  if (p.kind === "output") return `${p.load} ${p.units}`;
+  if (p.kind === "output") return formatStoredMark(p.load, p.units, (n) => String(n));
   return raw.trim() ? "unknown" : "—";
 }
 
@@ -444,8 +445,13 @@ export function ReviewClient({ scanId }: { scanId: string }) {
                             <span className="text-foreground-muted">no mark</span>
                           ) : (
                             <span className="text-foreground-muted">
-                              {candidate.best_value}
-                              {candidate.units ? ` ${candidate.units}` : ""}
+                              {candidate.best_value == null
+                                ? ""
+                                : formatStoredMark(
+                                    candidate.best_value,
+                                    candidate.units ?? "",
+                                    (n) => String(n)
+                                  )}
                             </span>
                           )}
                         </label>

@@ -11,8 +11,21 @@ import {
   FORTY_YD_DASH,
   FORTY_YD_NAMED_FLIES,
 } from "@/lib/norms/editor-metrics";
+import {
+  defaultDistanceUnit,
+  formatFeetInches,
+  readMeasuredUnit,
+  type DistanceUnit,
+} from "@/lib/distance-units";
 import { getMetricsRegistry, segmentInputToCumulativeInput } from "@/lib/parser";
 import { EntryForm } from "../../EntryForm";
+
+const DISTANCE_UNIT_CHOICES: { unit: DistanceUnit; label: string }[] = [
+  { unit: "ft_in", label: "ft-in" },
+  { unit: "in", label: "in" },
+  { unit: "cm", label: "cm" },
+  { unit: "m", label: "m" },
+];
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 const metricsRegistry = getMetricsRegistry();
@@ -26,6 +39,19 @@ const PHASES = [
 ] as const;
 
 const metricOptions = sessionSetupMetricOptions();
+
+function metricInputUnits(metricKey: string): string {
+  return (
+    metricOptions.find((metric) => metric.key === metricKey)?.input_units ??
+    metricsRegistry[metricKey]?.input_units ??
+    ""
+  );
+}
+
+function isFeetDisplay(units: string): boolean {
+  const unit = units.toLowerCase();
+  return unit === "ft" || unit === "feet";
+}
 
 function isSplitMetric(option: { input_structure?: string; key: string }): boolean {
   return option.input_structure === "single_interval" && option.key.endsWith("_Split");
@@ -60,6 +86,7 @@ type EntryRow = {
   value: number;
   display_value: number;
   units: string;
+  measured_unit: string | null;
   raw_input: string | null;
   created_at: string;
   first_name: string;
@@ -95,6 +122,7 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
   const [editMode, setEditMode] = useState<"raw" | "override">("raw");
   const [editSplitEntryMode, setEditSplitEntryMode] = useState<"cumulative" | "segment">("cumulative");
   const [editRawInput, setEditRawInput] = useState("");
+  const [editMeasuredUnit, setEditMeasuredUnit] = useState<DistanceUnit | null>(null);
   const [editDisplayValue, setEditDisplayValue] = useState("");
   const [editUnits, setEditUnits] = useState("");
   const [editLoading, setEditLoading] = useState(false);
@@ -214,10 +242,15 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
 
   const editingEntryIsCumulative =
     metricOptions.find((m) => m.key === editingEntry?.metric_key)?.input_structure === "cumulative";
+  const editingDistanceDefault = editingEntry
+    ? defaultDistanceUnit(metricInputUnits(editingEntry.metric_key))
+    : null;
 
   function openEdit(row: EntryRow) {
+    const distanceDefault = defaultDistanceUnit(metricInputUnits(row.metric_key));
     setEditingEntry(row);
     setEditRawInput(row.raw_input ?? "");
+    setEditMeasuredUnit(readMeasuredUnit(row.measured_unit) ?? distanceDefault);
     setEditDisplayValue(String(row.display_value));
     setEditUnits(row.units ?? "");
     setEditMode("raw");
@@ -230,8 +263,17 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
     setEditError("");
     setEditLoading(true);
     try {
-      let body: { raw_input?: string; display_value?: number; units?: string };
+      let body: {
+        raw_input?: string;
+        display_value?: number;
+        units?: string;
+        measured_unit?: DistanceUnit;
+      };
       if (editMode === "raw") {
+        const measured =
+          editingDistanceDefault != null && editMeasuredUnit != null
+            ? { measured_unit: editMeasuredUnit }
+            : {};
         if (editingEntryIsCumulative && editSplitEntryMode === "segment") {
           const rawToSend = segmentInputToCumulativeInput(editRawInput.trim());
           if (rawToSend === null) {
@@ -239,9 +281,9 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
             setEditLoading(false);
             return;
           }
-          body = { raw_input: rawToSend };
+          body = { raw_input: rawToSend, ...measured };
         } else {
-          body = { raw_input: editRawInput.trim() };
+          body = { raw_input: editRawInput.trim(), ...measured };
         }
       } else {
         body = {
@@ -554,6 +596,7 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                     ? summarizeDropoff(picked.values, directionFromUnits(picked.units))
                     : null;
                   const value = Number(row.display_value);
+                  const feetMark = isFeetDisplay(row.units ?? "");
                   const isBest = summary != null && value === summary.initial;
                   const past =
                     summary != null &&
@@ -565,7 +608,7 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                     </td>
                     <td className="px-3 py-2">{formatEntryMetricLabel({ metric_key: row.metric_key, component: row.component }, metricsRegistry)}</td>
                     <td className="px-3 py-2 font-mono">
-                      {row.display_value}
+                      {feetMark ? formatFeetInches(value) : row.display_value}
                       {summary && isBest ? (
                         <div className="text-xs text-foreground-muted">{formatDropoffCaption(summary)}</div>
                       ) : null}
@@ -573,7 +616,7 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                         <div className="text-xs text-danger">Past the line</div>
                       ) : null}
                     </td>
-                    <td className="px-3 py-2 text-foreground-muted">{row.units}</td>
+                    <td className="px-3 py-2 text-foreground-muted">{feetMark ? "" : row.units}</td>
                     <td className="px-3 py-2 text-right">
                       {deleteConfirmId === row.id ? (
                         <span className="flex items-center justify-end gap-2">
@@ -666,6 +709,24 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                   <label htmlFor="edit_raw_input" className="mb-1 block text-sm font-medium text-foreground">
                     Raw input (re-parsed on save)
                   </label>
+                  {editingDistanceDefault != null ? (
+                    <div className="mb-2 flex gap-1">
+                      {DISTANCE_UNIT_CHOICES.map((choice) => (
+                        <button
+                          key={choice.unit}
+                          type="button"
+                          onClick={() => setEditMeasuredUnit(choice.unit)}
+                          className={`rounded px-3 py-1.5 text-sm font-medium ${
+                            editMeasuredUnit === choice.unit
+                              ? "bg-accent text-background"
+                              : "border border-border text-foreground hover:bg-surface-elevated"
+                          }`}
+                        >
+                          {choice.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                   {editingEntryIsCumulative && (
                     <div className="mb-2 flex gap-1 rounded border border-border bg-surface-elevated p-1">
                       <button
@@ -724,7 +785,8 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                       type="text"
                       value={editUnits}
                       onChange={(e) => setEditUnits(e.target.value)}
-                      className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground focus:border-accent"
+                      disabled={editingDistanceDefault != null}
+                      className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground focus:border-accent disabled:opacity-60"
                     />
                   </div>
                 </div>

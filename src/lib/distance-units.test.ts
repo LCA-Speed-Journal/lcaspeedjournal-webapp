@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   defaultDistanceUnit,
   formatFeetInches,
+  formatStoredMark,
   parseDistanceMagnitude,
   readMeasuredUnit,
   storedDistance,
@@ -29,6 +30,18 @@ describe("formatFeetInches", () => {
     expect(formatFeetInches(0)).toBe("0' 0\"");
     expect(formatFeetInches(7)).toBe("7' 0\"");
     expect(formatFeetInches(0.5)).toBe("0' 6\"");
+  });
+
+  it("prints nothing for a non-finite number", () => {
+    expect(formatFeetInches(Number.NaN)).toBe("");
+    expect(formatFeetInches(Number.POSITIVE_INFINITY)).toBe("");
+  });
+});
+
+describe("formatStoredMark", () => {
+  it("prints feet as feet-inches and leaves other units with the screen formatter", () => {
+    expect(formatStoredMark(6.5, "ft", (n) => n.toFixed(2))).toBe("6' 6\"");
+    expect(formatStoredMark(1.85, "s", (n) => n.toFixed(2))).toBe("1.85 s");
   });
 });
 

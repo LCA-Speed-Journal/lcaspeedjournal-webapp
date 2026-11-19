@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import useSWR from "swr";
 import { PageBackground } from "@/app/components/PageBackground";
+import { formatStoredMark } from "@/lib/distance-units";
 import { guestFields, searchGuests } from "@/lib/guest-athletes";
 import {
   HUGO_GROUP_META,
@@ -167,7 +168,7 @@ function previewParsed(raw: string): string {
     return p.reps != null ? `BW × ${p.reps}` : "BW";
   }
   if (p.kind === "amrap") return `AMRAP ${p.reps}`;
-  if (p.kind === "output") return `${p.load} ${p.units}`;
+  if (p.kind === "output") return formatStoredMark(p.load, p.units, (n) => String(n));
   if (p.kind === "duration") return `${p.load}s`;
   if (p.kind === "reps") return `${p.reps} reps`;
   if (p.kind === "distance") {

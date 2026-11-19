@@ -9,6 +9,7 @@ import {
   Line,
   Legend,
 } from "recharts";
+import { formatStoredMark } from "@/lib/distance-units";
 import type { ProgressionPoint } from "@/types";
 
 const ATHLETE_COLORS = [
@@ -173,12 +174,12 @@ export default function ProgressionChart({
             ) => {
               const v = Number(value);
               if (value == null || Number.isNaN(v)) return [null, name];
-              const str = v % 1 === 0 ? String(Math.round(v)) : v.toFixed(2);
+              const plain = (n: number) => (n % 1 === 0 ? String(Math.round(n)) : n.toFixed(2));
               const dataKey = typeof item?.dataKey === "string" ? item.dataKey : "";
               const winKey = dataKey.startsWith("val_") ? `win_${dataKey.slice(4)}` : "";
               const win = winKey ? item?.payload?.[winKey] : undefined;
               const windowSuffix = typeof win === "string" && win ? ` · ${win}` : "";
-              return [`${str} ${units}${windowSuffix}`, name];
+              return [`${formatStoredMark(v, units, plain)}${windowSuffix}`, name];
             }}
           />
           {showLegend ? <Legend /> : null}

@@ -15,6 +15,7 @@ import {
   View,
   renderToBuffer,
 } from "@react-pdf/renderer";
+import { formatFeetInches } from "@/lib/distance-units";
 import { orderBoard } from "./board-order";
 import type { BoardAthlete } from "./load";
 import {
@@ -155,17 +156,9 @@ export type DoorSheetData = {
   rows: ReturnType<typeof doorSheetAthletes>;
 };
 
-/** Same rounding as the board's mark formatter. Sprint stays in seconds; RSI and DRI stay two decimals. */
-function formatFeetInches(feet: number): string {
-  const totalInches = Math.round(Math.abs(feet) * 12);
-  const whole = Math.floor(totalInches / 12);
-  const inches = totalInches % 12;
-  const sign = feet < 0 ? "-" : "";
-  return `${sign}${whole}'${inches}"`;
-}
-
+/** Sprint stays in seconds; RSI and DRI stay two decimals. Feet use the shared feet-inches format. */
 function formatMark(value: number, units: string): string {
-  if (units === "ft") return formatFeetInches(value);
+  if (units === "ft" || units === "feet") return formatFeetInches(value);
   if (units === "in") {
     const body = Math.abs(value) >= 10 ? value.toFixed(1) : value.toFixed(2);
     return `${body}in.`;
