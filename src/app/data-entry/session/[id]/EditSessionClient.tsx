@@ -27,6 +27,20 @@ const DISTANCE_UNIT_CHOICES: { unit: DistanceUnit; label: string }[] = [
   { unit: "m", label: "m" },
 ];
 
+const RAW_UNIT_NAMES: Record<DistanceUnit, string> = {
+  ft_in: "feet-inches",
+  in: "inches",
+  cm: "centimeters",
+  m: "meters",
+};
+
+const RAW_UNIT_HINTS: Record<DistanceUnit, string> = {
+  ft_in: "A bare number is decimal feet. 6-6 is 6 feet 6 inches.",
+  in: "A bare number is inches.",
+  cm: "A bare number is centimeters.",
+  m: "A bare number is meters. The board still shows feet and inches.",
+};
+
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 const metricsRegistry = getMetricsRegistry();
 
@@ -707,7 +721,9 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
               {editMode === "raw" ? (
                 <div className="mb-4">
                   <label htmlFor="edit_raw_input" className="mb-1 block text-sm font-medium text-foreground">
-                    Raw input (re-parsed on save)
+                    {editingDistanceDefault != null && editMeasuredUnit
+                      ? `Raw input (${RAW_UNIT_NAMES[editMeasuredUnit]})`
+                      : "Raw input (re-parsed on save)"}
                   </label>
                   {editingDistanceDefault != null ? (
                     <div className="mb-2 flex gap-1">
@@ -760,6 +776,11 @@ export function EditSessionClient({ sessionId }: { sessionId: string }) {
                     onChange={(e) => setEditRawInput(e.target.value)}
                     className="w-full rounded border border-border bg-surface-elevated px-3 py-2 text-foreground focus:border-accent"
                   />
+                  {editingDistanceDefault != null && editMeasuredUnit ? (
+                    <p className="mt-1 text-xs text-foreground-muted">
+                      {RAW_UNIT_HINTS[editMeasuredUnit]}
+                    </p>
+                  ) : null}
                 </div>
               ) : (
                 <div className="mb-4 space-y-3">
