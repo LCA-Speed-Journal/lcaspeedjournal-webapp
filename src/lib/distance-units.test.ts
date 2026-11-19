@@ -3,6 +3,7 @@ import {
   defaultDistanceUnit,
   formatFeetInches,
   parseDistanceMagnitude,
+  readMeasuredUnit,
   storedDistance,
   type DistanceUnit,
 } from "./distance-units";
@@ -54,6 +55,18 @@ describe("parseDistanceMagnitude", () => {
   it("rejects a unit suffix that disagrees with the toggle", () => {
     expect(() => parseDistanceMagnitude("200cm", "ft_in")).toThrow(/unit/i);
     expect(() => parseDistanceMagnitude("6-6", "cm")).toThrow(/unit/i);
+  });
+});
+
+describe("readMeasuredUnit", () => {
+  it("accepts the four units and ignores anything else", () => {
+    expect(readMeasuredUnit("ft_in")).toBe("ft_in");
+    expect(readMeasuredUnit("in")).toBe("in");
+    expect(readMeasuredUnit("cm")).toBe("cm");
+    expect(readMeasuredUnit("m")).toBe("m");
+    expect(readMeasuredUnit("feet")).toBeNull();
+    expect(readMeasuredUnit(undefined)).toBeNull();
+    expect(readMeasuredUnit(null)).toBeNull();
   });
 });
 

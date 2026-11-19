@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql, withTransaction } from "@/lib/db";
 import { parseEntry, getMetricsRegistry } from "@/lib/parser";
+import { defaultDistanceUnit, readMeasuredUnit } from "@/lib/distance-units";
 import { decideSpeedRunRawPatch } from "@/lib/speed/raw-run";
 import { rowsForSpeedRun } from "@/lib/speed/save-rows";
 
@@ -19,6 +20,19 @@ type EntryRow = {
   raw_input: string;
   context_hugo_group: string | null;
 };
+
+function isMissingMeasuredUnitColumn(err: unknown): boolean {
+  const codes: string[] = [];
+  const messages: string[] = [];
+  let current: unknown = err;
+  for (let depth = 0; depth < 6 && current && typeof current === "object"; depth++) {
+    const rec = current as { code?: string; message?: string; cause?: unknown };
+    if (typeof rec.code === "string") codes.push(rec.code);
+    if (typeof rec.message === "string") messages.push(rec.message);
+    current = rec.cause;
+  }
+  return codes.includes("42703") && messages.join(" ").toLowerCase().includes("measured_unit");
+}
 
 type SessionRow = {
   day_splits: Record<string, number[]> | null;
@@ -53,15 +67,29 @@ export async function PATCH(
       }
       const unitsStr = units !== undefined ? String(units) : undefined;
       const { rows: currentRows } = await sql`
-        SELECT value, display_value, units FROM entries WHERE id = ${id} LIMIT 1
+        SELECT value, display_value, units, metric_key FROM entries WHERE id = ${id} LIMIT 1
       `;
       if (!currentRows.length) {
         return NextResponse.json({ error: "Entry not found" }, { status: 404 });
       }
-      const cur = currentRows[0] as { value: number; display_value: number; units: string };
+      const cur = currentRows[0] as {
+        value: number;
+        display_value: number;
+        units: string;
+        metric_key: string;
+      };
       const newValue = displayNum ?? cur.value;
       const newDisplayValue = displayNum ?? cur.display_value;
-      const newUnits = unitsStr ?? cur.units;
+      let newUnits = unitsStr ?? cur.units;
+      const metric = getMetricsRegistry()[cur.metric_key];
+      if (
+        metric &&
+        defaultDistanceUnit(metric.input_units) != null &&
+        unitsStr != null &&
+        unitsStr !== metric.display_units
+      ) {
+        newUnits = cur.units;
+      }
       const { rows } = await sql`
         UPDATE entries
         SET value = ${newValue}, display_value = ${newDisplayValue}, units = ${newUnits}
@@ -184,7 +212,21 @@ export async function PATCH(
           ? { day_splits: sess.day_splits ?? undefined, day_components: sess.day_components ?? undefined }
           : undefined;
 
-      const parsed = parseEntry(entry.metric_key, rawInputStr, sessionOverrides);
+      const measuredUnitProvided = Object.prototype.hasOwnProperty.call(body, "measured_unit");
+      const measuredUnit = readMeasuredUnit(body.measured_unit);
+      if (measuredUnitProvided && body.measured_unit != null && measuredUnit == null) {
+        return NextResponse.json(
+          { error: "measured_unit must be ft_in, in, cm, or m" },
+          { status: 400 }
+        );
+      }
+
+      const parsed = parseEntry(
+        entry.metric_key,
+        rawInputStr,
+        sessionOverrides,
+        measuredUnit ? { measuredUnit } : undefined
+      );
       const entryInterval = entry.interval_index;
       const entryComponent = entry.component ?? null;
       const match =
@@ -200,12 +242,30 @@ export async function PATCH(
         );
       }
 
-      const { rows } = await sql`
-        UPDATE entries
-        SET value = ${match.value}, display_value = ${match.display_value}, units = ${match.units}, raw_input = ${rawInputStr}
-        WHERE id = ${id}
-        RETURNING id, session_id, athlete_id, metric_key, interval_index, component, value, display_value, units, raw_input, created_at
-      `;
+      const updateParsed = (withMeasuredUnit: boolean) => {
+        if (withMeasuredUnit) {
+          return sql`
+            UPDATE entries
+            SET value = ${match.value}, display_value = ${match.display_value}, units = ${match.units}, raw_input = ${rawInputStr},
+                measured_unit = ${measuredUnit}
+            WHERE id = ${id}
+            RETURNING id, session_id, athlete_id, metric_key, interval_index, component, value, display_value, units, raw_input, created_at
+          `;
+        }
+        return sql`
+          UPDATE entries
+          SET value = ${match.value}, display_value = ${match.display_value}, units = ${match.units}, raw_input = ${rawInputStr}
+          WHERE id = ${id}
+          RETURNING id, session_id, athlete_id, metric_key, interval_index, component, value, display_value, units, raw_input, created_at
+        `;
+      };
+      let rows;
+      try {
+        ({ rows } = await updateParsed(measuredUnitProvided));
+      } catch (updateErr) {
+        if (!(measuredUnitProvided && isMissingMeasuredUnitColumn(updateErr))) throw updateErr;
+        ({ rows } = await updateParsed(false));
+      }
       if (!rows.length) {
         return NextResponse.json({ error: "Entry not found" }, { status: 404 });
       }

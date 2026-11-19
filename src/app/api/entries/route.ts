@@ -7,6 +7,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { parseEntry, getMetricsRegistry } from "@/lib/parser";
+import { readMeasuredUnit } from "@/lib/distance-units";
 import { parseContextHugoGroup } from "@/lib/guest-athletes";
 import { rsiTestFor } from "@/lib/battery/rsq";
 import { rowsForSpeedRun } from "@/lib/speed/save-rows";
@@ -23,7 +24,7 @@ function rsiQualifierForSave(metricKey: unknown, qualifier: unknown): string | n
   return RSI_QUALIFIERS.has(value) ? value : null;
 }
 
-function isMissingQualifierColumn(err: unknown): boolean {
+function postgresErrorText(err: unknown): { codes: string[]; message: string } {
   const codes: string[] = [];
   const messages: string[] = [];
   let current: unknown = err;
@@ -33,7 +34,17 @@ function isMissingQualifierColumn(err: unknown): boolean {
     if (typeof rec.message === "string") messages.push(rec.message);
     current = rec.cause;
   }
-  return codes.includes("42703") && messages.join(" ").toLowerCase().includes("qualifier");
+  return { codes, message: messages.join(" ").toLowerCase() };
+}
+
+function isMissingQualifierColumn(err: unknown): boolean {
+  const { codes, message } = postgresErrorText(err);
+  return codes.includes("42703") && message.includes("qualifier");
+}
+
+function isMissingMeasuredUnitColumn(err: unknown): boolean {
+  const { codes, message } = postgresErrorText(err);
+  return codes.includes("42703") && message.includes("measured_unit");
 }
 
 type StandardEntryInsert = {
@@ -47,11 +58,38 @@ type StandardEntryInsert = {
   units: string;
   raw_input: string;
   context_hugo_group: string | null;
+  measured_unit: string | null;
 };
 
 async function insertStandardEntry(row: StandardEntryInsert, qualifier: string | null) {
-  const run = (withQualifier: boolean) => {
-    if (withQualifier && qualifier != null) {
+  const run = (withQualifier: boolean, withMeasuredUnit: boolean) => {
+    const includeQualifier = withQualifier && qualifier != null;
+    if (includeQualifier && withMeasuredUnit) {
+      return sql`
+        INSERT INTO entries (
+          session_id, athlete_id, metric_key,
+          interval_index, component,
+          value, display_value, units, raw_input,
+          context_hugo_group, qualifier, measured_unit
+        )
+        VALUES (
+          ${row.session_id},
+          ${row.athlete_id},
+          ${row.metric_key},
+          ${row.interval_index},
+          ${row.component},
+          ${row.value},
+          ${row.display_value},
+          ${row.units},
+          ${row.raw_input},
+          ${row.context_hugo_group},
+          ${qualifier},
+          ${row.measured_unit}
+        )
+        RETURNING id
+      `;
+    }
+    if (includeQualifier) {
       return sql`
         INSERT INTO entries (
           session_id, athlete_id, metric_key,
@@ -71,6 +109,30 @@ async function insertStandardEntry(row: StandardEntryInsert, qualifier: string |
           ${row.raw_input},
           ${row.context_hugo_group},
           ${qualifier}
+        )
+        RETURNING id
+      `;
+    }
+    if (withMeasuredUnit) {
+      return sql`
+        INSERT INTO entries (
+          session_id, athlete_id, metric_key,
+          interval_index, component,
+          value, display_value, units, raw_input,
+          context_hugo_group, measured_unit
+        )
+        VALUES (
+          ${row.session_id},
+          ${row.athlete_id},
+          ${row.metric_key},
+          ${row.interval_index},
+          ${row.component},
+          ${row.value},
+          ${row.display_value},
+          ${row.units},
+          ${row.raw_input},
+          ${row.context_hugo_group},
+          ${row.measured_unit}
         )
         RETURNING id
       `;
@@ -106,14 +168,21 @@ async function insertStandardEntry(row: StandardEntryInsert, qualifier: string |
       ),
     ]);
 
-  try {
-    return await withTimeout(run(qualifier != null));
-  } catch (err) {
-    if (qualifier != null && isMissingQualifierColumn(err)) {
-      return await withTimeout(run(false));
+  const attempt = async (withQualifier: boolean, withMeasuredUnit: boolean) => {
+    try {
+      return await withTimeout(run(withQualifier, withMeasuredUnit));
+    } catch (err) {
+      if (withMeasuredUnit && isMissingMeasuredUnitColumn(err)) {
+        return attempt(withQualifier, false);
+      }
+      if (withQualifier && qualifier != null && isMissingQualifierColumn(err)) {
+        return attempt(false, withMeasuredUnit);
+      }
+      throw err;
     }
-    throw err;
-  }
+  };
+
+  return attempt(qualifier != null, true);
 }
 
 function isMissingSpeedWindowColumn(err: unknown): boolean {
@@ -138,6 +207,64 @@ function isMissingSpeedWindowColumn(err: unknown): boolean {
   );
 }
 
+async function listSessionEntries(
+  sessionId: string,
+  withSpeedWindow: boolean,
+  withMeasuredUnit: boolean
+) {
+  if (withSpeedWindow && withMeasuredUnit) {
+    const { rows } = await sql`
+      SELECT e.id, e.session_id, e.athlete_id, e.metric_key, e.interval_index, e.component,
+             e.value, e.display_value, e.units, e.raw_input, e.created_at,
+             e.distance_unit, e.start_distance, e.end_distance,
+             e.legacy_metric_key, e.legacy_component, e.measured_unit,
+             a.first_name, a.last_name
+      FROM entries e
+      JOIN athletes a ON a.id = e.athlete_id
+      WHERE e.session_id = ${sessionId}
+      ORDER BY a.last_name, a.first_name, e.metric_key, e.interval_index NULLS LAST, e.component NULLS LAST
+    `;
+    return NextResponse.json({ data: rows });
+  }
+  if (withSpeedWindow) {
+    const { rows } = await sql`
+      SELECT e.id, e.session_id, e.athlete_id, e.metric_key, e.interval_index, e.component,
+             e.value, e.display_value, e.units, e.raw_input, e.created_at,
+             e.distance_unit, e.start_distance, e.end_distance,
+             e.legacy_metric_key, e.legacy_component,
+             a.first_name, a.last_name
+      FROM entries e
+      JOIN athletes a ON a.id = e.athlete_id
+      WHERE e.session_id = ${sessionId}
+      ORDER BY a.last_name, a.first_name, e.metric_key, e.interval_index NULLS LAST, e.component NULLS LAST
+    `;
+    return NextResponse.json({ data: rows });
+  }
+  if (withMeasuredUnit) {
+    const { rows } = await sql`
+      SELECT e.id, e.session_id, e.athlete_id, e.metric_key, e.interval_index, e.component,
+             e.value, e.display_value, e.units, e.raw_input, e.created_at,
+             e.measured_unit,
+             a.first_name, a.last_name
+      FROM entries e
+      JOIN athletes a ON a.id = e.athlete_id
+      WHERE e.session_id = ${sessionId}
+      ORDER BY a.last_name, a.first_name, e.metric_key, e.interval_index NULLS LAST, e.component NULLS LAST
+    `;
+    return NextResponse.json({ data: rows });
+  }
+  const { rows } = await sql`
+    SELECT e.id, e.session_id, e.athlete_id, e.metric_key, e.interval_index, e.component,
+           e.value, e.display_value, e.units, e.raw_input, e.created_at,
+           a.first_name, a.last_name
+    FROM entries e
+    JOIN athletes a ON a.id = e.athlete_id
+    WHERE e.session_id = ${sessionId}
+    ORDER BY a.last_name, a.first_name, e.metric_key, e.interval_index NULLS LAST, e.component NULLS LAST
+  `;
+  return NextResponse.json({ data: rows });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -150,30 +277,23 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-      const { rows } = await sql`
-        SELECT e.id, e.session_id, e.athlete_id, e.metric_key, e.interval_index, e.component,
-               e.value, e.display_value, e.units, e.raw_input, e.created_at,
-               e.distance_unit, e.start_distance, e.end_distance,
-               e.legacy_metric_key, e.legacy_component,
-               a.first_name, a.last_name
-        FROM entries e
-        JOIN athletes a ON a.id = e.athlete_id
-        WHERE e.session_id = ${sessionId}
-        ORDER BY a.last_name, a.first_name, e.metric_key, e.interval_index NULLS LAST, e.component NULLS LAST
-      `;
-      return NextResponse.json({ data: rows });
+      return await listSessionEntries(sessionId, true, true);
     } catch (err) {
+      if (isMissingMeasuredUnitColumn(err)) {
+        try {
+          return await listSessionEntries(sessionId, true, false);
+        } catch (inner) {
+          if (!isMissingSpeedWindowColumn(inner)) throw inner;
+          return await listSessionEntries(sessionId, false, false);
+        }
+      }
       if (!isMissingSpeedWindowColumn(err)) throw err;
-      const { rows } = await sql`
-        SELECT e.id, e.session_id, e.athlete_id, e.metric_key, e.interval_index, e.component,
-               e.value, e.display_value, e.units, e.raw_input, e.created_at,
-               a.first_name, a.last_name
-        FROM entries e
-        JOIN athletes a ON a.id = e.athlete_id
-        WHERE e.session_id = ${sessionId}
-        ORDER BY a.last_name, a.first_name, e.metric_key, e.interval_index NULLS LAST, e.component NULLS LAST
-      `;
-      return NextResponse.json({ data: rows });
+      try {
+        return await listSessionEntries(sessionId, false, true);
+      } catch (inner) {
+        if (!isMissingMeasuredUnitColumn(inner)) throw inner;
+        return await listSessionEntries(sessionId, false, false);
+      }
     }
   } catch (err) {
     console.error("GET /api/entries:", err);
@@ -260,7 +380,13 @@ export async function POST(request: NextRequest) {
         ? { day_splits: sess.day_splits, day_components: sess.day_components }
         : undefined;
 
-    const parsed = parseEntry(metric_key, rawInputStr, sessionOverrides);
+    const measuredUnit = readMeasuredUnit(body.measured_unit);
+    const parsed = parseEntry(
+      metric_key,
+      rawInputStr,
+      sessionOverrides,
+      measuredUnit ? { measuredUnit } : undefined
+    );
 
     const qualifier = rsiQualifierForSave(metric_key, body.qualifier);
     const ids: string[] = [];
@@ -287,6 +413,7 @@ export async function POST(request: NextRequest) {
           units: row.units,
           raw_input: rawInputStr,
           context_hugo_group: contextHugoGroup,
+          measured_unit: measuredUnit,
         },
         rowQualifier
       );

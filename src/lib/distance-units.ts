@@ -2,6 +2,11 @@ import { distanceFtFromCm, distanceFtFromM } from "./conversions";
 
 export type DistanceUnit = "ft_in" | "in" | "cm" | "m";
 
+export function readMeasuredUnit(value: unknown): DistanceUnit | null {
+  if (value === "ft_in" || value === "in" || value === "cm" || value === "m") return value;
+  return null;
+}
+
 export function defaultDistanceUnit(inputUnits: string): DistanceUnit | null {
   const unit = inputUnits.toLowerCase();
   if (unit === "ft" || unit === "feet") return "ft_in";
